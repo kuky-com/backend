@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 5uDop94oomy&v(N
+      POSTGRES_DB: kuky
+      DB_PORT: 5428
+      DB_HOST: localhost
+      PGUSER: admin
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5428:5432"
+  
+  # node:
+  #   build: .
+  #   volumes:
+  #     - .:/app
+  #     - '/app/node_modules'
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - postgres
+  
+volumes:
+  pgdata:

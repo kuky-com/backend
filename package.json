@@ -1,0 +1,45 @@
+{
+  "name": "kuky",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:kuky-com/backend.git",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.1",
+    "@aws-sdk/client-ses": "^3.658.1",
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.5",
+    "errorhandler": "^1.5.1",
+    "express": "^4.21.0",
+    "firebase-admin": "^12.6.0",
+    "google-auth-library": "^9.14.1",
+    "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
+    "nodemailer": "^6.9.15",
+    "openai": "^4.66.1",
+    "passport": "^0.7.0",
+    "passport-apple": "^2.0.2",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.13.0",
+    "sequelize": "^6.37.3",
+    "uuid": "^10.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "_moduleAliases": {
+    "@": "src",
+    "@config": "src/config",
+    "@controllers": "src/controllers",
+    "@models": "src/models",
+    "@routes": "src/routes"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7",
+    "sequelize-cli": "^6.6.2"
+  }
+}
