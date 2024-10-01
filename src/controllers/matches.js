@@ -18,12 +18,12 @@ const { Op } = require('sequelize');
 var admin = require("firebase-admin");
 const { v4: uuidv4 } = require('uuid')
 
-var serviceAccount = require("../config/serviceAccountKey.json");
+// var serviceAccount = require("../config/serviceAccountKey.json");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// });
+// const db = admin.firestore();
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
