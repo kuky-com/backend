@@ -1,5 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users')
+const Purposes = require('./purposes')
 
 const UserPurpose = sequelize.define('user_purpose', {
   id: {
@@ -14,7 +16,7 @@ const UserPurpose = sequelize.define('user_purpose', {
       model: 'users',
       key: 'id',
     },
-    onDelete: 'CASCADE',
+    onDelete: 'DO NOTHING',
   },
   purpose_id: {
     type: DataTypes.INTEGER,
@@ -23,8 +25,14 @@ const UserPurpose = sequelize.define('user_purpose', {
       model: 'purposes',
       key: 'id',
     },
-    onDelete: 'CASCADE',
+    onDelete: 'DO NOTHING',
   }
 });
+
+Users.belongsToMany(Purposes, { through: UserPurpose, foreignKey: 'user_id' });
+Purposes.belongsToMany(Users, { through: UserPurpose, foreignKey: 'purpose_id' });
+
+// UserPurpose.hasMany(Purposes, { foreignKey: 'purpose_id' });
+// UserPurpose.hasMany(Users, { foreignKey: 'user_id' });
 
 module.exports = UserPurpose;

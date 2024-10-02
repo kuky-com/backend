@@ -39,7 +39,6 @@
     "@routes": "src/routes"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7",
-    "sequelize-cli": "^6.6.2"
+    "nodemon": "^3.1.7"
   }
 }

@@ -5,6 +5,7 @@ const sequelize = require('./src/config/database')
 const router = require('./src/routes')
 const bodyParser = require('body-parser');
 const errorHandler = require('errorhandler');
+const { createDefaultTags } = require('./src/seeds/tags');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api', router);
 async function syncDatabase() {
     try {
         await sequelize.sync({ force: false }); 
+        createDefaultTags()
         console.log('Database & tables have been created successfully.');
     } catch (error) {
         console.error('Error syncing the database:', error);

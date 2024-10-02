@@ -14,6 +14,7 @@ const Purposes = require('../models/purposes')
 const Interests = require('../models/interests')
 const Tags = require('../models/tags')
 const { OpenAI } = require('openai');
+const { Op } = require('sequelize');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -100,7 +101,6 @@ const getUserInterests = async (user_id) => {
 
 async function updatePurposes({ user_id, purposes }) {
     try {
-
         const currentUserPurposes = await UserPurpose.findAll({
             where: { user_id },
             include: [{ model: Purposes }]
@@ -193,11 +193,11 @@ async function updateLikes({ user_id, likes }) {
     }
 }
 
-async function updateDislike({ user_id, dislikes }) {
+async function updateDislikes({ user_id, dislikes }) {
     try {
 
         const currentUserDislikes = await UserInterest.findAll({
-            where: { user_id, interest_type: 'dislikes' },
+            where: { user_id, interest_type: 'dislike' },
             include: [{ model: Interests }]
         });
 
@@ -215,19 +215,19 @@ async function updateDislike({ user_id, dislikes }) {
         await UserInterest.destroy({
             where: {
                 user_id,
-                interest_type: 'dislikes',
+                interest_type: 'dislike',
                 interest_id: { [Op.notIn]: newInterestIds }
             }
         });
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentDislikesIds.includes(interest_id)) {
-                await UserInterest.create({ user_id, interest_type: 'dislikes', interest_id });
+                await UserInterest.create({ user_id, interest_type: 'dislike', interest_id });
             }
         }));
 
         const newUserDislikes = await UserInterest.findAll({
-            where: { user_id, interest_type: 'dislikes' },
+            where: { user_id, interest_type: 'dislike' },
             include: [{ model: Interests }]
         });
 
@@ -308,6 +308,6 @@ module.exports = {
     getDislikes,
     updatePurposes,
     updateLikes,
-    updateDislike,
+    updateDislikes,
     updateProfileTag
 }

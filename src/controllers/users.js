@@ -8,6 +8,10 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const crypto = require('crypto')
 const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
+const Purposes = require('../models/purposes');
+const Interests = require('../models/interests');
+const UserPurpose = require('../models/user_purpose');
+const UserInterest = require('../models/user_interest');
 const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
 
@@ -43,7 +47,11 @@ async function getProfile({user_id}) {
     try {
         const user = await Users.findOne({
             where: { id: user_id },
-            attributes: {exclude: ['password']}
+            attributes: {exclude: ['password']},
+            include: [
+                {model: Purposes},
+                {model: Interests}
+            ]
         });
 
         if (!user) {
