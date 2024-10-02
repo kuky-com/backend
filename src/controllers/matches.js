@@ -148,19 +148,31 @@ async function getExploreList({ user_id }) {
 
 async function getMatches({ user_id }) {
     try {
-        const matches = Matches.findAll({
+        const matches = await Matches.findAll({
             where: {
                 [Op.or]: [
                     { sender_id: user_id },
                     { receiver_id: user_id }
                 ],
-                status: 'accepts'
-            }
+                status: 'accepted',
+            },
+            raw: true
         })
+
+        const finalMatches = []
+        for(const match of matches) {
+            if(match.sender_id === user_id) {
+                const userInfo = await getProfile({user_id: match.receiver_id})
+                finalMatches.push({...match, profile: userInfo.data})
+            } else {
+                const userInfo = await getProfile({user_id: match.sender_id})
+                finalMatches.push({...match, profile: userInfo.data})
+            }
+        }
 
         return Promise.resolve({
             message: 'Matches list',
-            data: matches
+            data: finalMatches
         })
     } catch (error) {
         return Promise.resolve(error)
@@ -217,9 +229,9 @@ async function acceptSuggestion({ user_id, friend_id }) {
             })
         } else {
             if (existMatch.status === 'sent') {
-                const conversation_id = createConversation(user_id, friend_id)
+                const conversation_id = await createConversation(user_id, friend_id)
                 if (conversation_id) {
-                    existMatch = await Matches.update({ status: 'accepted', conversation_id }, {
+                    existMatch = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
                         where: {
                             id: existMatch.id
                         }
