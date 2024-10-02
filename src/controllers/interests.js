@@ -8,13 +8,14 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const crypto = require('crypto')
 const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
-const UserPurpose = require('../models/user_purpose')
-const UserInterest = require('../models/user_interest')
+const UserPurposes = require('../models/user_purposes')
+const UserInterests = require('../models/user_interests')
 const Purposes = require('../models/purposes')
 const Interests = require('../models/interests')
 const Tags = require('../models/tags')
 const { OpenAI } = require('openai');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
+const { getProfile } = require('./users');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -22,7 +23,7 @@ const openai = new OpenAI({
 
 async function getPurposes({ user_id }) {
     try {
-        const purposes = await UserPurpose.findAll({
+        const purposes = await UserPurposes.findAll({
             where: {
                 user_id: user_id
             },
@@ -43,13 +44,18 @@ async function getPurposes({ user_id }) {
 
 async function getLikes({ user_id }) {
     try {
-        const likes = await UserInterest.findAll({
+        const likes = await UserInterests.findAll({
             where: {
                 user_id: user_id,
                 interest_type: 'like'
             },
+            attributes: {
+                include: [
+                  [Sequelize.col('interest.name'), 'name'],
+                ],
+              },
             include: [
-                { model: Interests }
+                { model: Interests, attributes: [['name', 'name']] }
             ]
         })
 
@@ -65,13 +71,18 @@ async function getLikes({ user_id }) {
 
 async function getDislikes({ user_id }) {
     try {
-        const likes = await UserInterest.findAll({
+        const likes = await UserInterests.findAll({
             where: {
                 user_id: user_id,
                 interest_type: 'dislike'
             },
+            attributes: {
+                include: [
+                  [Sequelize.col('interest.name'), 'name'],
+                ],
+              },
             include: [
-                { model: Interests }
+                { model: Interests, attributes: [['name', 'name']] }
             ]
         })
 
@@ -86,10 +97,10 @@ async function getDislikes({ user_id }) {
 }
 
 const getUserInterests = async (user_id) => {
-    const userInterests = await db.user_interest.findAll({
+    const userInterests = await UserInterests.findAll({
         where: { user_id },
         include: [
-            { model: Interests }
+            { model: Interests, attributes: [['name', 'name']] }
         ]
     });
 
@@ -101,7 +112,7 @@ const getUserInterests = async (user_id) => {
 
 async function updatePurposes({ user_id, purposes }) {
     try {
-        const currentUserPurposes = await UserPurpose.findAll({
+        const currentUserPurposes = await UserPurposes.findAll({
             where: { user_id },
             include: [{ model: Purposes }]
         });
@@ -117,7 +128,7 @@ async function updatePurposes({ user_id, purposes }) {
 
         const newPurposeIds = purposeRecords.map(p => p.id);
 
-        await UserPurpose.destroy({
+        await UserPurposes.destroy({
             where: {
                 user_id,
                 purpose_id: { [Op.notIn]: newPurposeIds }
@@ -126,11 +137,11 @@ async function updatePurposes({ user_id, purposes }) {
 
         await Promise.all(newPurposeIds.map(async (purpose_id) => {
             if (!currentPurposeIds.includes(purpose_id)) {
-                await UserPurpose.create({ user_id, purpose_id });
+                await UserPurposes.create({ user_id, purpose_id });
             }
         }));
 
-        const newUserPurposes = await UserPurpose.findAll({
+        const newUserPurposes = await UserPurposes.findAll({
             where: { user_id },
             include: [{ model: Purposes }]
         });
@@ -148,7 +159,7 @@ async function updatePurposes({ user_id, purposes }) {
 async function updateLikes({ user_id, likes }) {
     try {
 
-        const currentUserLikes = await UserInterest.findAll({
+        const currentUserLikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'like' },
             include: [{ model: Interests }]
         });
@@ -164,7 +175,7 @@ async function updateLikes({ user_id, likes }) {
 
         const newInterestIds = interestRecords.map(p => p.id);
 
-        await UserInterest.destroy({
+        await UserInterests.destroy({
             where: {
                 user_id,
                 interest_type: 'like',
@@ -174,11 +185,12 @@ async function updateLikes({ user_id, likes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentLikesIds.includes(interest_id)) {
-                await UserInterest.create({ user_id, interest_type: 'like', interest_id });
+                console.log({action: 'add new like', user_id, interest_id})
+                await UserInterests.create({ user_id, interest_type: 'like', interest_id });
             }
         }));
 
-        const newUserLikes = await UserInterest.findAll({
+        const newUserLikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'like' },
             include: [{ model: Interests }]
         });
@@ -196,7 +208,7 @@ async function updateLikes({ user_id, likes }) {
 async function updateDislikes({ user_id, dislikes }) {
     try {
 
-        const currentUserDislikes = await UserInterest.findAll({
+        const currentUserDislikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'dislike' },
             include: [{ model: Interests }]
         });
@@ -210,9 +222,11 @@ async function updateDislikes({ user_id, dislikes }) {
             return interest;
         }));
 
+        console.log({interestRecords, dislikes})
+
         const newInterestIds = interestRecords.map(p => p.id);
 
-        await UserInterest.destroy({
+        await UserInterests.destroy({
             where: {
                 user_id,
                 interest_type: 'dislike',
@@ -222,11 +236,12 @@ async function updateDislikes({ user_id, dislikes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentDislikesIds.includes(interest_id)) {
-                await UserInterest.create({ user_id, interest_type: 'dislike', interest_id });
+                console.log({action: 'add new dislike', user_id, interest_id})
+                await UserInterests.create({ user_id, interest_type: 'dislike', interest_id });
             }
         }));
 
-        const newUserDislikes = await UserInterest.findAll({
+        const newUserDislikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'dislike' },
             include: [{ model: Interests }]
         });
@@ -242,7 +257,7 @@ async function updateDislikes({ user_id, dislikes }) {
 }
 
 const getTagIdsByName = async (tagNames) => {
-    const tags = await db.tags.findAll({
+    const tags = await Tags.findAll({
         where: {
             name: tagNames
         }
@@ -259,41 +274,45 @@ async function updateProfileTag({ user_id }) {
         let dislikes = [];
 
         interests.forEach((userInterest) => {
-            if (userInterest.interestType === 'like') {
-                likes.push(userInterest.Interest.name);
-            } else if (userInterest.interestType === 'dislike') {
-                dislikes.push(userInterest.Interest.name);
+            console.log({userInterest})
+            if (userInterest.type === 'like') {
+                likes.push(userInterest.interest);
+            } else if (userInterest.type === 'dislike') {
+                dislikes.push(userInterest.interest);
             }
         });
 
         const tags = await Tags.findAll({
-            attributes: ['name']
+            attributes: ['id', 'name'],
+            raw: true
         })
-
+        const tagNames = tags.map((tag) => tag.name)
+        
         const prompt = `Based on the following user interests, categorize this user into the most suitable category based on the provided tags:
-  
+        
         Likes: ${likes.join(', ')}
         Dislikes: ${dislikes.join(', ')}
         
-        Tags: ${tags.join(', ')}
+        Tags: ${tagNames.join(', ')}
         
-        Provide a category for the user based on these tags.`
-
-        const response = await openai.createCompletion({
-            model: 'text-davinci-003',
+        Provide a category for the user based on these tags.  Just show category name no other words.`
+        const response = await openai.completions.create({
+            model: 'gpt-3.5-turbo-instruct',
             prompt,
             max_tokens: 150,
         });
-
-        const bestTagName = response.data.choices[0].text.trim();
+        const bestTagName = response.choices[0].text.trim();
         const bestTag = tags.find(tag => tag.name.toLowerCase() === bestTagName.toLowerCase());
+
         const updatedUser = await Users.update({ profile_tag: bestTag.id }, {
-            id: user_id
+            where: {id: user_id}
         })
+
+        const userInfo = await getProfile({user_id})
 
         return Promise.resolve({
             message: 'User profile tag has been updated!',
-            data: updatedUser
+            data: userInfo.data
         })
 
     } catch (error) {

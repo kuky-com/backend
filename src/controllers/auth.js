@@ -160,9 +160,9 @@ async function googleLogin({ token, session_token, device_id, platform }) {
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
-
         const payload = ticket.getPayload();
         const email = payload.email;
+        const full_name = payload.name
 
         let user = await Users.findOne({ where: { email } });
 
@@ -171,6 +171,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
                 email,
                 login_type: 'google',
                 email_verified: true,
+                full_name
             });
         }
 
@@ -182,20 +183,20 @@ async function googleLogin({ token, session_token, device_id, platform }) {
             session_token
         });
 
-        const token = generateToken(newSession.id, user.id);
+        const access_token = generateToken(newSession.id, user.id);
 
         const userInfo = await usersController.getUser(user.id)
 
         return Promise.resolve({
             data: {
                 user: userInfo,
-                token
+                token: access_token
             },
             message: 'Login successful'
         })
     } catch (error) {
         console.error(error);
-        return Promise.reject('Invalid Google token');
+        return Promise.reject(error);
     }
 }
 
@@ -239,14 +240,14 @@ async function appleLogin({ token, session_token, device_id, platform }) {
             session_token
         });
 
-        const token = generateToken(newSession.id, user.id);
+        const access_token = generateToken(newSession.id, user.id);
 
         const userInfo = await usersController.getUser(user.id)
 
         return Promise.resolve({
             data: {
                 user: userInfo,
-                token
+                token: access_token
             },
             message: 'Login successful'
         })

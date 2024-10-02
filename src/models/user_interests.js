@@ -3,7 +3,7 @@ const sequelize = require('@/config/database');
 const Users = require('./users')
 const Intestests = require('./interests')
 
-const UserInterest = sequelize.define('user_interest', {
+const UserInterests = sequelize.define('user_interests', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -16,7 +16,7 @@ const UserInterest = sequelize.define('user_interest', {
       model: 'users',
       key: 'id',
     },
-    onDelete: 'DO NOTHING',
+    onDelete: 'NO ACTION',
   },
   interest_id: {
     type: DataTypes.INTEGER,
@@ -25,17 +25,17 @@ const UserInterest = sequelize.define('user_interest', {
       model: 'interests',
       key: 'id',
     },
-    onDelete: 'DO NOTHING',
+    onDelete: 'NO ACTION',
   },
   interest_type: {
     type: DataTypes.ENUM('like', 'dislike')
   }
 });
 
-Users.belongsToMany(Intestests, { through: UserInterest, foreignKey: 'user_id' });
-Intestests.belongsToMany(Users, { through: UserInterest, foreignKey: 'interest_id' });
+Users.belongsToMany(Intestests, { through: UserInterests, foreignKey: 'user_id' });
+Intestests.belongsToMany(Users, { through: UserInterests, foreignKey: 'interest_id' });
 
-// UserInterest.hasMany(Intestests, { foreignKey: 'interest_id' });
-// UserInterest.hasMany(Users, { foreignKey: 'user_id' });
+UserInterests.belongsTo(Users, { foreignKey: 'user_id' });
+UserInterests.belongsTo(Intestests, { foreignKey: 'interest_id' });
 
-module.exports = UserInterest;
+module.exports = UserInterests;

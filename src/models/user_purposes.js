@@ -3,7 +3,7 @@ const sequelize = require('@/config/database');
 const Users = require('./users')
 const Purposes = require('./purposes')
 
-const UserPurpose = sequelize.define('user_purpose', {
+const UserPurposes = sequelize.define('user_purposes', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -16,7 +16,7 @@ const UserPurpose = sequelize.define('user_purpose', {
       model: 'users',
       key: 'id',
     },
-    onDelete: 'DO NOTHING',
+    onDelete: 'NO ACTION',
   },
   purpose_id: {
     type: DataTypes.INTEGER,
@@ -25,14 +25,14 @@ const UserPurpose = sequelize.define('user_purpose', {
       model: 'purposes',
       key: 'id',
     },
-    onDelete: 'DO NOTHING',
+    onDelete: 'NO ACTION',
   }
 });
 
-Users.belongsToMany(Purposes, { through: UserPurpose, foreignKey: 'user_id' });
-Purposes.belongsToMany(Users, { through: UserPurpose, foreignKey: 'purpose_id' });
+Users.belongsToMany(Purposes, { through: UserPurposes, foreignKey: 'user_id' });
+Purposes.belongsToMany(Users, { through: UserPurposes, foreignKey: 'purpose_id' });
 
-// UserPurpose.hasMany(Purposes, { foreignKey: 'purpose_id' });
-// UserPurpose.hasMany(Users, { foreignKey: 'user_id' });
+UserPurposes.belongsTo(Users, { foreignKey: 'user_id' });
+UserPurposes.belongsTo(Purposes, { foreignKey: 'purpose_id' });
 
-module.exports = UserPurpose;
+module.exports = UserPurposes;

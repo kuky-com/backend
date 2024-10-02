@@ -8,49 +8,64 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const crypto = require('crypto')
 const bcrypt = require('bcrypt');
 const Matches = require('../models/matches');
-const UserPurpose = require('../models/user_purpose')
-const UserInterest = require('../models/user_interest')
+const UserPurposes = require('../models/user_purposes')
+const UserInterests = require('../models/user_interests')
 const Purposes = require('../models/purposes')
 const Interests = require('../models/interests')
 const Tags = require('../models/tags')
 const { OpenAI } = require('openai');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 var admin = require("firebase-admin");
 const { v4: uuidv4 } = require('uuid')
 
-// var serviceAccount = require("../config/serviceAccountKey.json");
+var serviceAccount = require("../config/serviceAccountKey.json");
+const { getProfile } = require('./users');
 
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount)
-// });
-// const db = admin.firestore();
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const db = admin.firestore();
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 })
 
 async function getUserDetails(user_id) {
-    const interests = await UserInterest.findAll({
+    const interests = await UserInterests.findAll({
         where: { user_id },
-        include: [{ model: Interests }]
+        attributes: {
+            include: [
+              [Sequelize.col('interest.name'), 'name'],
+            ],
+          },
+        include: [
+            { model: Interests, attributes: [['name', 'name']] }
+        ]
     });
 
-    const purposes = await UserPurpose.findAll({
+    const purposes = await UserPurposes.findAll({
         where: { user_id },
-        include: [{ model: Purposes }]
+        attributes: {
+            include: [
+              [Sequelize.col('purpose.name'), 'name'],
+            ],
+          },
+        include: [
+            { model: Purposes, attributes: [['name', 'name']] }
+        ]
     });
 
     return {
         interests: interests.map(ui => ({
-            name: ui.Interest.name,
-            type: ui.interest_type
+            name: ui.interest.name,
+            type: ui.type
         })),
-        purposes: purposes.map(up => up.Purpose.name)
+        purposes: purposes.map(up => up.purpose.name)
     };
 }
 
 function generateMatchingPrompt(user1Details, user2Details) {
-    return `Match these two users based on their likes, dislikes, and purposes.
+    const prompt = `Match these two users based on their likes, dislikes, and purposes.
   
     User 1 Likes: ${user1Details.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
     User 1 Dislikes: ${user1Details.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
@@ -61,6 +76,8 @@ function generateMatchingPrompt(user1Details, user2Details) {
     User 2 Purposes: ${user2Details.purposes.join(', ')}
   
     Give a matching score between 0 to 100 and explain the common areas and differences.`;
+
+    return prompt
 }
 
 async function matchUsers(userId1, userId2) {
@@ -68,16 +85,17 @@ async function matchUsers(userId1, userId2) {
         const user1Details = await getUserDetails(userId1);
         const user2Details = await getUserDetails(userId2);
 
+        console.log({user1Details, user2Details})
         const prompt = generateMatchingPrompt(user1Details, user2Details);
 
-        const response = await openai.createCompletion({
-            model: 'text-davinci-003',
+        const response = await openai.completions.create({
+            model: 'gpt-3.5-turbo-instruct',
             prompt: prompt,
             max_tokens: 150,
             temperature: 0.7
         });
 
-        return response.data.choices[0].text.trim();
+        return response.choices[0].text.trim();
     } catch (error) {
         console.error('Error matching users:', error);
         throw error;
@@ -87,26 +105,37 @@ async function matchUsers(userId1, userId2) {
 async function getExploreList({ user_id }) {
     try {
         const suggestions = [];
+        const idSuggestions = [];
 
-        const allUserIds = Users.findAll({
+        const allUserIds = await Users.findAll({
             where: {
                 is_active: true
             },
-            attributes: ['id']
+            attributes: ['id'],
+            raw: true
         })
 
-        for (const userId of allUserIds) {
-            if (userId !== user_id) {
-                const matchResult = await matchUsers(user_id, userId);
-                suggestions.push({ userId, matchResult });
+        for (const user of allUserIds) {
+            if (user.id !== user_id) {
+                const matchResult = await matchUsers(user_id, user.id);
+                idSuggestions.push({ id: user.id, matchResult });
             }
         }
 
-        suggestions.sort((a, b) => {
+        idSuggestions.sort((a, b) => {
             const scoreA = parseInt(a.matchResult.match(/\d+/)[0]);
             const scoreB = parseInt(b.matchResult.match(/\d+/)[0]);
             return scoreB - scoreA;
         });
+
+        for(const rawuser of idSuggestions) {
+            if(suggestions.length > 20) {
+                break
+            }
+
+            const userInfo = await getProfile({user_id: rawuser.id})
+            suggestions.push(userInfo.data)
+        }
 
         return Promise.resolve({
             message: 'Explore list',

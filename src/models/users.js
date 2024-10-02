@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Tags = require('./tags');
 
 const Users = sequelize.define('users', {
     id: {
@@ -84,5 +85,7 @@ const Users = sequelize.define('users', {
         onDelete: 'NO ACTION',
       },
 });
+
+Users.belongsTo(Tags, { foreignKey: 'profile_tag' });
 
 module.exports = Users

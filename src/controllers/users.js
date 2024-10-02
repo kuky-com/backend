@@ -10,10 +10,11 @@ const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
 const Purposes = require('../models/purposes');
 const Interests = require('../models/interests');
-const UserPurpose = require('../models/user_purpose');
-const UserInterest = require('../models/user_interest');
+const UserPurpose = require('../models/user_purposes');
+const UserInterest = require('../models/user_interests');
 const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
+const Tags = require('../models/tags');
 
 async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar}) {
     try {
@@ -50,7 +51,8 @@ async function getProfile({user_id}) {
             attributes: {exclude: ['password']},
             include: [
                 {model: Purposes},
-                {model: Interests}
+                {model: Interests},
+                {model: Tags}
             ]
         });
 
