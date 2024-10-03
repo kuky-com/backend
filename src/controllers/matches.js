@@ -158,7 +158,6 @@ async function getMatches({ user_id }) {
             },
             raw: true
         })
-
         const finalMatches = []
         for(const match of matches) {
             if(match.sender_id === user_id) {
@@ -175,6 +174,7 @@ async function getMatches({ user_id }) {
             data: finalMatches
         })
     } catch (error) {
+        console.log({error})
         return Promise.resolve(error)
     }
 }
@@ -266,9 +266,32 @@ const createConversation = async (user1Id, user2Id) => {
     }
 }
 
+async function updateLastMessage({ user_id, conversation_id, last_message }) {
+    try {
+        const existMatch = await Matches.update({ last_message, last_message_date: new Date(), last_message_sender: user_id}, {
+            where: {
+                [Op.or]: [
+                    { sender_id: user_id },
+                    { receiver_id: user_id }
+                ],
+                conversation_id: conversation_id
+            }
+        })
+        console.log({existMatch, user_id, conversation_id, last_message})
+
+        return Promise.resolve({
+            data: existMatch
+        })
+    } catch (error) {
+        console.log({error})
+        return Promise.resolve(error)
+    }
+}
+
 module.exports = {
     getExploreList,
     getMatches,
     acceptSuggestion,
-    rejectSuggestion
+    rejectSuggestion,
+    updateLastMessage
 }

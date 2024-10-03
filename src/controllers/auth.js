@@ -9,6 +9,7 @@ const crypto = require('crypto')
 const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
 const usersController = require('./users')
+const appleSigninAuth = require('apple-signin-auth');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION })
 function generateToken(session_id, user_id) {
@@ -203,54 +204,44 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 async function appleLogin({ token, session_token, device_id, platform }) {
 
     try {
-        const appleKeys = await getApplePublicKeys();
 
-        const decodedToken = jwt.decode(token, { complete: true });
-        const { kid } = decodedToken.header;
+        appleIdInfo = await appleSigninAuth.verifyIdToken(token);
+        
+        if(appleIdInfo && appleIdInfo.email && appleIdInfo.email_verified) {
+            const email = appleIdInfo.email
+            let user = await Users.findOne({ where: { email } });
 
-        const key = appleKeys.find(k => k.kid === kid);
-        if (!key) {
-            return Promise.reject('Invalid Apple token');
-        }
-
-        const pubKey = jwt.RSAKey({
-            n: key.n,
-            e: key.e,
-        });
-
-        const verifiedToken = jwt.verify(token, pubKey, { algorithms: ['RS256'] });
-
-        const email = verifiedToken.email;
-
-        let user = await Users.findOne({ where: { email } });
-
-        if (!user) {
-            user = await Users.create({
-                email,
-                login_type: 'apple',
-                email_verified: true,
+            if (!user) {
+                user = await Users.create({
+                    full_name: 'Kuky User',
+                    email,
+                    login_type: 'apple',
+                    email_verified: true,
+                });
+            }
+    
+            const newSession = await Sessions.create({
+                user_id: user.id,
+                platform: platform || 'web',
+                device_id: device_id || null,
+                login_date: new Date(),
+                session_token
             });
+    
+            const access_token = generateToken(newSession.id, user.id);
+    
+            const userInfo = await usersController.getUser(user.id)
+    
+            return Promise.resolve({
+                data: {
+                    user: userInfo,
+                    token: access_token
+                },
+                message: 'Login successful'
+            })
+        } else {
+            return Promise.reject('Invalid Apple token')
         }
-
-        const newSession = await Sessions.create({
-            user_id: user.id,
-            platform: platform || 'web',
-            device_id: device_id || null,
-            login_date: new Date(),
-            session_token
-        });
-
-        const access_token = generateToken(newSession.id, user.id);
-
-        const userInfo = await usersController.getUser(user.id)
-
-        return Promise.resolve({
-            data: {
-                user: userInfo,
-                token: access_token
-            },
-            message: 'Login successful'
-        })
     } catch (error) {
         console.error(error);
         return Promise.reject('Invalid Apple token')

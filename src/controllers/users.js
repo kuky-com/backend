@@ -75,7 +75,12 @@ async function getUser(user_id) {
     try {
         const user = await Users.findOne({
             where: { id: user_id },
-            attributes: {exclude: ['password']}
+            attributes: {exclude: ['password']},
+            include: [
+                {model: Purposes},
+                {model: Interests},
+                {model: Tags}
+            ]
         });
 
         if (!user) {

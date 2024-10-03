@@ -32,7 +32,7 @@ router.post('/accept', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { friend_id } = request.body
 
-    if (!user_id | !friend_id) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, friend_id"
@@ -58,7 +58,7 @@ router.post('/reject', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { friend_id } = request.body
 
-    if (!user_id | !friend_id) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, friend_id"
@@ -109,7 +109,7 @@ router.post('/disconnection', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { matchId } = request.body
 
-    if (!user_id | !matchId) {
+    if (!user_id || !matchId) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, matchId"
@@ -117,6 +117,32 @@ router.post('/disconnection', authMiddleware, (request, response, next) => {
     }
 
     return matches.disconnectMatch({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/last-message', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { last_message, conversation_id } = request.body
+
+    if (!user_id || !last_message || !conversation_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, last_message, conversation_id"
+        })
+    }
+
+    return matches.updateLastMessage({ user_id, ...request.body }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

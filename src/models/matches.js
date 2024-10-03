@@ -41,6 +41,15 @@ const Matches = sequelize.define('matches', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  last_message_sender: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+    onDelete: 'NO ACTION',
+  },
   last_message: {
     type: DataTypes.STRING,
     allowNull: true
