@@ -213,7 +213,6 @@ async function appleLogin({ token, session_token, device_id, platform }) {
 
             if (!user) {
                 user = await Users.create({
-                    full_name: 'Kuky User',
                     email,
                     login_type: 'apple',
                     email_verified: true,

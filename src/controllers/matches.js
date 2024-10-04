@@ -20,6 +20,8 @@ const { v4: uuidv4 } = require('uuid')
 
 var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
+const BlockedUsers = require('../models/blocked_users');
+const { findUnique } = require('../utils/utils');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -107,9 +109,47 @@ async function getExploreList({ user_id }) {
         const suggestions = [];
         const idSuggestions = [];
 
+        const blockedUsers = await BlockedUsers.findAll({
+            where: {
+                [Op.or]: [
+                    { user_id: user_id },
+                    { blocked_id: user_id }
+                ],
+            },
+            raw: true
+        })
+
+        const mactchedUsers = await Matches.findAll({
+            where: {
+                [Op.or]: [
+                    {
+                        [Op.or]: [
+                            { sender_id: user_id },
+                            { receiver_id: user_id }
+                        ],
+                        [Op.or]: [
+                            { status: 'rejected' },
+                            { status: 'accepted' }
+                        ],
+                    },
+                    { sender_id: user_id, status: 'sent' },
+                ],
+                
+            },
+            raw: true
+        })
+
+        const blockedUserIds = blockedUsers.map((item) => item.user_id === user_id ? item.blocked_id : item.user_id)
+        const matchedUserIds = mactchedUsers.map((item) => item.sender_id === user_id ? item.receiver_id : item.sender_id)
+
+        const avoidUserIds = findUnique(blockedUserIds, matchedUserIds)
+
         const allUserIds = await Users.findAll({
             where: {
-                is_active: true
+                is_active: true,
+                id: {
+                    [Op.notIn]: avoidUserIds
+                }
             },
             attributes: ['id'],
             raw: true
@@ -142,6 +182,7 @@ async function getExploreList({ user_id }) {
             data: suggestions
         })
     } catch (error) {
+        console.log({error})
         return Promise.resolve(error)
     }
 }

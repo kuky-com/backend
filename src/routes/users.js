@@ -28,6 +28,32 @@ router.post('/update', authMiddleware, (request, response, next) => {
         })
 })
 
+router.post('/update-token', authMiddleware, (request, response, next) => {
+    const { user_id, session_id } = request
+    const { session_token } = request
+
+    if (!user_id || !session_token || !session_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, session_token, session_id"
+        })
+    }
+
+    return users.updateSessionToken({ user_id, session_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.get('/user-info', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
@@ -83,7 +109,7 @@ router.post('/deactive-account', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { reason } = request.body
 
-    if (!user_id || !friendId) {
+    if (!user_id || !reason) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, reason"
@@ -107,16 +133,16 @@ router.post('/deactive-account', authMiddleware, (request, response, next) => {
 
 router.post('/block-user', authMiddleware, (request, response, next) => {
     const { user_id } = request
-    const { friendId } = request.body
+    const { friend_id } = request.body
 
-    if (!user_id || !friendId) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
-            message: "Missing required params: user_id, friendId"
+            message: "Missing required params: user_id, friend_id"
         })
     }
 
-    return users.blockUser({ user_id, friendId }).then(({ data, message }) => {
+    return users.blockUser({ user_id, friend_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -133,16 +159,16 @@ router.post('/block-user', authMiddleware, (request, response, next) => {
 
 router.post('/unblock-user', authMiddleware, (request, response, next) => {
     const { user_id } = request
-    const { friendId } = request.body
+    const { friend_id } = request.body
 
-    if (!user_id || !friendId) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
-            message: "Missing required params: user_id, friendId"
+            message: "Missing required params: user_id, friend_id"
         })
     }
 
-    return users.unblockUser({ user_id, friendId }).then(({ data, message }) => {
+    return users.unblockUser({ user_id, friend_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

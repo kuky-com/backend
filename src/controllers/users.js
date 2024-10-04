@@ -16,7 +16,7 @@ const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
 const Tags = require('../models/tags');
 
-async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar}) {
+async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar }) {
     try {
         const updates = {};
         if (full_name) updates.full_name = full_name;
@@ -44,15 +44,15 @@ async function updateProfile({ user_id, full_name, gender, location, pronouns, b
     }
 }
 
-async function getProfile({user_id}) {
+async function getProfile({ user_id }) {
     try {
         const user = await Users.findOne({
             where: { id: user_id },
-            attributes: {exclude: ['password']},
+            attributes: { exclude: ['password'] },
             include: [
-                {model: Purposes},
-                {model: Interests},
-                {model: Tags}
+                { model: Purposes },
+                { model: Interests },
+                { model: Tags }
             ]
         });
 
@@ -75,11 +75,11 @@ async function getUser(user_id) {
     try {
         const user = await Users.findOne({
             where: { id: user_id },
-            attributes: {exclude: ['password']},
+            attributes: { exclude: ['password'] },
             include: [
-                {model: Purposes},
-                {model: Interests},
-                {model: Tags}
+                { model: Purposes },
+                { model: Interests },
+                { model: Tags }
             ]
         });
 
@@ -94,10 +94,10 @@ async function getUser(user_id) {
     }
 }
 
-async function blockUser({user_id, friend_id}) {
+async function blockUser({ user_id, friend_id }) {
     try {
         await BlockedUsers.create({
-            user_id: user_id, 
+            user_id: user_id,
             blocked_id: friend_id
         })
 
@@ -110,11 +110,11 @@ async function blockUser({user_id, friend_id}) {
     }
 }
 
-async function unblockUser({user_id, friend_id}) {
+async function unblockUser({ user_id, friend_id }) {
     try {
         await BlockedUsers.delete({
             where: {
-                user_id: user_id, 
+                user_id: user_id,
                 blocked_id: friend_id
             }
         })
@@ -128,7 +128,7 @@ async function unblockUser({user_id, friend_id}) {
     }
 }
 
-async function getBlockedUsers({user_id}) {
+async function getBlockedUsers({ user_id }) {
     try {
         const users = await BlockedUsers.findAll({
             where: {
@@ -146,9 +146,9 @@ async function getBlockedUsers({user_id}) {
     }
 }
 
-async function deactiveAccount({user_id}) {
+async function deactiveAccount({ user_id }) {
     try {
-        const updatedUser = await Users.update({is_active: false}, {
+        const updatedUser = await Users.update({ is_active: false }, {
             where: { id: user_id },
             returning: true,
             plain: true,
@@ -165,7 +165,7 @@ async function deactiveAccount({user_id}) {
     }
 }
 
-async function deleteAccount({user_id}) {
+async function deleteAccount({ user_id }) {
     try {
         const user = await getUser(user_id)
         delete user.id
@@ -194,10 +194,10 @@ async function deleteAccount({user_id}) {
     }
 }
 
-async function reportUser({user_id, reporter_id, reason}) {
+async function reportUser({ user_id, reporter_id, reason }) {
     try {
         const reportUser = await BlockedUsers.create({
-            user_id, 
+            user_id,
             reason,
             reporter_id
         })
@@ -212,6 +212,26 @@ async function reportUser({user_id, reporter_id, reason}) {
     }
 }
 
+async function updateSessionToken({ user_id, session_id, session_token }) {
+    try {
+        const updatedSession = await Sessions.update({ session_token: session_token }, {
+            where: { user_id: user_id, session_id: session_id },
+            returning: true,
+            plain: true,
+        });
+
+        console.log({ updatedSession })
+
+        return Promise.resolve({
+            data: updatedSession,
+            message: 'Update successfully'
+        })
+    } catch (error) {
+        console.error('Profile update error:', error);
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     updateProfile,
     getUser,
@@ -222,5 +242,5 @@ module.exports = {
     deactiveAccount,
     deleteAccount,
     reportUser,
-    
+    updateSessionToken
 }
