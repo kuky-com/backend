@@ -30,7 +30,9 @@ router.post('/update', authMiddleware, (request, response, next) => {
 
 router.post('/update-token', authMiddleware, (request, response, next) => {
     const { user_id, session_id } = request
-    const { session_token } = request
+    const { session_token } = request.body
+
+    console.log({user_id, session_id})
 
     if (!user_id || !session_token || !session_id) {
         return response.json({

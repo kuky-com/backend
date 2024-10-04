@@ -112,7 +112,7 @@ async function blockUser({ user_id, friend_id }) {
 
 async function unblockUser({ user_id, friend_id }) {
     try {
-        await BlockedUsers.delete({
+        await BlockedUsers.destroy({
             where: {
                 user_id: user_id,
                 blocked_id: friend_id
@@ -133,7 +133,10 @@ async function getBlockedUsers({ user_id }) {
         const users = await BlockedUsers.findAll({
             where: {
                 user_id: user_id
-            }
+            },
+            include: [
+                {model: Users, as: 'blockedUser'}
+            ]
         })
 
         return Promise.resolve({
@@ -153,7 +156,6 @@ async function deactiveAccount({ user_id }) {
             returning: true,
             plain: true,
         });
-        // TODO: invalidate all session
 
         return Promise.resolve({
             message: "User has been deactived!",
@@ -165,23 +167,29 @@ async function deactiveAccount({ user_id }) {
     }
 }
 
-async function deleteAccount({ user_id }) {
+async function deleteAccount({ user_id, reason }) {
     try {
-        const user = await getUser(user_id)
+        const user = await Users.findOne({
+            where: {
+                id: user_id
+            },
+            raw: true
+        })
         delete user.id
+
+        console.log({user})
 
         await InactiveUsers.create({
             ...user,
             inactive_type: 'self-deleted',
-            user_id: user_id
+            user_id: user_id,
+            reason
         })
 
-        // TODO: invalidate all session
-
-        await Users.delete({
+        const updatedUser = await Users.update({is_active: false, email: `deletedAccount${user_id}@kuky.com`}, {
             where: {
                 id: user_id
-            }
+            },
         })
 
         return Promise.resolve({
@@ -214,9 +222,8 @@ async function reportUser({ user_id, reporter_id, reason }) {
 
 async function updateSessionToken({ user_id, session_id, session_token }) {
     try {
-        const updatedSession = await Sessions.update({ session_token: session_token }, {
-            where: { user_id: user_id, session_id: session_id },
-            returning: true,
+        const updatedSession = await Sessions.update({ session_token: session_token, last_active: new Date() }, {
+            where: { user_id: user_id, id: session_id },
             plain: true,
         });
 

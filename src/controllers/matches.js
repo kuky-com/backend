@@ -22,6 +22,7 @@ var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique } = require('../utils/utils');
+const { addNewNotification, addNewPushNotification } = require('./notifications');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -42,7 +43,8 @@ async function getUserDetails(user_id) {
           },
         include: [
             { model: Interests, attributes: [['name', 'name']] }
-        ]
+        ],
+        raw: true
     });
 
     const purposes = await UserPurposes.findAll({
@@ -54,41 +56,58 @@ async function getUserDetails(user_id) {
           },
         include: [
             { model: Purposes, attributes: [['name', 'name']] }
-        ]
+        ],
+        raw: true
     });
 
     return {
+        id: user_id,
         interests: interests.map(ui => ({
-            name: ui.interest.name,
-            type: ui.type
+            name: ui.name,
+            type: ui.interest_type
         })),
-        purposes: purposes.map(up => up.purpose.name)
+        purposes: purposes.map(up => up.name)
     };
 }
 
-function generateMatchingPrompt(user1Details, user2Details) {
-    const prompt = `Match these two users based on their likes, dislikes, and purposes.
+function generateMatchingPrompt(targetUser, compareUsers) {
+    console.log({targetUser})
+    let prompt = `I have target person with information about likes, dislikes, and purposes.
   
-    User 1 Likes: ${user1Details.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
-    User 1 Dislikes: ${user1Details.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
-    User 1 Purposes: ${user1Details.purposes.join(', ')}
+    Target person Likes: ${targetUser.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
+    Target person Dislikes: ${targetUser.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
+    Target person Purposes: ${targetUser.purposes.join(', ')}
+
+    Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
+    my target person, sort from best match to lower: `
+
+    for(const user of compareUsers){
+        prompt += `
+            Person with ID=${user.id} Likes: ${user.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
+            Person with ID=${user.id} Dislikes: ${user.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
+            Person with ID=${user.id} Purposes: ${user.purposes.join(', ')}
+
+        `
+    }
   
-    User 2 Likes: ${user2Details.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
-    User 2 Dislikes: ${user2Details.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
-    User 2 Purposes: ${user2Details.purposes.join(', ')}
-  
-    Give a matching score between 0 to 100 and explain the common areas and differences.`;
+    prompt += `
+                Return the list of sorted people ID separate by "," only, no other words`;
 
     return prompt
 }
 
-async function matchUsers(userId1, userId2) {
+async function matchUsers(targetId, compareIds) {
     try {
-        const user1Details = await getUserDetails(userId1);
-        const user2Details = await getUserDetails(userId2);
-
-        console.log({user1Details, user2Details})
-        const prompt = generateMatchingPrompt(user1Details, user2Details);
+        const targetUser = await getUserDetails(targetId);
+        const compareUsers = []
+        
+        for(const userId of compareIds){
+            const user = await getUserDetails(userId.id);
+            compareUsers.push(user)
+        }
+        
+        const prompt = generateMatchingPrompt(targetUser, compareUsers);
+        console.log({prompt})
 
         const response = await openai.completions.create({
             model: 'gpt-3.5-turbo-instruct',
@@ -105,9 +124,9 @@ async function matchUsers(userId1, userId2) {
 }
 
 async function getExploreList({ user_id }) {
+    console.log({user_id})
     try {
         const suggestions = [];
-        const idSuggestions = [];
 
         const blockedUsers = await BlockedUsers.findAll({
             where: {
@@ -124,12 +143,10 @@ async function getExploreList({ user_id }) {
                 [Op.or]: [
                     {
                         [Op.or]: [
-                            { sender_id: user_id },
-                            { receiver_id: user_id }
-                        ],
-                        [Op.or]: [
-                            { status: 'rejected' },
-                            { status: 'accepted' }
+                            { sender_id: user_id, status: 'rejected' },
+                            { sender_id: user_id, status: 'accepted' },
+                            { receiver_id: user_id, status: 'rejected' },
+                            { receiver_id: user_id, status: 'accepted' },
                         ],
                     },
                     { sender_id: user_id, status: 'sent' },
@@ -144,39 +161,47 @@ async function getExploreList({ user_id }) {
 
         const avoidUserIds = findUnique(blockedUserIds, matchedUserIds)
 
+        console.log({avoidUserIds, blockedUserIds, matchedUserIds})
+
         const allUserIds = await Users.findAll({
             where: {
                 is_active: true,
                 id: {
-                    [Op.notIn]: avoidUserIds
+                    [Op.notIn]: [user_id, ...avoidUserIds]
                 }
             },
             attributes: ['id'],
             raw: true
         })
 
-        for (const user of allUserIds) {
-            if (user.id !== user_id) {
-                const matchResult = await matchUsers(user_id, user.id);
-                idSuggestions.push({ id: user.id, matchResult });
+        let matchResult = []
+        let idSuggestions = []
+        if(allUserIds.length > 1) {
+            try {
+                matchResult = await matchUsers(user_id, allUserIds);
+                console.log({matchResult})
+                idSuggestions = matchResult.match(/\d+/g);
+            } catch (error) {
+                idSuggestions = allUserIds.map((item) => item.id)
             }
+        } else {
+            idSuggestions = allUserIds.map((item) => item.id)
         }
-
-        idSuggestions.sort((a, b) => {
-            const scoreA = parseInt(a.matchResult.match(/\d+/)[0]);
-            const scoreB = parseInt(b.matchResult.match(/\d+/)[0]);
-            return scoreB - scoreA;
-        });
+        
+        
+        console.log({idSuggestions})
 
         for(const rawuser of idSuggestions) {
             if(suggestions.length > 20) {
                 break
             }
 
-            const userInfo = await getProfile({user_id: rawuser.id})
+            const userInfo = await getProfile({user_id: rawuser})
+            
             suggestions.push(userInfo.data)
         }
 
+        console.log({suggestions})
         return Promise.resolve({
             message: 'Explore list',
             data: suggestions
@@ -197,7 +222,8 @@ async function getMatches({ user_id }) {
                 ],
                 status: 'accepted',
             },
-            raw: true
+            raw: true,
+            order: [['last_message_date', 'DESC']],
         })
         const finalMatches = []
         for(const match of matches) {
@@ -238,7 +264,7 @@ async function rejectSuggestion({ user_id, friend_id }) {
             })
         }
 
-        existMatch = Matches.update({ status: 'rejected' }, {
+        existMatch = await Matches.update({ status: 'rejected' }, {
             where: { id: existMatch.id }
         })
 
@@ -272,11 +298,26 @@ async function acceptSuggestion({ user_id, friend_id }) {
             if (existMatch.status === 'sent') {
                 const conversation_id = await createConversation(user_id, friend_id)
                 if (conversation_id) {
-                    existMatch = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
+                    const updatedMatches = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
                         where: {
                             id: existMatch.id
-                        }
+                        },
                     })
+
+                    existMatch = await Matches.findOne({
+                        where: {
+                            id: existMatch.id
+                        },
+                        include: [
+                            { model: Users, as: 'sender' },
+                            { model: Users, as: 'receiver' },
+                        ]
+                    })
+
+                    console.log({existMatch})
+
+                    addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                    addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
                 }
             }
         }
@@ -309,7 +350,7 @@ const createConversation = async (user1Id, user2Id) => {
 
 async function updateLastMessage({ user_id, conversation_id, last_message }) {
     try {
-        const existMatch = await Matches.update({ last_message, last_message_date: new Date(), last_message_sender: user_id}, {
+        const updatedMatch = await Matches.update({ last_message, last_message_date: new Date(), last_message_sender: user_id}, {
             where: {
                 [Op.or]: [
                     { sender_id: user_id },
@@ -318,7 +359,26 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
                 conversation_id: conversation_id
             }
         })
-        console.log({existMatch, user_id, conversation_id, last_message})
+
+        const existMatch = await Matches.findOne({
+            where: {
+                [Op.or]: [
+                    { sender_id: user_id },
+                    { receiver_id: user_id }
+                ],
+                conversation_id: conversation_id
+            }
+        })
+
+        try {
+            if(existMatch.sender_id === user_id) {
+                addNewPushNotification(existMatch.receiver_id, existMatch.sender_id, existMatch.id, 'message', 'New message', last_message)
+            } else {
+                addNewPushNotification(existMatch.sender_id, existMatch.receiver_id, existMatch.id, 'message', 'New message', last_message)
+            }
+        } catch (error) {
+            console.log({error})
+        }
 
         return Promise.resolve({
             data: existMatch

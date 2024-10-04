@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users');
 
 const Matches = sequelize.define('matches', {
   id: {
@@ -59,5 +60,8 @@ const Matches = sequelize.define('matches', {
     allowNull: true
   }
 });
+
+Matches.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });
+Matches.belongsTo(Users, { foreignKey: 'receiver_id', as: 'receiver' });
 
 module.exports = Matches;

@@ -17,7 +17,6 @@ const InactiveUsers = sequelize.define('inactive_users', {
     email: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
     },
     inactive_type: {
         type: DataTypes.ENUM('banned', 'self-deleted', 'deactived', 'system-deleted')
@@ -61,7 +60,11 @@ const InactiveUsers = sequelize.define('inactive_users', {
     last_latitude: {
         type: DataTypes.DOUBLE,
         allowNull: true,
-    }
+    },
+    reason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
 });
 
 module.exports = InactiveUsers

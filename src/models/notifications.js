@@ -64,7 +64,8 @@ const Notifications = sequelize.define('notifications', {
     },
 });
 
-Notifications.belongsTo(Users, { foreignKey: 'user_id' });
-Notifications.belongsTo(Matches, { foreignKey: 'match_id' });
+Notifications.belongsTo(Users, { foreignKey: 'user_id', as: 'user' });
+Notifications.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });
+Notifications.belongsTo(Matches, { foreignKey: 'match_id', as: 'match' });
 
 module.exports = Notifications;

@@ -250,7 +250,7 @@ async function appleLogin({ token, session_token, device_id, platform }) {
 async function logout({ session_id }) {
     try {
         const session = await Sessions.update(
-            { logout_date: new Date() },
+            { logout_date: new Date(), session_token: null },
             { where: { id: session_id } }
         );
 

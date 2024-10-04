@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users');
 
 const BlockedUsers = sequelize.define('blocked_users', {
   id: {
@@ -31,5 +32,8 @@ const BlockedUsers = sequelize.define('blocked_users', {
     defaultValue: DataTypes.NOW,
   },
 });
+
+BlockedUsers.belongsTo(Users, { foreignKey: 'user_id', as: 'user' });
+BlockedUsers.belongsTo(Users, { foreignKey: 'blocked_id', as: 'blockedUser' });
 
 module.exports = BlockedUsers;
