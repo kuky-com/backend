@@ -317,7 +317,16 @@ async function updateProfileTag({ user_id }) {
 
     } catch (error) {
         console.error('Error user update dislikes:', error);
-        return Promise.reject(error)
+        const updatedUser = await Users.update({ profile_tag: 1 }, {
+            where: {id: user_id}
+        })
+
+        const userInfo = await getProfile({user_id})
+
+        return Promise.resolve({
+            message: 'User profile tag has been updated!',
+            data: userInfo.data
+        })
     }
 }
 

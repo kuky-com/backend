@@ -16,7 +16,7 @@ const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
 const Tags = require('../models/tags');
 
-async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar }) {
+async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, publicGender, publicPronouns }) {
     try {
         const updates = {};
         if (full_name) updates.full_name = full_name;
@@ -25,6 +25,9 @@ async function updateProfile({ user_id, full_name, gender, location, pronouns, b
         if (pronouns) updates.pronouns = pronouns;
         if (birthday) updates.birthday = birthday;
         if (avatar) updates.avatar = avatar;
+        if (publicGender) updates.publicGender = publicGender;
+        if (publicPronouns) updates.publicPronouns = publicPronouns;
+
 
         const updatedUser = await Users.update(updates, {
             where: { id: user_id },

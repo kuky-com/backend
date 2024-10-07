@@ -166,6 +166,9 @@ async function getExploreList({ user_id }) {
         const allUserIds = await Users.findAll({
             where: {
                 is_active: true,
+                profile_tag: {
+                    [Op.ne]: null
+                },
                 id: {
                     [Op.notIn]: [user_id, ...avoidUserIds]
                 }

@@ -29,16 +29,82 @@ async function signUp({ full_name, email, password }) {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await Users.create({
-            full_name,
-            email,
-            password: hashedPassword,
-            email_verified: false,
-            login_type: 'email',
-        })
+
+        const existingUnverifyUser = await Users.findOne({ where: { email } });
+        if(existingUnverifyUser) {
+            const user = await Users.update({
+                full_name,
+                password: hashedPassword,
+                email_verified: false,
+                login_type: 'email',
+            }, {
+                where: {
+                    email: email
+                }
+            })
+        } else {
+            const user = await Users.create({
+                full_name,
+                email,
+                password: hashedPassword,
+                email_verified: false,
+                login_type: 'email',
+            })
+        }
+        
 
         const code = crypto.randomInt(1000, 9999).toString();
         const expires_at = new Date(Date.now() + 15 * 60 * 1000);
+
+        await VerificationCode.create({ code, email, expires_at });
+
+        const params = {
+            Source: 'noreply@kuky.com',
+            Destination: {
+                ToAddresses: [email],
+            },
+            Message: {
+                Subject: {
+                    Data: 'Your Verification Code',
+                },
+                Body: {
+                    Text: {
+                        Data: `Your verification code is: ${code}`,
+                    },
+                },
+            },
+        };
+
+        const command = new SendEmailCommand(params);
+        const result = await sesClient.send(command);
+
+        if (!result) {
+            return Promise.reject('Error sending verification email')
+        } else {
+            return Promise.resolve({ message: 'Verification code sent to your email' })
+        }
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
+async function resendVerification({ email }) {
+
+    try {
+        const existingUnverifyUser = await Users.findOne({ where: { email, email_verified: false } });
+        if (!existingUnverifyUser) {
+            return Promise.reject('This user cannot receive verification email!')
+        }
+
+        const code = crypto.randomInt(1000, 9999).toString();
+        const expires_at = new Date(Date.now() + 15 * 60 * 1000);
+
+        await VerificationCode.update({ expires_at : new Date()}, {
+            where: {
+                email: email
+            }
+        })
 
         await VerificationCode.create({ code, email, expires_at });
 
@@ -322,4 +388,5 @@ module.exports = {
     logout,
     deleteAccount,
     updatePassword,
+    resendVerification
 }

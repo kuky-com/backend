@@ -30,17 +30,17 @@ router.post('/register', (request, response, next) => {
         })
 })
 
-router.post('/verify', (request, response, next) => {
-    const { email, code } = request.body
+router.post('/resend-verification', (request, response, next) => {
+    const { email } = request.body
 
-    if (!email || !code) {
+    if (!email) {
         return response.json({
             success: false,
-            message: "Missing required params: email, code"
+            message: "Missing required params: email"
         })
     }
 
-    return auth.verifyEmail({ ...request.body }).then(({data, message}) => {
+    return auth.resendVerification({ ...request.body }).then(({data, message}) => {
         return response.json({
             success: true,
             data: data,
