@@ -141,7 +141,10 @@ async function resendVerification({ email }) {
 
 async function verifyEmail({ email, code, session_token, device_id, platform }) {
     try {
-        const record = await VerificationCode.findOne({ where: { email, code } });
+        const record = await VerificationCode.findOne({ 
+            where: { email, code },
+            order: [['createdAt', 'DESC']]
+         });
 
         if (!record || new Date() > record.expires_at) {
             return Promise.reject('Invalid or expired verification code');
