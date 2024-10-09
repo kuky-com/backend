@@ -182,4 +182,36 @@ router.get('/dislikes', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/normalize-interests', (request, response, next) => {
+    return interests.normalizeInterests().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/normalize-purposes', (request, response, next) => {
+    return interests.normalizePurposes().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;

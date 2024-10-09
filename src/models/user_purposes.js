@@ -35,4 +35,6 @@ Purposes.belongsToMany(Users, { through: UserPurposes, foreignKey: 'purpose_id' 
 UserPurposes.belongsTo(Users, { foreignKey: 'user_id' });
 UserPurposes.belongsTo(Purposes, { foreignKey: 'purpose_id' });
 
+Purposes.hasMany(UserPurposes, { foreignKey: 'purpose_id' });
+
 module.exports = UserPurposes;

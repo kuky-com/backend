@@ -16,6 +16,7 @@ const Tags = require('../models/tags')
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
 const { getProfile } = require('./users');
+const { categoryMap } = require('../config/categories');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -27,8 +28,13 @@ async function getPurposes({ user_id }) {
             where: {
                 user_id: user_id
             },
+            attributes: {
+                include: [
+                    [Sequelize.col('purpose.name'), 'name'],
+                ],
+            },
             include: [
-                { model: Purposes }
+                { model: Purposes, attributes: [['name', 'name']] }
             ]
         })
 
@@ -51,9 +57,9 @@ async function getLikes({ user_id }) {
             },
             attributes: {
                 include: [
-                  [Sequelize.col('interest.name'), 'name'],
+                    [Sequelize.col('interest.name'), 'name'],
                 ],
-              },
+            },
             include: [
                 { model: Interests, attributes: [['name', 'name']] }
             ]
@@ -78,9 +84,9 @@ async function getDislikes({ user_id }) {
             },
             attributes: {
                 include: [
-                  [Sequelize.col('interest.name'), 'name'],
+                    [Sequelize.col('interest.name'), 'name'],
                 ],
-              },
+            },
             include: [
                 { model: Interests, attributes: [['name', 'name']] }
             ]
@@ -120,13 +126,20 @@ async function updatePurposes({ user_id, purposes }) {
         const currentPurposeIds = currentUserPurposes.map(up => up.purpose_id);
 
         const purposeRecords = await Promise.all(purposes.map(async (name) => {
-            const [purpose] = await Purposes.findOrCreate({
+            let purpose = await Purposes.findOne({
                 where: { name: name }
             });
-            return purpose;
+            if (purpose) {
+                return purpose
+            }
+            purpose = await Purposes.create({
+                name: name
+            });
+            await normalizePurposes(purpose.id)
+            return purpose
         }));
 
-        const newPurposeIds = purposeRecords.map(p => p.id);
+        const newPurposeIds = purposeRecords.filter(p => p !== null).map(p => p.id);
 
         await UserPurposes.destroy({
             where: {
@@ -167,13 +180,24 @@ async function updateLikes({ user_id, likes }) {
         const currentLikesIds = currentUserLikes.map(up => up.interest_id);
 
         const interestRecords = await Promise.all(likes.map(async (name) => {
-            const [interest] = await Interests.findOrCreate({
-                where: { name: name }
-            });
-            return interest;
+            if (name && name.length > 1) {
+                let interest = await Interests.findOne({
+                    where: { name: name }
+                });
+                if (interest) {
+                    return interest
+                }
+                interest = await Interests.create({
+                    name: name
+                });
+                await normalizeInterests(interest.id)
+                return interest
+            } else {
+                return null
+            }
         }));
 
-        const newInterestIds = interestRecords.map(p => p.id);
+        const newInterestIds = interestRecords.filter(p => p !== null).map(p => p.id);
 
         await UserInterests.destroy({
             where: {
@@ -185,7 +209,6 @@ async function updateLikes({ user_id, likes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentLikesIds.includes(interest_id)) {
-                console.log({action: 'add new like', user_id, interest_id})
                 await UserInterests.create({ user_id, interest_type: 'like', interest_id });
             }
         }));
@@ -216,15 +239,24 @@ async function updateDislikes({ user_id, dislikes }) {
         const currentDislikesIds = currentUserDislikes.map(up => up.interest_id);
 
         const interestRecords = await Promise.all(dislikes.map(async (name) => {
-            const [interest] = await Interests.findOrCreate({
-                where: { name: name }
-            });
-            return interest;
+            if (name && name.length > 1) {
+                let interest = await Interests.findOne({
+                    where: { name: name }
+                });
+                if (interest) {
+                    return interest
+                }
+                interest = await Interests.create({
+                    name: name
+                });
+                await normalizeInterests(interest.id)
+                return interest
+            } else {
+                return null
+            }
         }));
 
-        console.log({interestRecords, dislikes})
-
-        const newInterestIds = interestRecords.map(p => p.id);
+        const newInterestIds = interestRecords.filter(p => p !== null).map(p => p.id);
 
         await UserInterests.destroy({
             where: {
@@ -236,7 +268,6 @@ async function updateDislikes({ user_id, dislikes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentDislikesIds.includes(interest_id)) {
-                console.log({action: 'add new dislike', user_id, interest_id})
                 await UserInterests.create({ user_id, interest_type: 'dislike', interest_id });
             }
         }));
@@ -274,7 +305,6 @@ async function updateProfileTag({ user_id }) {
         let dislikes = [];
 
         interests.forEach((userInterest) => {
-            console.log({userInterest})
             if (userInterest.type === 'like') {
                 likes.push(userInterest.interest);
             } else if (userInterest.type === 'dislike') {
@@ -287,7 +317,7 @@ async function updateProfileTag({ user_id }) {
             raw: true
         })
         const tagNames = tags.map((tag) => tag.name)
-        
+
         const prompt = `Based on the following user interests, categorize this user into the most suitable category based on the provided tags:
         
         Likes: ${likes.join(', ')}
@@ -305,10 +335,10 @@ async function updateProfileTag({ user_id }) {
         const bestTag = tags.find(tag => tag.name.toLowerCase() === bestTagName.toLowerCase());
 
         const updatedUser = await Users.update({ profile_tag: bestTag.id }, {
-            where: {id: user_id}
+            where: { id: user_id }
         })
 
-        const userInfo = await getProfile({user_id})
+        const userInfo = await getProfile({ user_id })
 
         return Promise.resolve({
             message: 'User profile tag has been updated!',
@@ -318,14 +348,118 @@ async function updateProfileTag({ user_id }) {
     } catch (error) {
         console.error('Error user update dislikes:', error);
         const updatedUser = await Users.update({ profile_tag: 1 }, {
-            where: {id: user_id}
+            where: { id: user_id }
         })
 
-        const userInfo = await getProfile({user_id})
+        const userInfo = await getProfile({ user_id })
 
         return Promise.resolve({
             message: 'User profile tag has been updated!',
             data: userInfo.data
+        })
+    }
+}
+
+async function normalizePurposes(purposeId) {
+    try {
+        let purposes = []
+
+        if (purposeId) {
+            purposes = await Purposes.findAll({
+                where: {
+                    id: purposeId
+                },
+                attributes: ['name', 'id'],
+                order: [['id', 'asc']]
+            })
+        } else {
+            purposes = await Purposes.findAll({
+                attributes: ['name', 'id'],
+                order: [['id', 'asc']]
+            })
+        }
+
+        const categoryNames = Object.keys(categoryMap)
+
+        for (let purpose of purposes) {
+            const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list.\n\nPurpose: ${purpose.name}\nCategory:`;
+
+            const response = await openai.completions.create({
+                model: 'gpt-3.5-turbo-instruct',
+                prompt: prompt,
+                max_tokens: 10,
+            });
+
+            try {
+                const normalizedId = categoryMap[response.choices[0].text.trim().toLowerCase()];
+
+                await Purposes.update({ normalized_purpose_id: normalizedId }, { where: { id: purpose.id } });
+            } catch (error) {
+                console.log({ error })
+            }
+        }
+
+        return Promise.resolve({
+            message: 'Updated purposes!',
+        })
+
+    } catch (error) {
+        console.log(error);
+
+        return Promise.resolve({
+            message: 'Updated purposes!',
+        })
+    }
+}
+
+async function normalizeInterests(interestId) {
+    try {
+        let interests = []
+
+        if (interestId) {
+            interests = await Interests.findAll({
+                where: {
+                    id: interestId
+                },
+                attributes: ['name', 'id'],
+                order: [['id', 'asc']]
+            })
+        } else {
+            interests = await Interests.findAll({
+                attributes: ['name', 'id'],
+                order: [['id', 'asc']]
+            })
+        }
+
+        const categoryNames = Object.keys(categoryMap)
+
+        for (let interest of interests) {
+            const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the interest to the closest, most relevant category, only show category in the given list.\n\nInterest: ${interest.name}\nCategory:`;
+
+            const response = await openai.completions.create({
+                model: 'gpt-3.5-turbo-instruct',
+                prompt: prompt,
+                max_tokens: 10,
+            });
+
+            try {
+                const normalizedId = categoryMap[response.choices[0].text.trim().toLowerCase()];
+
+                await Interests.update({ normalized_interest_id: normalizedId }, { where: { id: interest.id } });
+            } catch (error) {
+                console.log({ error })
+            }
+        }
+
+        return Promise.resolve({
+            message: 'Updated interests!',
+        })
+
+    } catch (error) {
+        console.log(error);
+
+        return Promise.resolve({
+            message: 'Updated interests!',
         })
     }
 }
@@ -337,5 +471,7 @@ module.exports = {
     updatePurposes,
     updateLikes,
     updateDislikes,
-    updateProfileTag
+    updateProfileTag,
+    normalizePurposes,
+    normalizeInterests
 }

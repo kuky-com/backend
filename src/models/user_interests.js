@@ -38,4 +38,6 @@ Intestests.belongsToMany(Users, { through: UserInterests, foreignKey: 'interest_
 UserInterests.belongsTo(Users, { foreignKey: 'user_id' });
 UserInterests.belongsTo(Intestests, { foreignKey: 'interest_id' });
 
+Intestests.hasMany(UserInterests, { foreignKey: 'interest_id' });
+
 module.exports = UserInterests;

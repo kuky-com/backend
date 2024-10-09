@@ -36,7 +36,7 @@ const Matches = sequelize.define('matches', {
     allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('sent', 'accepted', 'rejected')
+    type: DataTypes.ENUM('sent', 'accepted', 'rejected', 'deleted')
   },
   conversation_id: {
     type: DataTypes.STRING,

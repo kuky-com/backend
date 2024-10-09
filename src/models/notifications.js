@@ -45,7 +45,7 @@ const Notifications = sequelize.define('notifications', {
         allowNull: false,
     },
     notification_type: {
-        type: DataTypes.ENUM('message', 'new_match', 'new_suggestions'),
+        type: DataTypes.ENUM('message', 'new_match', 'new_request', 'new_suggestions'),
         allowNull: false,
     },
     notification_date: {

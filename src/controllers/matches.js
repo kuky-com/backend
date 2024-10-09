@@ -25,7 +25,7 @@ const { findUnique } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount)
 });
 const db = admin.firestore();
 
@@ -38,9 +38,9 @@ async function getUserDetails(user_id) {
         where: { user_id },
         attributes: {
             include: [
-              [Sequelize.col('interest.name'), 'name'],
+                [Sequelize.col('interest.name'), 'name'],
             ],
-          },
+        },
         include: [
             { model: Interests, attributes: [['name', 'name']] }
         ],
@@ -51,9 +51,9 @@ async function getUserDetails(user_id) {
         where: { user_id },
         attributes: {
             include: [
-              [Sequelize.col('purpose.name'), 'name'],
+                [Sequelize.col('purpose.name'), 'name'],
             ],
-          },
+        },
         include: [
             { model: Purposes, attributes: [['name', 'name']] }
         ],
@@ -71,7 +71,6 @@ async function getUserDetails(user_id) {
 }
 
 function generateMatchingPrompt(targetUser, compareUsers) {
-    console.log({targetUser})
     let prompt = `I have target person with information about likes, dislikes, and purposes.
   
     Target person Likes: ${targetUser.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
@@ -81,7 +80,7 @@ function generateMatchingPrompt(targetUser, compareUsers) {
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
     my target person, sort from best match to lower: `
 
-    for(const user of compareUsers){
+    for (const user of compareUsers) {
         prompt += `
             Person with ID=${user.id} Likes: ${user.interests.filter(i => i.type === 'like').map(i => i.name).join(', ')}
             Person with ID=${user.id} Dislikes: ${user.interests.filter(i => i.type === 'dislike').map(i => i.name).join(', ')}
@@ -89,7 +88,7 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 
         `
     }
-  
+
     prompt += `
                 Return the list of sorted people ID separate by "," only, no other words`;
 
@@ -100,14 +99,13 @@ async function matchUsers(targetId, compareIds) {
     try {
         const targetUser = await getUserDetails(targetId);
         const compareUsers = []
-        
-        for(const userId of compareIds){
+
+        for (const userId of compareIds) {
             const user = await getUserDetails(userId.id);
             compareUsers.push(user)
         }
-        
+
         const prompt = generateMatchingPrompt(targetUser, compareUsers);
-        console.log({prompt})
 
         const response = await openai.completions.create({
             model: 'gpt-3.5-turbo-instruct',
@@ -123,8 +121,371 @@ async function matchUsers(targetId, compareIds) {
     }
 }
 
+async function findLessMatches({ user_id }) {
+    try {
+        const currentUser = await Users.findByPk(user_id);
+
+        if (!currentUser) {
+            return Promise.reject('User not found')
+        }
+
+        const currentUserProfileTag = currentUser.profile_tag;
+
+        const currentUserInterests = await Interests.findAll({
+            include: [{
+                model: UserInterests,
+                where: { user_id: user_id, interest_type: 'like' },
+                attributes: [],
+            }],
+            attributes: ['normalized_interest_id'],
+            group: ['interests.normalized_interest_id', 'interests.id'],
+        });
+
+        const currentUserInterestGroupIds = currentUserInterests.map(interest => interest.normalized_interest_id);
+
+        const currentUserDislikes = await Interests.findAll({
+            include: [{
+                model: UserInterests,
+                where: { user_id: user_id, interest_type: 'dislike' },
+                attributes: [],
+            }],
+            attributes: ['normalized_interest_id'],
+            group: ['interests.normalized_interest_id', 'interests.id'],
+        });
+
+        const currentUserDislikeGroupIds = currentUserDislikes.map(interest => interest.normalized_interest_id);
+
+        const currentUserPurposes = await Purposes.findAll({
+            include: [{
+                model: UserPurposes,
+                where: { user_id: user_id },
+                attributes: [],
+            }],
+            attributes: ['normalized_purpose_id'],
+            group: ['purposes.normalized_purpose_id', 'purposes.id'],
+        });
+
+        const currentUserPurposeGroupIds = currentUserPurposes.map(purpose => purpose.normalized_purpose_id);
+
+        const blockedUsers = await BlockedUsers.findAll({
+            where: {
+                [Op.or]: [
+                    { user_id: user_id },
+                    { blocked_id: user_id }
+                ],
+            },
+            raw: true
+        })
+
+        const mactchedUsers = await Matches.findAll({
+            where: {
+                [Op.or]: [
+                    {
+                        [Op.or]: [
+                            { sender_id: user_id, status: 'rejected' },
+                            { sender_id: user_id, status: 'accepted' },
+                            { sender_id: user_id, status: 'deleted' },
+                            { receiver_id: user_id, status: 'rejected' },
+                            { receiver_id: user_id, status: 'accepted' },
+                            { receiver_id: user_id, status: 'deleted' },
+                        ],
+                    },
+                    { sender_id: user_id, status: 'sent' },
+                ],
+
+            },
+            raw: true
+        })
+
+        const blockedUserIds = blockedUsers.map((item) => item.user_id === user_id ? item.blocked_id : item.user_id)
+        const matchedUserIds = mactchedUsers.map((item) => item.sender_id === user_id ? item.receiver_id : item.sender_id)
+
+        const avoidUserIds = findUnique(blockedUserIds, matchedUserIds)
+
+        const matchingUsers = await Users.findAll({
+            where: {
+                is_active: true,
+                profile_tag: {
+                    [Op.ne]: null
+                },
+                id: { [Op.notIn]: [user_id, ...avoidUserIds] },
+            },
+            attributes: ['id', 'profile_tag'],
+        });
+
+        const matchedUsersWithScores = [];
+
+        for (const user of matchingUsers) {
+            const userId = user.id;
+
+            const userInterests = await Interests.findAll({
+                include: [{
+                    model: UserInterests,
+                    where: { user_id: userId, interest_type: 'like' },
+                    attributes: [],
+                }],
+                attributes: ['normalized_interest_id'],
+                group: ['interests.normalized_interest_id', 'interests.id'],
+            });
+
+            const userInterestGroupIds = userInterests.map(interest => interest.normalized_interest_id);
+
+            const userDislikes = await Interests.findAll({
+                include: [{
+                    model: UserInterests,
+                    where: { user_id: userId, interest_type: 'dislike' },
+                    attributes: [],
+                }],
+                attributes: ['normalized_interest_id'],
+                group: ['interests.normalized_interest_id', 'interests.id'],
+            });
+
+            const userDislikeGroupIds = userDislikes.map(interest => interest.normalized_interest_id);
+
+            const userPurposes = await Purposes.findAll({
+                include: [{
+                    model: UserPurposes,
+                    where: { user_id: userId },
+                    attributes: [],
+                }],
+                attributes: ['normalized_purpose_id'],
+                group: ['purposes.normalized_purpose_id', 'purposes.id'],
+            });
+
+            const userPurposeGroupIds = userPurposes.map(purpose => purpose.normalized_purpose_id);
+
+            const matchingInterestGroupIds = currentUserInterestGroupIds.filter(groupId =>
+                userInterestGroupIds.includes(groupId)
+            );
+
+            const matchingDislikeGroupIds = currentUserDislikeGroupIds.filter(groupId =>
+                userDislikeGroupIds.includes(groupId)
+            );
+
+            const matchingPurposeGroupIds = currentUserPurposeGroupIds.filter(groupId =>
+                userPurposeGroupIds.includes(groupId)
+            );
+
+            if (user.profile_tag !== currentUserProfileTag && matchingDislikeGroupIds.length === 0 &&
+                     matchingInterestGroupIds.length === 0 && matchingPurposeGroupIds.length === 0) {
+                matchedUsersWithScores.push({
+                    user_id: userId,
+                });
+            }
+        }
+
+        const suggestions = []
+        for (const rawuser of matchedUsersWithScores) {
+            if (suggestions.length > 20) {
+                break
+            }
+
+            const userInfo = await getProfile({ user_id: rawuser.user_id })
+
+            suggestions.push(userInfo.data)
+        }
+
+        return Promise.resolve({
+            message: 'Less matches list',
+            data: suggestions
+        })
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
+async function findBestMatches({ user_id }) {
+    try {
+        const currentUser = await Users.findByPk(user_id);
+
+        if (!currentUser) {
+            return Promise.reject('User not found')
+        }
+
+        const currentUserProfileTag = currentUser.profile_tag;
+
+        const currentUserInterests = await Interests.findAll({
+            include: [{
+                model: UserInterests,
+                where: { user_id: user_id, interest_type: 'like' },
+                attributes: [],
+            }],
+            attributes: ['normalized_interest_id'],
+            group: ['interests.normalized_interest_id', 'interests.id'],
+        });
+
+        const currentUserInterestGroupIds = currentUserInterests.map(interest => interest.normalized_interest_id);
+
+        const currentUserDislikes = await Interests.findAll({
+            include: [{
+                model: UserInterests,
+                where: { user_id: user_id, interest_type: 'dislike' },
+                attributes: [],
+            }],
+            attributes: ['normalized_interest_id'],
+            group: ['interests.normalized_interest_id', 'interests.id'],
+        });
+
+        const currentUserDislikeGroupIds = currentUserDislikes.map(interest => interest.normalized_interest_id);
+
+        const currentUserPurposes = await Purposes.findAll({
+            include: [{
+                model: UserPurposes,
+                where: { user_id: user_id },
+                attributes: [],
+            }],
+            attributes: ['normalized_purpose_id'],
+            group: ['purposes.normalized_purpose_id', 'purposes.id'],
+        });
+
+        const currentUserPurposeGroupIds = currentUserPurposes.map(purpose => purpose.normalized_purpose_id);
+
+        const blockedUsers = await BlockedUsers.findAll({
+            where: {
+                [Op.or]: [
+                    { user_id: user_id },
+                    { blocked_id: user_id }
+                ],
+            },
+            raw: true
+        })
+
+        const mactchedUsers = await Matches.findAll({
+            where: {
+                [Op.or]: [
+                    {
+                        [Op.or]: [
+                            { sender_id: user_id, status: 'rejected' },
+                            { sender_id: user_id, status: 'accepted' },
+                            { sender_id: user_id, status: 'deleted' },
+                            { receiver_id: user_id, status: 'rejected' },
+                            { receiver_id: user_id, status: 'accepted' },
+                            { receiver_id: user_id, status: 'deleted' },
+                        ],
+                    },
+                    { sender_id: user_id, status: 'sent' },
+                ],
+
+            },
+            raw: true
+        })
+
+        const blockedUserIds = blockedUsers.map((item) => item.user_id === user_id ? item.blocked_id : item.user_id)
+        const matchedUserIds = mactchedUsers.map((item) => item.sender_id === user_id ? item.receiver_id : item.sender_id)
+
+        const avoidUserIds = findUnique(blockedUserIds, matchedUserIds)
+
+        const matchingUsers = await Users.findAll({
+            where: {
+                is_active: true,
+                profile_tag: {
+                    [Op.ne]: null
+                },
+                id: { [Op.notIn]: [user_id, ...avoidUserIds] },
+            },
+            attributes: ['id', 'profile_tag'],
+        });
+
+        const matchedUsersWithScores = [];
+
+        for (const user of matchingUsers) {
+            const userId = user.id;
+
+            const userInterests = await Interests.findAll({
+                include: [{
+                    model: UserInterests,
+                    where: { user_id: userId, interest_type: 'like' },
+                    attributes: [],
+                }],
+                attributes: ['normalized_interest_id'],
+                group: ['interests.normalized_interest_id', 'interests.id'],
+            });
+
+            const userInterestGroupIds = userInterests.map(interest => interest.normalized_interest_id);
+
+            const userDislikes = await Interests.findAll({
+                include: [{
+                    model: UserInterests,
+                    where: { user_id: userId, interest_type: 'dislike' },
+                    attributes: [],
+                }],
+                attributes: ['normalized_interest_id'],
+                group: ['interests.normalized_interest_id', 'interests.id'],
+            });
+
+            const userDislikeGroupIds = userDislikes.map(interest => interest.normalized_interest_id);
+
+            const userPurposes = await Purposes.findAll({
+                include: [{
+                    model: UserPurposes,
+                    where: { user_id: userId },
+                    attributes: [],
+                }],
+                attributes: ['normalized_purpose_id'],
+                group: ['purposes.normalized_purpose_id', 'purposes.id'],
+            });
+
+            const userPurposeGroupIds = userPurposes.map(purpose => purpose.normalized_purpose_id);
+
+            const matchingInterestGroupIds = currentUserInterestGroupIds.filter(groupId =>
+                userInterestGroupIds.includes(groupId)
+            );
+
+            const matchingDislikeGroupIds = currentUserDislikeGroupIds.filter(groupId =>
+                userDislikeGroupIds.includes(groupId)
+            );
+
+            const matchingPurposeGroupIds = currentUserPurposeGroupIds.filter(groupId =>
+                userPurposeGroupIds.includes(groupId)
+            );
+
+            if (user.profile_tag === currentUserProfileTag || matchingDislikeGroupIds.length > 0 || matchingInterestGroupIds.length > 0 || matchingPurposeGroupIds.length > 0) {
+                let score = 0;
+
+                if (user.profile_tag === currentUserProfileTag)
+                    score += 10;
+
+                score += matchingInterestGroupIds.length * 2;
+
+                score += matchingDislikeGroupIds.length * 2;
+
+                score += matchingPurposeGroupIds.length * 3;
+
+                matchedUsersWithScores.push({
+                    user_id: userId,
+                    score: score,
+                    matchingDislikeGroupIds: matchingDislikeGroupIds,
+                    matchingInterestGroupIds: matchingInterestGroupIds,
+                    matchingPurposeGroupIds: matchingPurposeGroupIds,
+                });
+            }
+        }
+
+        matchedUsersWithScores.sort((a, b) => b.score - a.score);
+
+        const suggestions = []
+        for (const rawuser of matchedUsersWithScores) {
+            if (suggestions.length > 20) {
+                break
+            }
+
+            const userInfo = await getProfile({ user_id: rawuser.user_id })
+
+            suggestions.push(userInfo.data)
+        }
+
+        return Promise.resolve({
+            message: 'Best matches list',
+            data: suggestions
+        })
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
 async function getExploreList({ user_id }) {
-    console.log({user_id})
     try {
         const suggestions = [];
 
@@ -145,13 +506,15 @@ async function getExploreList({ user_id }) {
                         [Op.or]: [
                             { sender_id: user_id, status: 'rejected' },
                             { sender_id: user_id, status: 'accepted' },
+                            { sender_id: user_id, status: 'deleted' },
                             { receiver_id: user_id, status: 'rejected' },
                             { receiver_id: user_id, status: 'accepted' },
+                            { receiver_id: user_id, status: 'deleted' },
                         ],
                     },
                     { sender_id: user_id, status: 'sent' },
                 ],
-                
+
             },
             raw: true
         })
@@ -160,8 +523,6 @@ async function getExploreList({ user_id }) {
         const matchedUserIds = mactchedUsers.map((item) => item.sender_id === user_id ? item.receiver_id : item.sender_id)
 
         const avoidUserIds = findUnique(blockedUserIds, matchedUserIds)
-
-        console.log({avoidUserIds, blockedUserIds, matchedUserIds})
 
         const allUserIds = await Users.findAll({
             where: {
@@ -179,10 +540,9 @@ async function getExploreList({ user_id }) {
 
         let matchResult = []
         let idSuggestions = []
-        if(allUserIds.length > 1) {
+        if (allUserIds.length > 1) {
             try {
                 matchResult = await matchUsers(user_id, allUserIds);
-                console.log({matchResult})
                 idSuggestions = matchResult.match(/\d+/g);
             } catch (error) {
                 idSuggestions = allUserIds.map((item) => item.id)
@@ -190,28 +550,24 @@ async function getExploreList({ user_id }) {
         } else {
             idSuggestions = allUserIds.map((item) => item.id)
         }
-        
-        
-        console.log({idSuggestions})
 
-        for(const rawuser of idSuggestions) {
-            if(suggestions.length > 20) {
+        for (const rawuser of idSuggestions) {
+            if (suggestions.length > 20) {
                 break
             }
 
-            const userInfo = await getProfile({user_id: rawuser})
-            
+            const userInfo = await getProfile({ user_id: rawuser })
+
             suggestions.push(userInfo.data)
         }
 
-        console.log({suggestions})
         return Promise.resolve({
             message: 'Explore list',
             data: suggestions
         })
     } catch (error) {
-        console.log({error})
-        return Promise.resolve(error)
+        console.log({ error })
+        return Promise.reject(error)
     }
 }
 
@@ -220,22 +576,23 @@ async function getMatches({ user_id }) {
         const matches = await Matches.findAll({
             where: {
                 [Op.or]: [
-                    { sender_id: user_id },
-                    { receiver_id: user_id }
-                ],
-                status: 'accepted',
+                    { sender_id: user_id, status: 'sent' },
+                    { sender_id: user_id, status: 'accepted' },
+                    { receiver_id: user_id, status: 'sent' },
+                    { receiver_id: user_id, status: 'accepted' }
+                ]
             },
             raw: true,
             order: [['last_message_date', 'DESC']],
         })
         const finalMatches = []
-        for(const match of matches) {
-            if(match.sender_id === user_id) {
-                const userInfo = await getProfile({user_id: match.receiver_id})
-                finalMatches.push({...match, profile: userInfo.data})
+        for (const match of matches) {
+            if (match.sender_id === user_id) {
+                const userInfo = await getProfile({ user_id: match.receiver_id })
+                finalMatches.push({ ...match, profile: userInfo.data })
             } else {
-                const userInfo = await getProfile({user_id: match.sender_id})
-                finalMatches.push({...match, profile: userInfo.data})
+                const userInfo = await getProfile({ user_id: match.sender_id })
+                finalMatches.push({ ...match, profile: userInfo.data })
             }
         }
 
@@ -244,8 +601,8 @@ async function getMatches({ user_id }) {
             data: finalMatches
         })
     } catch (error) {
-        console.log({error})
-        return Promise.resolve(error)
+        console.log({ error })
+        return Promise.reject(error)
     }
 }
 
@@ -276,7 +633,36 @@ async function rejectSuggestion({ user_id, friend_id }) {
             data: existMatch
         })
     } catch (error) {
-        return Promise.resolve(error)
+        return Promise.reject(error)
+    }
+}
+
+async function disconnect({ id, user_id, friend_id }) {
+    try {
+        console.log({ id, user_id, friend_id })
+        let existMatch = await Matches.findOne({
+            where: {
+                [Op.or]: [
+                    { sender_id: user_id, receiver_id: friend_id, id },
+                    { sender_id: friend_id, receiver_id: user_id, id }
+                ]
+            }
+        })
+
+        if (existMatch) {
+            existMatch = await Matches.update({ status: 'deleted' }, {
+                where: { id: id }
+            })
+
+            return Promise.resolve({
+                message: 'Suggestion deleted',
+                data: existMatch
+            })
+        }
+
+        return Promise.reject('Connection not found!')
+    } catch (error) {
+        return Promise.reject(error)
     }
 }
 
@@ -292,36 +678,64 @@ async function acceptSuggestion({ user_id, friend_id }) {
         })
 
         if (!existMatch) {
-            existMatch = await Matches.create({
-                sender_id: user_id,
-                receiver_id: friend_id,
-                status: 'sent'
-            })
+            const conversation_id = await createConversation(user_id, friend_id)
+            if (conversation_id) {
+                existMatch = await Matches.create({
+                    sender_id: user_id,
+                    receiver_id: friend_id,
+                    status: 'sent',
+                    conversation_id,
+                    last_message_date: new Date()
+                })
+
+                const requestUser = await Users.findOne({
+                    where: { id: user_id }
+                })
+
+                if (requestUser) {
+                    addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} send you connect request!`)
+                }
+            }
         } else {
             if (existMatch.status === 'sent') {
-                const conversation_id = await createConversation(user_id, friend_id)
-                if (conversation_id) {
-                    const updatedMatches = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
-                        where: {
-                            id: existMatch.id
-                        },
-                    })
+                // const conversation_id = await createConversation(user_id, friend_id)
+                // if (conversation_id) {
+                //     const updatedMatches = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
+                //         where: {
+                //             id: existMatch.id
+                //         },
+                //     })
 
-                    existMatch = await Matches.findOne({
-                        where: {
-                            id: existMatch.id
-                        },
-                        include: [
-                            { model: Users, as: 'sender' },
-                            { model: Users, as: 'receiver' },
-                        ]
-                    })
+                const updatedMatches = await Matches.update({ status: 'accepted', last_message_date: new Date(), response_date: new Date() }, {
+                    where: {
+                        id: existMatch.id
+                    },
+                })
 
-                    console.log({existMatch})
+                existMatch = await Matches.findOne({
+                    where: {
+                        id: existMatch.id
+                    },
+                    include: [
+                        { model: Users, as: 'sender' },
+                        { model: Users, as: 'receiver' },
+                    ],
+                    raw: true
+                })
 
-                    addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
-                    addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                if (existMatch.sender_id === user_id) {
+                    const userInfo = await getProfile({ user_id: existMatch.receiver_id })
+                    existMatch = { ...existMatch, profile: userInfo.data }
+                } else {
+                    const userInfo = await getProfile({ user_id: existMatch.sender_id })
+                    existMatch = { ...existMatch, profile: userInfo.data }
                 }
+
+                console.log({ existMatch })
+
+                addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                // }
             }
         }
 
@@ -330,7 +744,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
             data: existMatch
         })
     } catch (error) {
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -353,7 +767,7 @@ const createConversation = async (user1Id, user2Id) => {
 
 async function updateLastMessage({ user_id, conversation_id, last_message }) {
     try {
-        const updatedMatch = await Matches.update({ last_message, last_message_date: new Date(), last_message_sender: user_id}, {
+        const updatedMatch = await Matches.update({ last_message, last_message_date: new Date(), last_message_sender: user_id }, {
             where: {
                 [Op.or]: [
                     { sender_id: user_id },
@@ -374,21 +788,21 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
         })
 
         try {
-            if(existMatch.sender_id === user_id) {
+            if (existMatch.sender_id === user_id) {
                 addNewPushNotification(existMatch.receiver_id, existMatch.sender_id, existMatch.id, 'message', 'New message', last_message)
             } else {
                 addNewPushNotification(existMatch.sender_id, existMatch.receiver_id, existMatch.id, 'message', 'New message', last_message)
             }
         } catch (error) {
-            console.log({error})
+            console.log({ error })
         }
 
         return Promise.resolve({
             data: existMatch
         })
     } catch (error) {
-        console.log({error})
-        return Promise.resolve(error)
+        console.log({ error })
+        return Promise.reject(error)
     }
 }
 
@@ -397,5 +811,8 @@ module.exports = {
     getMatches,
     acceptSuggestion,
     rejectSuggestion,
-    updateLastMessage
+    updateLastMessage,
+    disconnect,
+    findBestMatches,
+    findLessMatches
 }

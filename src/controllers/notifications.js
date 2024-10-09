@@ -42,7 +42,7 @@ async function getNotificationList({ user_id }) {
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -59,7 +59,7 @@ async function markNotificationAsSeen({ user_id, notification_id }) {
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -75,7 +75,7 @@ async function markAllNotificationsAsSeen({ user_id }) {
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -91,7 +91,7 @@ async function markAllNotificationsAsSeen({ user_id }) {
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -137,7 +137,7 @@ async function addNewNotification(user_id, sender_id = null, match_id = null, ty
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
@@ -173,7 +173,7 @@ async function addNewPushNotification(user_id, sender_id = null, match_id = null
         })
     } catch (error) {
         console.log({ error })
-        return Promise.resolve(error)
+        return Promise.reject(error)
     }
 }
 
