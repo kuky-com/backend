@@ -582,6 +582,10 @@ async function getMatches({ user_id }) {
                     { receiver_id: user_id, status: 'accepted' }
                 ]
             },
+            include: [
+                { model: Users, as: 'sender' },
+                { model: Users, as: 'receiver' },
+            ],
             raw: true,
             order: [['last_message_date', 'DESC']],
         })
