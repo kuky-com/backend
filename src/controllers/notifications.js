@@ -79,7 +79,7 @@ async function markAllNotificationsAsSeen({ user_id }) {
     }
 }
 
-async function markAllNotificationsAsSeen({ user_id }) {
+async function countUnseenNotifications({ user_id }) {
     try {
         const unseenCount = await Notifications.count({
             where: { user_id: user_id, seen: false },
@@ -146,11 +146,14 @@ async function addNewPushNotification(user_id, sender_id = null, match_id = null
         const sessions = await Sessions.findAll({
             where: {
                 user_id: user_id,
+                logout_date: {
+                    [Op.eq]: null
+                },
                 session_token: {
                     [Op.ne]: null
                 }
             },
-            attributes: ['session_token'],
+            attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('session_token')), 'session_token']],
             raw: true
         })
 
@@ -182,5 +185,6 @@ module.exports = {
     markNotificationAsSeen,
     markAllNotificationsAsSeen,
     addNewNotification,
-    addNewPushNotification
+    addNewPushNotification,
+    countUnseenNotifications
 }

@@ -586,17 +586,17 @@ async function getMatches({ user_id }) {
                 { model: Users, as: 'sender' },
                 { model: Users, as: 'receiver' },
             ],
-            raw: true,
             order: [['last_message_date', 'DESC']],
         })
         const finalMatches = []
         for (const match of matches) {
-            if (match.sender_id === user_id) {
-                const userInfo = await getProfile({ user_id: match.receiver_id })
-                finalMatches.push({ ...match, profile: userInfo.data })
+            console.log({match: match.get('sender_id')})
+            if (match.get('sender_id') === user_id) {
+                const userInfo = await getProfile({ user_id: match.get('receiver_id') })
+                finalMatches.push({ ...match.toJSON(), profile: userInfo.data })
             } else {
-                const userInfo = await getProfile({ user_id: match.sender_id })
-                finalMatches.push({ ...match, profile: userInfo.data })
+                const userInfo = await getProfile({ user_id: match.get('sender_id') })
+                finalMatches.push({ ...match.toJSON(), profile: userInfo.data })
             }
         }
 
@@ -659,7 +659,7 @@ async function disconnect({ id, user_id, friend_id }) {
             })
 
             return Promise.resolve({
-                message: 'Suggestion deleted',
+                message: 'Connection deleted',
                 data: existMatch
             })
         }
@@ -724,15 +724,14 @@ async function acceptSuggestion({ user_id, friend_id }) {
                         { model: Users, as: 'sender' },
                         { model: Users, as: 'receiver' },
                     ],
-                    raw: true
                 })
 
-                if (existMatch.sender_id === user_id) {
-                    const userInfo = await getProfile({ user_id: existMatch.receiver_id })
-                    existMatch = { ...existMatch, profile: userInfo.data }
+                if (existMatch.get('sender_id') === user_id) {
+                    const userInfo = await getProfile({ user_id: existMatch.get('receiver_id') })
+                    existMatch = { ...existMatch.toJSON(), profile: userInfo.data }
                 } else {
-                    const userInfo = await getProfile({ user_id: existMatch.sender_id })
-                    existMatch = { ...existMatch, profile: userInfo.data }
+                    const userInfo = await getProfile({ user_id: existMatch.get('sender_id') })
+                    existMatch = { ...existMatch.toJSON(), profile: userInfo.data }
                 }
 
                 console.log({ existMatch })
@@ -788,14 +787,18 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
                     { receiver_id: user_id }
                 ],
                 conversation_id: conversation_id
-            }
+            },
+            include: [
+                { model: Users, as: 'sender' },
+                { model: Users, as: 'receiver' },
+            ]
         })
-
+  
         try {
             if (existMatch.sender_id === user_id) {
-                addNewPushNotification(existMatch.receiver_id, existMatch.sender_id, existMatch.id, 'message', 'New message', last_message)
+                addNewPushNotification(existMatch.receiver_id, existMatch.sender_id, existMatch.id, 'message', existMatch.sender?.full_name ?? 'New message', last_message)
             } else {
-                addNewPushNotification(existMatch.sender_id, existMatch.receiver_id, existMatch.id, 'message', 'New message', last_message)
+                addNewPushNotification(existMatch.sender_id, existMatch.receiver_id, existMatch.id, 'message', existMatch.receiver?.full_name ?? 'New message', last_message)
             }
         } catch (error) {
             console.log({ error })

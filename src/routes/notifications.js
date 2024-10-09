@@ -64,7 +64,7 @@ router.post('/seen', authMiddleware, (request, response, next) => {
         })
     }
 
-    return notifications.markAllNotificationsAsSeen({ user_id, ...request.body }).then(({ data, message }) => {
+    return notifications.markNotificationAsSeen({ user_id, ...request.body }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

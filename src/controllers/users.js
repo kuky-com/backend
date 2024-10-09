@@ -15,6 +15,8 @@ const UserInterest = require('../models/user_interests');
 const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
 const Tags = require('../models/tags');
+const Matches = require('../models/matches');
+const { Op } = require('sequelize');
 
 async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, publicGender, publicPronouns }) {
     try {
@@ -102,6 +104,15 @@ async function blockUser({ user_id, friend_id }) {
         await BlockedUsers.create({
             user_id: user_id,
             blocked_id: friend_id
+        })
+
+        await Matches.update({ status: 'deleted' }, {
+            where: {
+                [Op.or]: [
+                    { sender_id: user_id, receiver_id: friend_id },
+                    { sender_id: friend_id, receiver_id: user_id }
+                ]
+            }
         })
 
         return Promise.resolve({
