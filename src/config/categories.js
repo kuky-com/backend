@@ -30,7 +30,7 @@ const categoryMap = {
   "adventure & exploration": 18,
   
   // Health & Wellness
-  "mental health": 19,
+  "health & wellness": 19,
   "yoga & meditation": 20,
 
   // Fashion & Style
@@ -54,7 +54,11 @@ const categoryMap = {
 
   // Nature & Animals
   "nature & wildlife": 30,
-  "pet care & animal companionship": 31
+  "pet care & animal companionship": 31,
+
+  "medical treatments": 32,
+  "addiction & recovery": 33,
+  "pregnancy & parenting": 34,
 };
 
 module.exports = {
