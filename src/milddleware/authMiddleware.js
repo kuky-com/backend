@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
+    const deviceId = req.headers['device-id'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
@@ -15,6 +16,7 @@ function authMiddleware(req, res, next) {
         const session = Sessions.findOne({
             user_id: decodedToken.user_id,
             id: decodedToken.session_id,
+            device_id: deviceId,
             logout_date: {
                 [Op.ne]: null
             }
