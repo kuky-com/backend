@@ -18,11 +18,12 @@ function authMiddleware(req, res, next) {
             id: decodedToken.session_id,
             device_id: deviceId,
             logout_date: {
-                [Op.ne]: null
-            }
+                [Op.eq]: null
+            },
+            raw: true
         })
 
-        if(session) {
+        if(session && session.id) {
             req.session_id = decodedToken.session_id;
             req.user_id = decodedToken.user_id;
     
