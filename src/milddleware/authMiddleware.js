@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const Sessions = require('../models/sessions');
+const { Op } = require('sequelize');
 
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -10,10 +12,22 @@ function authMiddleware(req, res, next) {
 
         if (err) return res.status(403).json({ message: 'Invalid token' });
 
-        req.session_id = decodedToken.session_id;
-        req.user_id = decodedToken.user_id;
+        const session = Sessions.findOne({
+            user_id: decodedToken.user_id,
+            id: decodedToken.session_id,
+            logout_date: {
+                [Op.ne]: null
+            }
+        })
 
-        next();
+        if(session) {
+            req.session_id = decodedToken.session_id;
+            req.user_id = decodedToken.user_id;
+    
+            next();
+        } else {
+            return res.status(403).json({ message: 'Invalid token' });
+        }
     });
 }
 
