@@ -14,21 +14,21 @@ function authMiddleware(req, res, next) {
         if (err) return res.status(403).json({ message: 'Invalid token' });
 
         const session = await Sessions.findOne({
-            user_id: decodedToken.user_id,
-            id: decodedToken.session_id,
-            device_id: deviceId,
-            logout_date: {
-                [Op.eq]: null
+            where: {
+                user_id: decodedToken.user_id,
+                id: decodedToken.session_id,
+                device_id: deviceId,
+                logout_date: {
+                    [Op.eq]: null
+                },
             },
             raw: true
         })
 
-        console.log({session, deviceId, decodedToken})
-
-        if(session && session.id) {
+        if (session && session.id) {
             req.session_id = decodedToken.session_id;
             req.user_id = decodedToken.user_id;
-    
+
             next();
         } else {
             return res.status(403).json({ message: 'Invalid token' });
