@@ -23,6 +23,8 @@ function authMiddleware(req, res, next) {
             raw: true
         })
 
+        console.log({session, deviceId, decodedToken})
+
         if(session && session.id) {
             req.session_id = decodedToken.session_id;
             req.user_id = decodedToken.user_id;
