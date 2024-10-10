@@ -9,11 +9,11 @@ function authMiddleware(req, res, next) {
 
     if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decodedToken) => {
 
         if (err) return res.status(403).json({ message: 'Invalid token' });
 
-        const session = Sessions.findOne({
+        const session = await Sessions.findOne({
             user_id: decodedToken.user_id,
             id: decodedToken.session_id,
             device_id: deviceId,
