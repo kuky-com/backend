@@ -233,4 +233,30 @@ router.post('/last-message', authMiddleware, (request, response, next) => {
         })
 })
 
+router.post('/conversation', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { conversation_id } = request.body
+
+    if (!user_id || !conversation_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, conversation_id"
+        })
+    }
+
+    return matches.getConversation({ user_id, conversation_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;

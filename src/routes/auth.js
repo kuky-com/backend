@@ -176,7 +176,7 @@ router.get('/logout', authMiddleware, (request, response, next) => {
         })
 })
 
-router.get('/update-password', authMiddleware, (request, response, next) => {
+router.post('/update-password', authMiddleware, (request, response, next) => {
     const {user_id} = request
     const {current_password, new_password} = request.body
 

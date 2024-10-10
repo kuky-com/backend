@@ -32,8 +32,6 @@ router.post('/update-token', authMiddleware, (request, response, next) => {
     const { user_id, session_id } = request
     const { session_token } = request.body
 
-    console.log({user_id, session_id})
-
     if (!user_id || !session_token || !session_id) {
         return response.json({
             success: false,
@@ -67,6 +65,32 @@ router.get('/user-info', authMiddleware, (request, response, next) => {
     }
 
     return users.getProfile({ user_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/friend-info', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { friend_id } = request.body
+
+    if (!user_id || !friend_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, friend_id"
+        })
+    }
+
+    return users.getFriendProfile({ user_id, friend_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

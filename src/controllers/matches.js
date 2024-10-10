@@ -267,7 +267,7 @@ async function findLessMatches({ user_id }) {
             );
 
             if (user.profile_tag !== currentUserProfileTag && matchingDislikeGroupIds.length === 0 &&
-                     matchingInterestGroupIds.length === 0 && matchingPurposeGroupIds.length === 0) {
+                matchingInterestGroupIds.length === 0 && matchingPurposeGroupIds.length === 0) {
                 matchedUsersWithScores.push({
                     user_id: userId,
                 });
@@ -590,7 +590,6 @@ async function getMatches({ user_id }) {
         })
         const finalMatches = []
         for (const match of matches) {
-            console.log({match: match.get('sender_id')})
             if (match.get('sender_id') === user_id) {
                 const userInfo = await getProfile({ user_id: match.get('receiver_id') })
                 finalMatches.push({ ...match.toJSON(), profile: userInfo.data })
@@ -643,7 +642,6 @@ async function rejectSuggestion({ user_id, friend_id }) {
 
 async function disconnect({ id, user_id, friend_id }) {
     try {
-        console.log({ id, user_id, friend_id })
         let existMatch = await Matches.findOne({
             where: {
                 [Op.or]: [
@@ -698,6 +696,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
                 if (requestUser) {
                     addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} send you connect request!`)
+                    addNewPushNotification(friend_id, existMatch, 'notification', 'New connect request!', `${requestUser.full_name} send you connect request!`)
                 }
             }
         } else {
@@ -734,10 +733,11 @@ async function acceptSuggestion({ user_id, friend_id }) {
                     existMatch = { ...existMatch.toJSON(), profile: userInfo.data }
                 }
 
-                console.log({ existMatch })
-
                 addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
                 addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+
+                addNewPushNotification(user_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
+                addNewPushNotification(friend_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
                 // }
             }
         }
@@ -793,12 +793,12 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
                 { model: Users, as: 'receiver' },
             ]
         })
-  
+
         try {
             if (existMatch.sender_id === user_id) {
-                addNewPushNotification(existMatch.receiver_id, existMatch.sender_id, existMatch.id, 'message', existMatch.sender?.full_name ?? 'New message', last_message)
+                addNewPushNotification(existMatch.receiver_id, existMatch.toJSON(), 'message', existMatch.sender?.full_name ?? 'New message', last_message)
             } else {
-                addNewPushNotification(existMatch.sender_id, existMatch.receiver_id, existMatch.id, 'message', existMatch.receiver?.full_name ?? 'New message', last_message)
+                addNewPushNotification(existMatch.sender_id, existMatch.toJSON(), 'message', existMatch.receiver?.full_name ?? 'New message', last_message)
             }
         } catch (error) {
             console.log({ error })
@@ -813,6 +813,48 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
     }
 }
 
+async function getConversation({ user_id, conversation_id }) {
+    try {
+        const match = await Matches.findOne({
+            where: {
+                [Op.or]: [
+                    { sender_id: user_id, conversation_id },
+                    { receiver_id: user_id, conversation_id }
+                ]
+            },
+            include: [
+                { model: Users, as: 'sender' },
+                { model: Users, as: 'receiver' },
+            ]
+        })
+
+        if (!match) {
+            return Promise.reject('Connection not found!')
+        }
+
+        if (match.get('sender_id') === user_id) {
+            const userInfo = await getProfile({ user_id: match.get('receiver_id') })
+
+            return Promise.resolve({
+                message: 'Conversation detail',
+                data: { ...match.toJSON(), profile: userInfo.data }
+            })
+        } else {
+            const userInfo = await getProfile({ user_id: match.get('sender_id') })
+
+            return Promise.resolve({
+                message: 'Conversation detail',
+                data: { ...match.toJSON(), profile: userInfo.data }
+            })
+        }
+
+        
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     getExploreList,
     getMatches,
@@ -821,5 +863,6 @@ module.exports = {
     updateLastMessage,
     disconnect,
     findBestMatches,
-    findLessMatches
+    findLessMatches,
+    getConversation
 }

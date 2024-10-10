@@ -156,6 +156,13 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 
         const user = await Users.findOne({ where: { email } });
 
+        if(platform && device_id) {
+            await Sessions.update(
+                { logout_date: new Date(), session_token: null },
+                { where: { platform: platform, device_id: device_id } }
+            );
+        }
+
         const newSession = await Sessions.create({
             user_id: user.id,
             platform: platform || 'web',
@@ -197,6 +204,13 @@ async function login({ email, password, session_token, device_id, platform }) {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return Promise.reject('Invalid email or password')
+        }
+
+        if(platform && device_id) {
+            await Sessions.update(
+                { logout_date: new Date(), session_token: null },
+                { where: { platform: platform, device_id: device_id } }
+            );
         }
 
         const newSession = await Sessions.create({
@@ -245,6 +259,13 @@ async function googleLogin({ token, session_token, device_id, platform }) {
             });
         }
 
+        if(platform && device_id) {
+            await Sessions.update(
+                { logout_date: new Date(), session_token: null },
+                { where: { platform: platform, device_id: device_id } }
+            );
+        }
+
         const newSession = await Sessions.create({
             user_id: user.id,
             platform: platform || 'web',
@@ -273,7 +294,6 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 async function appleLogin({ token, session_token, device_id, platform }) {
 
     try {
-
         appleIdInfo = await appleSigninAuth.verifyIdToken(token);
         
         if(appleIdInfo && appleIdInfo.email && appleIdInfo.email_verified) {
@@ -286,6 +306,13 @@ async function appleLogin({ token, session_token, device_id, platform }) {
                     login_type: 'apple',
                     email_verified: true,
                 });
+            }
+
+            if(platform && device_id) {
+                await Sessions.update(
+                    { logout_date: new Date(), session_token: null },
+                    { where: { platform: platform, device_id: device_id } }
+                );
             }
     
             const newSession = await Sessions.create({
@@ -336,26 +363,6 @@ async function logout({ session_id }) {
     }
 }
 
-async function deleteAccount({ user_id }) {
-    try {
-        const session = await Sessions.update(
-            { logout_date: new Date() },
-            { where: { id: session_id } }
-        );
-
-        if (session[0] === 0) {
-            return Promise.reject('Session not found')
-        }
-
-        return Promise.resolve({
-            message: 'Logged out successfully'
-        })
-    } catch (error) {
-        console.error('Logout error:', error);
-        return Promise.reject(error)
-    }
-}
-
 async function updatePassword({user_id, current_password, new_password}) {
   try {
     const user = await Users.findByPk(user_id);
@@ -389,7 +396,6 @@ module.exports = {
     signUp,
     verifyEmail,
     logout,
-    deleteAccount,
     updatePassword,
     resendVerification
 }

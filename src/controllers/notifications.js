@@ -117,8 +117,6 @@ async function addNewNotification(user_id, sender_id = null, match_id = null, ty
             raw: true
         })
 
-        console.log({ sessions })
-
         const sessionTokens = sessions.map((item) => item.session_token)
 
         if (sessionTokens.length > 0) {
@@ -141,7 +139,7 @@ async function addNewNotification(user_id, sender_id = null, match_id = null, ty
     }
 }
 
-async function addNewPushNotification(user_id, sender_id = null, match_id = null, type, title, content) {
+async function addNewPushNotification(user_id, match = null, type, title, content) {
     try {
         const sessions = await Sessions.findAll({
             where: {
@@ -157,16 +155,19 @@ async function addNewPushNotification(user_id, sender_id = null, match_id = null
             raw: true
         })
 
-        console.log({ sessions })
-
         const sessionTokens = sessions.map((item) => item.session_token)
 
         if (sessionTokens.length > 0) {
-            admin.messaging().sendEachForMulticast({
+            const notiData = JSON.stringify({
+                type,
+                match
+            })
+            const res = await admin.messaging().sendEachForMulticast({
                 notification: {
                     title: title,
                     body: content
                 },
+                data: {data: notiData},
                 tokens: sessionTokens
             })
         }

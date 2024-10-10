@@ -17,6 +17,7 @@ const InactiveUsers = require('../models/inactive_users');
 const Tags = require('../models/tags');
 const Matches = require('../models/matches');
 const { Op } = require('sequelize');
+const ReportUsers = require('../models/report_users');
 
 async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, publicGender, publicPronouns }) {
     try {
@@ -75,6 +76,65 @@ async function getProfile({ user_id }) {
     }
 }
 
+async function getFriendProfile({ user_id, friend_id }) {
+    try {
+        const user = await Users.findOne({
+            where: { id: friend_id },
+            attributes: { exclude: ['password'] },
+            include: [
+                { model: Purposes },
+                { model: Interests },
+                { model: Tags }
+            ]
+        });
+
+        const match = await Matches.findOne({
+            where: {
+                sender_id: user_id,
+                receiver_id: friend_id
+            },
+            order: [['id', 'desc']]
+        });
+
+        if (!user) {
+            return Promise.reject('User not found')
+        }
+
+        const blocked = await BlockedUsers.findOne({
+            where: {
+                [Op.or]: [
+                    {
+                        user_id: user_id,
+                        blocked_id: friend_id
+                    },
+                    {
+                        user_id: friend_id,
+                        blocked_id: user_id
+                    }
+                ]
+            },
+        });
+
+        if (blocked) {
+            return Promise.resolve({
+                message: 'User info retrieved successfully',
+                data: {
+                    blocked: true, user: {}, match: null
+                },
+            })
+        }
+
+        return Promise.resolve({
+            message: 'User info retrieved successfully',
+            data: {
+                user, match
+            },
+        })
+    } catch (error) {
+        console.error('Error fetching user info:', error);
+        return Promise.reject(error)
+    }
+}
 
 async function getUser(user_id) {
     try {
@@ -149,7 +209,7 @@ async function getBlockedUsers({ user_id }) {
                 user_id: user_id
             },
             include: [
-                {model: Users, as: 'blockedUser'}
+                { model: Users, as: 'blockedUser' }
             ]
         })
 
@@ -191,7 +251,7 @@ async function deleteAccount({ user_id, reason }) {
         })
         delete user.id
 
-        console.log({user})
+        console.log({ user })
 
         await InactiveUsers.create({
             ...user,
@@ -200,7 +260,7 @@ async function deleteAccount({ user_id, reason }) {
             reason
         })
 
-        const updatedUser = await Users.update({is_active: false, email: `deletedAccount${user_id}@kuky.com`}, {
+        const updatedUser = await Users.update({ is_active: false, email: `deletedAccount${user_id}@kuky.com` }, {
             where: {
                 id: user_id
             },
@@ -218,14 +278,14 @@ async function deleteAccount({ user_id, reason }) {
 
 async function reportUser({ user_id, reporter_id, reason }) {
     try {
-        const reportUser = await BlockedUsers.create({
+        const reportUser = await ReportUsers.create({
             user_id,
             reason,
             reporter_id
         })
 
         return Promise.resolve({
-            message: "User has been blocked!",
+            message: "User has been reported!",
             data: reportUser
         })
     } catch (error) {
@@ -240,8 +300,6 @@ async function updateSessionToken({ user_id, session_id, session_token }) {
             where: { user_id: user_id, id: session_id },
             plain: true,
         });
-
-        console.log({ updatedSession })
 
         return Promise.resolve({
             data: updatedSession,
@@ -263,5 +321,6 @@ module.exports = {
     deactiveAccount,
     deleteAccount,
     reportUser,
-    updateSessionToken
+    updateSessionToken,
+    getFriendProfile
 }
