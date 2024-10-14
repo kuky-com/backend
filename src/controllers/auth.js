@@ -291,7 +291,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
     }
 }
 
-async function appleLogin({ token, session_token, device_id, platform }) {
+async function appleLogin({ full_name, token, session_token, device_id, platform }) {
 
     try {
         appleIdInfo = await appleSigninAuth.verifyIdToken(token);
@@ -301,11 +301,20 @@ async function appleLogin({ token, session_token, device_id, platform }) {
             let user = await Users.findOne({ where: { email } });
 
             if (!user) {
-                user = await Users.create({
-                    email,
-                    login_type: 'apple',
-                    email_verified: true,
-                });
+                if(full_name) {
+                    user = await Users.create({
+                        email,
+                        login_type: 'apple',
+                        email_verified: true,
+                        full_name
+                    });
+                } else {
+                    user = await Users.create({
+                        email,
+                        login_type: 'apple',
+                        email_verified: true,
+                    });
+                }
             }
 
             if(platform && device_id) {
