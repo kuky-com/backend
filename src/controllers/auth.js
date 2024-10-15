@@ -313,6 +313,7 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
                         email,
                         login_type: 'apple',
                         email_verified: true,
+                        full_name: email
                     });
                 }
             }
