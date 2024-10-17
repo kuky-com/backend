@@ -736,8 +736,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
                 addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
                 addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
 
-                addNewPushNotification(user_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
-                addNewPushNotification(friend_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
+                // addNewPushNotification(user_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
+                // addNewPushNotification(friend_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
                 // }
             }
         }
