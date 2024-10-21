@@ -43,11 +43,11 @@ const InactiveUsers = sequelize.define('inactive_users', {
     },
     publicGender: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
     },
     publicPronouns: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
     },
     location: {
         type: DataTypes.STRING,
@@ -64,6 +64,18 @@ const InactiveUsers = sequelize.define('inactive_users', {
     reason: {
         type: DataTypes.STRING,
         allowNull: true,
+    },
+    emailNotificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    notificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    subscribeEmail: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     },
 });
 

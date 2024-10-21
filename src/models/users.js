@@ -57,11 +57,23 @@ const Users = sequelize.define('users', {
     },
     publicGender: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
     },
     publicPronouns: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
+    },
+    emailNotificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    notificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    subscribeEmail: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     },
     location: {
         type: DataTypes.STRING,

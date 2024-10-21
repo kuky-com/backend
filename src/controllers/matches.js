@@ -23,6 +23,7 @@ const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
+const { sendRequestEmail } = require('./email');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -697,6 +698,53 @@ async function acceptSuggestion({ user_id, friend_id }) {
                 if (requestUser) {
                     addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} send you connect request!`)
                     addNewPushNotification(friend_id, existMatch, 'notification', 'New connect request!', `${requestUser.full_name} send you connect request!`)
+
+                    try {
+                        const senderPurposes = await UserPurposes.findAll({
+                            where: { user_id: user_id },
+                            attributes: {
+                                include: [
+                                    [Sequelize.col('purpose.name'), 'name'],
+                                ],
+                            },
+                            include: [
+                                { model: Purposes, attributes: [['name', 'name']] }
+                            ],
+                            raw: true
+                        });
+
+                        const sender_purposes = senderPurposes.map(up => up.name)
+
+                        const receiverPurposes = await UserPurposes.findAll({
+                            where: { user_id: user_id },
+                            attributes: {
+                                include: [
+                                    [Sequelize.col('purpose.name'), 'name'],
+                                ],
+                            },
+                            include: [
+                                { model: Purposes, attributes: [['name', 'name']] }
+                            ],
+                            raw: true
+                        });
+
+                        const receiver_purposes = receiverPurposes.map(up => up.name)
+
+                        const receiveUser = await Users.findOne({
+                            where: { id: friend_id }
+                        })
+
+                        sendRequestEmail({
+                            to_email: receiveUser.email, 
+                            to_name: receiveUser.full_name,
+                            to_purposes: receiver_purposes,
+                            sender_name: requestUser.full_name,
+                            sender_purposes: sender_purposes,
+                            conversation_id
+                        })
+                    } catch (error) {
+                        
+                    }
                 }
             }
         } else {
