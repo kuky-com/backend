@@ -696,8 +696,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
                 })
 
                 if (requestUser) {
-                    addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} wants to connect with you!`)
-                    addNewPushNotification(friend_id, existMatch, 'notification', 'New connect request!', `${requestUser.full_name} wants to connect with you!`)
+                    addNewNotification(friend_id, user_id, existMatch.id, null, 'new_request', 'You get new connect request.', `${requestUser.full_name} wants to connect with you!`)
+                    addNewPushNotification(friend_id, existMatch, null, 'notification', 'New connect request!', `${requestUser.full_name} wants to connect with you!`)
 
                     try {
                         const senderPurposes = await UserPurposes.findAll({
@@ -784,8 +784,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
                 addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
                 addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
 
-                // addNewPushNotification(user_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
-                // addNewPushNotification(friend_id, existMatch, 'message', 'You get new match!', 'Congratulation! You get new match!')
+                addNewPushNotification(user_id, existMatch, null, 'message', 'You get new match!', 'Congratulation! You get new match!')
+                addNewPushNotification(friend_id, existMatch, null, 'message', 'You get new match!', 'Congratulation! You get new match!')
                 // }
             }
         }
@@ -844,9 +844,9 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 
         try {
             if (existMatch.sender_id === user_id) {
-                addNewPushNotification(existMatch.receiver_id, existMatch.toJSON(), 'message', existMatch.sender?.full_name ?? 'New message', last_message)
+                addNewPushNotification(existMatch.receiver_id, existMatch.toJSON(), null, 'message', existMatch.sender?.full_name ?? 'New message', last_message)
             } else {
-                addNewPushNotification(existMatch.sender_id, existMatch.toJSON(), 'message', existMatch.receiver?.full_name ?? 'New message', last_message)
+                addNewPushNotification(existMatch.sender_id, existMatch.toJSON(), null, 'message', existMatch.receiver?.full_name ?? 'New message', last_message)
             }
         } catch (error) {
             console.log({ error })

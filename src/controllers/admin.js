@@ -22,7 +22,8 @@ const LeadUsers = require('../models/lead_users');
 const { normalizePurposes } = require('./interests');
 const UserPurposes = require('../models/user_purposes');
 const Suggestions = require('../models/suggestions');
-const emailService = require('./email')
+const emailService = require('./email');
+const { addNewNotification, addNewPushNotification } = require('./notifications');
 
 async function createLeadUsers(users) {
     try {
@@ -247,6 +248,9 @@ async function sendSuggestion({to_email, suggest_email}) {
 
             to_email_purposes = toPurposes.map(up => up.name)
             to_full_name = user.full_name
+
+            addNewNotification(user.id, suggestUser.id, null, suggestUser.id, 'new_suggestions', 'New suggestion', `You and ${suggestUser.full_name} are on the same journey.`)
+            addNewPushNotification(user.id, null, suggestUser, 'new_suggestions', 'New suggestion', `You and ${suggestUser.full_name} are on the same journey.`)
         } else {
             const leadUser = await LeadUsers.findOne({
                 where: {

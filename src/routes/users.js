@@ -260,4 +260,31 @@ router.post('/report-user', authMiddleware, (request, response, next) => {
         })
 })
 
+
+router.post('/review-user', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { friend_id, rating } = request.body
+
+    if (!user_id || !friend_id || !rating) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, friend_id, rating"
+        })
+    }
+
+    return users.reviewUser({ user_id: friend_id, reviewer_id: user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;

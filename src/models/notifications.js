@@ -36,6 +36,15 @@ const Notifications = sequelize.define('notifications', {
         },
         onDelete: 'NO ACTION',
     },
+    suggest_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id',
+        },
+        onDelete: 'NO ACTION',
+    },
     title: {
         type: DataTypes.TEXT,
         allowNull: false,
@@ -67,5 +76,6 @@ const Notifications = sequelize.define('notifications', {
 Notifications.belongsTo(Users, { foreignKey: 'user_id', as: 'user' });
 Notifications.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });
 Notifications.belongsTo(Matches, { foreignKey: 'match_id', as: 'match' });
+Notifications.belongsTo(Users, { foreignKey: 'suggest_id', as: 'suggest' });
 
 module.exports = Notifications;

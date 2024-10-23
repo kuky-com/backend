@@ -96,39 +96,17 @@ async function countUnseenNotifications({ user_id }) {
     }
 }
 
-async function addNewNotification(user_id, sender_id = null, match_id = null, type, title, content) {
+async function addNewNotification(user_id, sender_id = null, match_id = null, suggest_id = null, type, title, content) {
     try {
         const newNotification = await Notifications.create({
             user_id: user_id,
             sender_id: sender_id,
             match_id: match_id,
+            suggest_id: suggest_id,
             notification_type: type,
             content,
             title,
         })
-
-        const sessions = await Sessions.findAll({
-            where: {
-                user_id: user_id,
-                session_token: {
-                    [Op.ne]: null
-                }
-            },
-            attributes: ['session_token'],
-            raw: true
-        })
-
-        const sessionTokens = sessions.map((item) => item.session_token)
-
-        if (sessionTokens.length > 0) {
-            admin.messaging().sendEachForMulticast({
-                notification: {
-                    title: title,
-                    body: content
-                },
-                tokens: sessionTokens
-            })
-        }
 
         return Promise.resolve({
             message: 'New notification created',
@@ -140,7 +118,7 @@ async function addNewNotification(user_id, sender_id = null, match_id = null, ty
     }
 }
 
-async function addNewPushNotification(user_id, match = null, type, title, content) {
+async function addNewPushNotification(user_id, match = null, suggest = null, type, title, content) {
     try {
         const sessions = await Sessions.findAll({
             where: {
@@ -161,7 +139,8 @@ async function addNewPushNotification(user_id, match = null, type, title, conten
         if (sessionTokens.length > 0) {
             const notiData = JSON.stringify({
                 type,
-                match
+                match,
+                suggest
             })
             const res = await admin.messaging().sendEachForMulticast({
                 notification: {

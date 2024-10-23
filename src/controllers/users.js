@@ -18,6 +18,7 @@ const Tags = require('../models/tags');
 const Matches = require('../models/matches');
 const { Op } = require('sequelize');
 const ReportUsers = require('../models/report_users');
+const ReviewUsers = require('../models/review_users');
 
 async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, ...restParams
  }) {
@@ -314,6 +315,21 @@ async function updateSessionToken({ user_id, session_id, session_token }) {
     }
 }
 
+async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
+    try {
+        await ReviewUsers.create({
+            user_id, reviewer_id, rating, reason, note 
+        })
+
+        return Promise.resolve({
+            message: "Review has been added"
+        })
+    } catch (error) {
+        console.error('Error review user:', error);
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     updateProfile,
     getUser,
@@ -325,5 +341,6 @@ module.exports = {
     deleteAccount,
     reportUser,
     updateSessionToken,
-    getFriendProfile
+    getFriendProfile,
+    reviewUser
 }
