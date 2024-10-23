@@ -358,12 +358,10 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
                         full_name
                     });
                 } else {
-                    user = await Users.create({
-                        email,
-                        login_type: 'apple',
-                        email_verified: true,
-                        full_name: email
-                    });
+                    return Promise.resolve({
+                        data: null,
+                        message: 'You need to reset your permission to use Apple Login. Please go to Settings > Apple ID, iCloud, iTunes & App Store > Password & Security > Apps Using Your Apple ID > Loopio > Stop Using Apple ID'
+                    })
                 }
 
                 await updateUserFromLead(email)
