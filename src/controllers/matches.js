@@ -696,8 +696,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
                 })
 
                 if (requestUser) {
-                    addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} send you connect request!`)
-                    addNewPushNotification(friend_id, existMatch, 'notification', 'New connect request!', `${requestUser.full_name} send you connect request!`)
+                    addNewNotification(friend_id, user_id, existMatch.id, 'new_request', 'You get new connect request.', `${requestUser.full_name} wants to connect with you!`)
+                    addNewPushNotification(friend_id, existMatch, 'notification', 'New connect request!', `${requestUser.full_name} wants to connect with you!`)
 
                     try {
                         const senderPurposes = await UserPurposes.findAll({

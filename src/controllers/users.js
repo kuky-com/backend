@@ -19,18 +19,21 @@ const Matches = require('../models/matches');
 const { Op } = require('sequelize');
 const ReportUsers = require('../models/report_users');
 
-async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, publicGender, publicPronouns }) {
+async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, ...restParams
+ }) {
     try {
-        const updates = {};
+        const updates = {...restParams};
         if (full_name) updates.full_name = full_name;
         if (gender) updates.gender = gender;
         if (location) updates.location = location;
         if (pronouns) updates.pronouns = pronouns;
         if (birthday) updates.birthday = birthday;
         if (avatar) updates.avatar = avatar;
-        if (publicGender) updates.publicGender = publicGender;
-        if (publicPronouns) updates.publicPronouns = publicPronouns;
-
+        // if (publicGender) updates.publicGender = publicGender;
+        // if (publicPronouns) updates.publicPronouns = publicPronouns;
+        // if (notificationEnable) updates.notificationEnable = notificationEnable;
+        // if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
+        // if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
 
         const updatedUser = await Users.update(updates, {
             where: { id: user_id },

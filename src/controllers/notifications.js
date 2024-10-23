@@ -33,6 +33,7 @@ async function getNotificationList({ user_id }) {
             include: [
                 {model: Users, as: 'user'},
                 {model: Users, as: 'sender'},
+                {model: Matches, as: 'match'},
             ]
         });
 

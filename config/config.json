@@ -22,5 +22,13 @@
     "host": "52.65.80.111",
     "dialect": "postgres",
     "port": 5428
+  },
+  "staging": {
+    "username": "admin",
+    "password": "5uDop94oomy&v(N",
+    "database": "kuky",
+    "host": "54.253.118.218",
+    "dialect": "postgres",
+    "port": 5428
   }
 }

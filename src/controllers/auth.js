@@ -10,6 +10,9 @@ const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
 const usersController = require('./users')
 const appleSigninAuth = require('apple-signin-auth');
+const LeadUsers = require('../models/lead_users');
+const { updatePurposes } = require('./interests');
+const { sendWelcomeEmail } = require('./email');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION })
 function generateToken(session_id, user_id) {
@@ -18,6 +21,36 @@ function generateToken(session_id, user_id) {
         process.env.JWT_SECRET,
         { expiresIn: '30d' }
     )
+}
+
+async function updateUserFromLead(email) {
+    const leadUser = await LeadUsers.findOne({
+        where: {
+            email: email
+        }
+    })
+
+    if(leadUser) {
+        const user = await Users.findOne({
+            where: {
+                email: email
+            }
+        })
+
+        if(user) {
+            await updatePurposes({user_id: user.id, purposes: [leadUser.purpose]})
+
+            await Users.update({
+                full_name: leadUser.full_name,
+                gender: leadUser.gender,
+                location: leadUser.location,
+            }, {
+                where: {
+                    email: email
+                }
+            })
+        }
+    }
 }
 
 async function signUp({ full_name, email, password }) {
@@ -50,6 +83,8 @@ async function signUp({ full_name, email, password }) {
                 email_verified: false,
                 login_type: 'email',
             })
+
+            await updateUserFromLead(email)
         }
         
 
@@ -152,6 +187,8 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 
         await Users.update({ email_verified: true }, { where: { email } });
 
+        await sendWelcomeEmail({to_email: email})
+
         await VerificationCode.destroy({ where: { email, code } });
 
         const user = await Users.findOne({ where: { email } });
@@ -223,6 +260,10 @@ async function login({ email, password, session_token, device_id, platform }) {
 
         const token = generateToken(newSession.id, user.id);
 
+        if(!user.is_active) {
+            await Users.update({is_active: true}, { where: { email } });
+        }
+
         const userInfo = await usersController.getUser(user.id)
 
         return Promise.resolve({
@@ -257,6 +298,10 @@ async function googleLogin({ token, session_token, device_id, platform }) {
                 email_verified: true,
                 full_name
             });
+
+            await updateUserFromLead(email)
+
+            await sendWelcomeEmail({to_email: email})
         }
 
         if(platform && device_id) {
@@ -275,6 +320,10 @@ async function googleLogin({ token, session_token, device_id, platform }) {
         });
 
         const access_token = generateToken(newSession.id, user.id);
+
+        if(!user.is_active) {
+            await Users.update({is_active: true}, { where: { email } });
+        }
 
         const userInfo = await usersController.getUser(user.id)
 
@@ -316,6 +365,10 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
                         full_name: email
                     });
                 }
+
+                await updateUserFromLead(email)
+
+                await sendWelcomeEmail({to_email: email})
             }
 
             if(platform && device_id) {
@@ -334,6 +387,10 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
             });
     
             const access_token = generateToken(newSession.id, user.id);
+
+            if(!user.is_active) {
+                await Users.update({is_active: true}, { where: { email } });
+            }
     
             const userInfo = await usersController.getUser(user.id)
     
