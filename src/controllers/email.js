@@ -130,7 +130,7 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
 
 <div class="email-container">
     <div class="header">
-        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <h1 class="title">You and ${suggest_name} are on the same journey.</h1>
     </div>
 
@@ -156,13 +156,13 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
     </div>
 
    <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
@@ -170,10 +170,10 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
             <a href="#">Unsubscribe</a>
         </div>
         <div class="footer-icons">
-            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.svg" alt="Instagram"></a>
-            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.svg" alt="Twitter"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.svg" alt="Facebook"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.svg" alt="Whatsapp"></a>
+            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.png" alt="Instagram"></a>
+            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.png" alt="Twitter"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.png" alt="Facebook"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.png" alt="Whatsapp"></a>
         </div>
     </div>
 </div>
@@ -318,7 +318,7 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
 
 <div class="email-container">
     <div class="header">
-        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <h1 class="title">You Have a New Connection on Kuky!</h1>
     </div>
 
@@ -344,13 +344,13 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
     </div>
 
     <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
@@ -358,10 +358,10 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
             <a href="#">Unsubscribe</a>
         </div>
         <div class="footer-icons">
-            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.svg" alt="Instagram"></a>
-            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.svg" alt="Twitter"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.svg" alt="Facebook"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.svg" alt="Whatsapp"></a>
+            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.png" alt="Instagram"></a>
+            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.png" alt="Twitter"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.png" alt="Facebook"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.png" alt="Whatsapp"></a>
         </div>
     </div>
 </div>
@@ -510,7 +510,7 @@ async function sendWelcomeEmail({ to_email }) {
 
 <div class="email-container">
     <div class="header">
-        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+        <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <h1 class="title">You Have a New Connection on Kuky!</h1>
         <h5>We’re excited to have you here.</h5>
     </div>
@@ -530,13 +530,13 @@ async function sendWelcomeEmail({ to_email }) {
     </div>
 
     <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.svg" alt="Logo">
+    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.svg" alt="App Store">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
@@ -544,10 +544,10 @@ async function sendWelcomeEmail({ to_email }) {
             <a href="#">Unsubscribe</a>
         </div>
         <div class="footer-icons">
-            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.svg" alt="Instagram"></a>
-            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.svg" alt="Twitter"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.svg" alt="Facebook"></a>
-            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.svg" alt="Whatsapp"></a>
+            <a href="https://www.instagram.com/kuky_app/"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.png" alt="Instagram"></a>
+            <a href="https://x.com/kuky_app"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.png" alt="Twitter"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.png" alt="Facebook"></a>
+            <a href="#"><img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.png" alt="Whatsapp"></a>
         </div>
     </div>
 </div>
