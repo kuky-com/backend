@@ -33,6 +33,9 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
                             <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>You and ${suggest_name} are on the same journey</title>
@@ -41,12 +44,14 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Comfortaa', serif;
+            display: grid;
+            place-items: center; 
+            width: 100%;
         }
         .profile-card-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: grid;
+          place-items: center; 
           width: 100%;
         }
         .email-container {
@@ -66,7 +71,7 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
         }
         .title {
             color: #fff54e;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
         }
         .content {
@@ -82,6 +87,8 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
             padding: 15px;
             display: inline-block;
             margin-bottom: 20px;
+            width: 40%;
+            margin: 0 auto;
         }
         .profile-card h3 {
             margin: 0;
@@ -92,6 +99,7 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
             color: #666;
         }
         .button-container {
+            margin-top: 32px;
             text-align: center;
         }
         .button {
@@ -107,10 +115,6 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
             margin-top: 40px;
             color: #ffffff;
         }
-        .footer img {
-            width: 100px;
-            margin: 10px;
-        }
         .footer a {
             color: #ffffff;
             text-decoration: none;
@@ -119,10 +123,18 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
         }
         .footer-links {
             margin-top: 20px;
+          margin-bottom: 20px;
         }
         .footer-icons img {
-            width: 24px;
-            margin: 5px;
+            width: 30px;
+        }
+        .footer-logo {
+            width: 50px;
+            height: auto;
+        }
+        .footer-store {
+            width: 115px;
+            height: auto;
         }
     </style>
 </head>
@@ -156,13 +168,13 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
     </div>
 
    <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
+    <img class="footer-logo" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
@@ -218,23 +230,28 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
                     Html: {
                         Charset: "UTF-8",
                         Data: `
-                            <!DOCTYPE html>
+                                                        <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You Have a New Connection on Kuky!</title>
+    <title>You Have a New Connection Request on Kuky!</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Comfortaa', serif;
+            display: grid;
+            place-items: center; 
+            width: 100%;
         }
         .profile-card-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: grid;
+          place-items: center; 
           width: 100%;
         }
         .email-container {
@@ -254,7 +271,7 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
         }
         .title {
             color: #fff54e;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
         }
         .content {
@@ -270,6 +287,8 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
             padding: 15px;
             display: inline-block;
             margin-bottom: 20px;
+            width: 40%;
+            margin: 0 auto;
         }
         .profile-card h3 {
             margin: 0;
@@ -280,6 +299,7 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
             color: #666;
         }
         .button-container {
+            margin-top: 32px;
             text-align: center;
         }
         .button {
@@ -295,10 +315,6 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
             margin-top: 40px;
             color: #ffffff;
         }
-        .footer img {
-            width: 100px;
-            margin: 10px;
-        }
         .footer a {
             color: #ffffff;
             text-decoration: none;
@@ -307,10 +323,18 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
         }
         .footer-links {
             margin-top: 20px;
+          margin-bottom: 20px;
         }
         .footer-icons img {
-            width: 24px;
-            margin: 5px;
+            width: 30px;
+        }
+        .footer-logo {
+            width: 50px;
+            height: auto;
+        }
+        .footer-store {
+            width: 115px;
+            height: auto;
         }
     </style>
 </head>
@@ -319,7 +343,7 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
 <div class="email-container">
     <div class="header">
         <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
-        <h1 class="title">You Have a New Connection on Kuky!</h1>
+        <h1 class="title">You Have a New Connection Request on Kuky!</h1>
     </div>
 
     <div class="content">
@@ -343,14 +367,14 @@ async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_i
         <p>Best,<br>The Kuky Team</p>
     </div>
 
-    <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
+   <div class="footer">
+    <img class="footer-logo" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
@@ -409,6 +433,9 @@ async function sendWelcomeEmail({ to_email }) {
                              <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Kuky! !</title>
@@ -432,6 +459,9 @@ async function sendWelcomeEmail({ to_email }) {
             max-width: 600px;
             margin: 20px auto;
             border-radius: 10px;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
         }
         .header {
             text-align: center;
@@ -483,10 +513,6 @@ async function sendWelcomeEmail({ to_email }) {
             margin-top: 40px;
             color: #ffffff;
         }
-        .footer img {
-            width: 100px;
-            margin: 10px;
-        }
         .footer a {
             color: #ffffff;
             text-decoration: none;
@@ -495,10 +521,18 @@ async function sendWelcomeEmail({ to_email }) {
         }
         .footer-links {
             margin-top: 20px;
+          margin-bottom: 20px;
         }
         .footer-icons img {
-            width: 24px;
-            margin: 5px;
+            width: 30px;
+        }
+        .footer-logo {
+            width: 50px;
+            height: auto;
+        }
+        .footer-store {
+            width: 115px;
+            height: auto;
         }
       .welcome-image {
         width: 100%;
@@ -529,14 +563,14 @@ async function sendWelcomeEmail({ to_email }) {
         <a href="kuky://" class="button">Start Exploring</a>
     </div>
 
-    <div class="footer">
-    <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
+   <div class="footer">
+    <img class="footer-logo" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
         <p>Download the KUKY app now!</p>
         <a href="https://apps.apple.com/au/app/kuky/id6711341485">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png" alt="App Store">
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
-            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
+            <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png" alt="App Store">
         </a>
         <div class="footer-links">
             <a href="#">Terms & Conditions</a> | 
