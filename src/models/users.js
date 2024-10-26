@@ -92,6 +92,11 @@ const Users = sequelize.define('users', {
         allowNull: true,
         defaultValue: false
     },
+    is_premium_user: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false
+    },
     profile_tag: {
         type: DataTypes.INTEGER,
         allowNull: true,
