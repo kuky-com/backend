@@ -87,6 +87,11 @@ const Users = sequelize.define('users', {
         type: DataTypes.DOUBLE,
         allowNull: true,
     },
+    is_hidden_users: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false
+    },
     profile_tag: {
         type: DataTypes.INTEGER,
         allowNull: true,
