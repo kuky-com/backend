@@ -528,6 +528,7 @@ async function getExploreList({ user_id }) {
         const allUserIds = await Users.findAll({
             where: {
                 is_active: true,
+                is_hidden_users: false,
                 profile_tag: {
                     [Op.ne]: null
                 },
