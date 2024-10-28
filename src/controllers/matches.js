@@ -380,6 +380,7 @@ async function findBestMatches({ user_id }) {
         const matchingUsers = await Users.findAll({
             where: {
                 is_active: true,
+                is_hidden_users: false,
                 profile_tag: {
                     [Op.ne]: null
                 },
