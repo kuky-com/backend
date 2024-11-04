@@ -207,6 +207,7 @@ async function findLessMatches({ user_id }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
+                profile_approved: true,
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -382,6 +383,7 @@ async function findBestMatches({ user_id }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
+                profile_approved: true,
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -531,6 +533,7 @@ async function getExploreList({ user_id }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
+                profile_approved: true,
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -683,6 +686,14 @@ async function acceptSuggestion({ user_id, friend_id }) {
             }
         })
 
+        const requestUser = await Users.findOne({
+            where: { id: user_id }
+        })
+
+        if(requestUser && !requestUser.profile_approved) {
+            return Promise.reject('Your account is almost ready! While we complete the approval, feel free to browse and get familiar with other profiles. You’ll be connecting soon!')
+        }
+
         if (!existMatch) {
             const conversation_id = await createConversation(user_id, friend_id)
             if (conversation_id) {
@@ -694,10 +705,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
                     last_message_date: new Date()
                 })
 
-                const requestUser = await Users.findOne({
-                    where: { id: user_id }
-                })
-
+                
                 if (requestUser) {
                     addNewNotification(friend_id, user_id, existMatch.id, null, 'new_request', 'You get new connect request.', `${requestUser.full_name} wants to connect with you!`)
                     addNewPushNotification(friend_id, existMatch, null, 'notification', 'New connect request!', `${requestUser.full_name} wants to connect with you!`)
@@ -784,8 +792,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
                     existMatch = { ...existMatch.toJSON(), profile: userInfo.data }
                 }
 
-                addNewNotification(user_id, friend_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
-                addNewNotification(friend_id, user_id, existMatch.id, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                addNewNotification(user_id, friend_id, existMatch.id, null, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
+                addNewNotification(friend_id, user_id, existMatch.id, null, 'new_match', 'You get new match!', 'Congratulation! You get new match!')
 
                 addNewPushNotification(user_id, existMatch, null, 'message', 'You get new match!', 'Congratulation! You get new match!')
                 addNewPushNotification(friend_id, existMatch, null, 'message', 'You get new match!', 'Congratulation! You get new match!')

@@ -12,7 +12,7 @@ const usersController = require('./users')
 const appleSigninAuth = require('apple-signin-auth');
 const LeadUsers = require('../models/lead_users');
 const { updatePurposes } = require('./interests');
-const { sendWelcomeEmail } = require('./email');
+const { sendWelcomeEmail, sendVerificationEmail } = require('./email');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION })
 function generateToken(session_id, user_id) {
@@ -30,15 +30,15 @@ async function updateUserFromLead(email) {
         }
     })
 
-    if(leadUser) {
+    if (leadUser) {
         const user = await Users.findOne({
             where: {
                 email: email
             }
         })
 
-        if(user) {
-            await updatePurposes({user_id: user.id, purposes: [leadUser.purpose]})
+        if (user) {
+            await updatePurposes({ user_id: user.id, purposes: [leadUser.purpose] })
 
             await Users.update({
                 full_name: leadUser.full_name,
@@ -64,7 +64,7 @@ async function signUp({ full_name, email, password }) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const existingUnverifyUser = await Users.findOne({ where: { email } });
-        if(existingUnverifyUser) {
+        if (existingUnverifyUser) {
             const user = await Users.update({
                 full_name,
                 password: hashedPassword,
@@ -86,38 +86,33 @@ async function signUp({ full_name, email, password }) {
 
             await updateUserFromLead(email)
         }
-        
+
 
         const code = crypto.randomInt(1000, 9999).toString();
         const expires_at = new Date(Date.now() + 15 * 60 * 1000);
 
         await VerificationCode.create({ code, email, expires_at });
 
-        const params = {
-            Source: 'noreply@kuky.com',
-            Destination: {
-                ToAddresses: [email],
-            },
-            Message: {
-                Subject: {
-                    Data: 'Your Verification Code',
-                },
-                Body: {
-                    Text: {
-                        Data: `Your verification code is: ${code}`,
-                    },
-                },
-            },
-        };
+        // const params = {
+        //     Source: 'noreply@kuky.com',
+        //     Destination: {
+        //         ToAddresses: [email],
+        //     },
+        //     Message: {
+        //         Subject: {
+        //             Data: 'Your Verification Code',
+        //         },
+        //         Body: {
+        //             Text: {
+        //                 Data: `Your verification code is: ${code}`,
+        //             },
+        //         },
+        //     },
+        // };
 
-        const command = new SendEmailCommand(params);
-        const result = await sesClient.send(command);
+        await sendVerificationEmail({ to_email: email, code })
 
-        if (!result) {
-            return Promise.reject('Error sending verification email')
-        } else {
-            return Promise.resolve({ message: 'Verification code sent to your email' })
-        }
+        return Promise.resolve({ message: 'Verification code sent to your email' })
     } catch (error) {
         console.log({ error })
         return Promise.reject(error)
@@ -135,7 +130,7 @@ async function resendVerification({ email }) {
         const code = crypto.randomInt(1000, 9999).toString();
         const expires_at = new Date(Date.now() + 15 * 60 * 1000);
 
-        await VerificationCode.update({ expires_at : new Date()}, {
+        await VerificationCode.update({ expires_at: new Date() }, {
             where: {
                 email: email
             }
@@ -143,31 +138,27 @@ async function resendVerification({ email }) {
 
         await VerificationCode.create({ code, email, expires_at });
 
-        const params = {
-            Source: 'noreply@kuky.com',
-            Destination: {
-                ToAddresses: [email],
-            },
-            Message: {
-                Subject: {
-                    Data: 'Your Verification Code',
-                },
-                Body: {
-                    Text: {
-                        Data: `Your verification code is: ${code}`,
-                    },
-                },
-            },
-        };
+        // const params = {
+        //     Source: 'noreply@kuky.com',
+        //     Destination: {
+        //         ToAddresses: [email],
+        //     },
+        //     Message: {
+        //         Subject: {
+        //             Data: 'Your Verification Code',
+        //         },
+        //         Body: {
+        //             Text: {
+        //                 Data: `Your verification code is: ${code}`,
+        //             },
+        //         },
+        //     },
+        // };
 
-        const command = new SendEmailCommand(params);
-        const result = await sesClient.send(command);
+        await sendVerificationEmail({ to_email: email, code })
 
-        if (!result) {
-            return Promise.reject('Error sending verification email')
-        } else {
-            return Promise.resolve({ message: 'Verification code sent to your email' })
-        }
+        return Promise.resolve({ message: 'Verification code sent to your email' })
+
     } catch (error) {
         console.log({ error })
         return Promise.reject(error)
@@ -176,10 +167,10 @@ async function resendVerification({ email }) {
 
 async function verifyEmail({ email, code, session_token, device_id, platform }) {
     try {
-        const record = await VerificationCode.findOne({ 
+        const record = await VerificationCode.findOne({
             where: { email, code },
             order: [['createdAt', 'DESC']]
-         });
+        });
 
         if (!record || new Date() > record.expires_at) {
             return Promise.reject('Invalid or expired verification code');
@@ -187,13 +178,13 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 
         await Users.update({ email_verified: true }, { where: { email } });
 
-        await sendWelcomeEmail({to_email: email})
+        await sendWelcomeEmail({ to_email: email })
 
         await VerificationCode.destroy({ where: { email, code } });
 
         const user = await Users.findOne({ where: { email } });
 
-        if(platform && device_id) {
+        if (platform && device_id) {
             await Sessions.update(
                 { logout_date: new Date(), session_token: null },
                 { where: { platform: platform, device_id: device_id } }
@@ -226,7 +217,7 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 }
 
 async function login({ email, password, session_token, device_id, platform }) {
-    
+
     try {
         const user = await Users.findOne({ where: { email } });
 
@@ -243,7 +234,7 @@ async function login({ email, password, session_token, device_id, platform }) {
             return Promise.reject('Invalid email or password')
         }
 
-        if(platform && device_id) {
+        if (platform && device_id) {
             await Sessions.update(
                 { logout_date: new Date(), session_token: null },
                 { where: { platform: platform, device_id: device_id } }
@@ -260,8 +251,8 @@ async function login({ email, password, session_token, device_id, platform }) {
 
         const token = generateToken(newSession.id, user.id);
 
-        if(!user.is_active) {
-            await Users.update({is_active: true}, { where: { email } });
+        if (!user.is_active) {
+            await Users.update({ is_active: true }, { where: { email } });
         }
 
         const userInfo = await usersController.getUser(user.id)
@@ -301,10 +292,10 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 
             await updateUserFromLead(email)
 
-            await sendWelcomeEmail({to_email: email})
+            await sendWelcomeEmail({ to_email: email })
         }
 
-        if(platform && device_id) {
+        if (platform && device_id) {
             await Sessions.update(
                 { logout_date: new Date(), session_token: null },
                 { where: { platform: platform, device_id: device_id } }
@@ -321,8 +312,8 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 
         const access_token = generateToken(newSession.id, user.id);
 
-        if(!user.is_active) {
-            await Users.update({is_active: true}, { where: { email } });
+        if (!user.is_active) {
+            await Users.update({ is_active: true }, { where: { email } });
         }
 
         const userInfo = await usersController.getUser(user.id)
@@ -344,13 +335,13 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 
     try {
         appleIdInfo = await appleSigninAuth.verifyIdToken(token);
-        
-        if(appleIdInfo && appleIdInfo.email && appleIdInfo.email_verified) {
+
+        if (appleIdInfo && appleIdInfo.email && appleIdInfo.email_verified) {
             const email = appleIdInfo.email
             let user = await Users.findOne({ where: { email } });
 
             if (!user) {
-                if(full_name) {
+                if (full_name) {
                     user = await Users.create({
                         email,
                         login_type: 'apple',
@@ -366,16 +357,16 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 
                 await updateUserFromLead(email)
 
-                await sendWelcomeEmail({to_email: email})
+                await sendWelcomeEmail({ to_email: email })
             }
 
-            if(platform && device_id) {
+            if (platform && device_id) {
                 await Sessions.update(
                     { logout_date: new Date(), session_token: null },
                     { where: { platform: platform, device_id: device_id } }
                 );
             }
-    
+
             const newSession = await Sessions.create({
                 user_id: user.id,
                 platform: platform || 'web',
@@ -383,15 +374,15 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
                 login_date: new Date(),
                 session_token
             });
-    
+
             const access_token = generateToken(newSession.id, user.id);
 
-            if(!user.is_active) {
-                await Users.update({is_active: true}, { where: { email } });
+            if (!user.is_active) {
+                await Users.update({ is_active: true }, { where: { email } });
             }
-    
+
             const userInfo = await usersController.getUser(user.id)
-    
+
             return Promise.resolve({
                 data: {
                     user: userInfo,
@@ -428,30 +419,30 @@ async function logout({ session_id }) {
     }
 }
 
-async function updatePassword({user_id, current_password, new_password}) {
-  try {
-    const user = await Users.findByPk(user_id);
+async function updatePassword({ user_id, current_password, new_password }) {
+    try {
+        const user = await Users.findByPk(user_id);
 
-    if (!user) {
-      return Promise.reject('User not found.')
+        if (!user) {
+            return Promise.reject('User not found.')
+        }
+
+        const isPasswordValid = await bcrypt.compare(current_password, user.password);
+
+        if (!isPasswordValid) {
+            return Promise.reject('Current password is incorrect.');
+        }
+
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+
+        user.password = hashedPassword;
+        await user.save();
+
+        return Promise.resolve('Password updated successfully.')
+    } catch (error) {
+        console.error('Error updating password:', error);
+        return Promise.reject('Internal server error.');
     }
-
-    const isPasswordValid = await bcrypt.compare(current_password, user.password);
-
-    if (!isPasswordValid) {
-      return Promise.reject('Current password is incorrect.');
-    }
-
-    const hashedPassword = await bcrypt.hash(new_password, 10);
-
-    user.password = hashedPassword;
-    await user.save();
-
-    return Promise.resolve('Password updated successfully.')
-  } catch (error) {
-    console.error('Error updating password:', error);
-    return Promise.reject('Internal server error.');
-  }
 }
 
 module.exports = {

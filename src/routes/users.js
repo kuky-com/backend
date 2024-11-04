@@ -287,4 +287,20 @@ router.post('/review-user', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/latest-version', authMiddleware, (request, response, next) => {
+    return users.getLatestVersion().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;

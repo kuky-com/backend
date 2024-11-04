@@ -24,6 +24,16 @@ const UserPurposes = require('../models/user_purposes');
 const Suggestions = require('../models/suggestions');
 const emailService = require('./email');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
+const AdminUsers = require('../models/admin_users');
+const AdminSessions = require('../models/admin_sessions');
+
+function generateToken(session_id, admin_id) {
+    return jwt.sign(
+        { session_id, admin_id },
+        process.env.JWT_SECRET,
+        { expiresIn: '30d' }
+    )
+}
 
 async function createLeadUsers(users) {
     try {
@@ -290,9 +300,101 @@ async function sendSuggestion({to_email, suggest_email}) {
     }
 }
 
+async function createAdmin({ full_name, username, password }) {
+
+    try {
+        const existingUser = await AdminUsers.findOne({ where: { username } });
+        if (existingUser) {
+            return Promise.reject('Username already registered')
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await AdminUsers.create({
+            full_name,
+            username,
+            password: hashedPassword,
+            is_active: false,
+        })
+
+        return Promise.resolve({ message: 'Admin account created!' })
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
+async function login({ username, password}) {
+
+    try {
+        const admin = await AdminUsers.findOne({ where: { username } });
+
+        if (!admin) {
+            return Promise.reject('Admin not found');
+        }
+
+        if (!admin.is_active) {
+            return Promise.reject('Admin not verified')
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return Promise.reject('Invalid username or password')
+        }
+
+        const newSession = await AdminSessions.create({
+            admin_id: admin.id,
+            platform: 'web',
+            login_date: new Date()
+        });
+
+        const token = generateToken(newSession.id, admin.id);
+
+        return Promise.resolve({
+            data: {
+                admin,
+                token
+            },
+            message: 'Login successful'
+        })
+    } catch (error) {
+        console.error(error);
+        return Promise.reject('Login failed! Please try again!')
+    }
+}
+
+async function getUsers({ page = 1, limit = 20}) {
+
+    try {
+        const offset = (page - 1) * limit;
+
+        const {count, rows} = await Users.findAndCountAll()
+
+        const users = await Users.findAll({
+            limit: limit,
+            offset: offset,
+            order: [['id', 'DESC']]
+        })
+
+        return Promise.resolve({
+            data: {
+                total: count,
+                users
+            },
+            message: 'Users list'
+        })
+    } catch (error) {
+        console.error(error);
+        return Promise.reject('Login failed! Please try again!')
+    }
+}
+
 
 module.exports = {
     createLeadUsers,
     checkSuggestion,
-    sendSuggestion
+    sendSuggestion,
+    createAdmin,
+    login,
+    getUsers
 }

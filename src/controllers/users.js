@@ -19,6 +19,7 @@ const Matches = require('../models/matches');
 const { Op } = require('sequelize');
 const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
+const AppVersions = require('../models/versions');
 
 async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, ...restParams
  }) {
@@ -29,7 +30,6 @@ async function updateProfile({ user_id, full_name, gender, location, pronouns, b
         if (location) updates.location = location;
         if (pronouns) updates.pronouns = pronouns;
         if (birthday) updates.birthday = birthday;
-        if (avatar) updates.avatar = avatar;
         // if (publicGender) updates.publicGender = publicGender;
         // if (publicPronouns) updates.publicPronouns = publicPronouns;
         // if (notificationEnable) updates.notificationEnable = notificationEnable;
@@ -330,6 +330,22 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
     }
 }
 
+async function getLatestVersion() {
+    try {
+        const version = await AppVersions.findOne({
+            order: [['id', 'desc']]
+        })
+
+        return Promise.resolve({
+            message: "Latest version",
+            data: version
+        })
+    } catch (error) {
+        console.error('Error review user:', error);
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     updateProfile,
     getUser,
@@ -342,5 +358,6 @@ module.exports = {
     reportUser,
     updateSessionToken,
     getFriendProfile,
-    reviewUser
+    reviewUser,
+    getLatestVersion
 }
