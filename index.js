@@ -6,8 +6,11 @@ const router = require('./src/routes')
 const bodyParser = require('body-parser');
 const errorHandler = require('errorhandler');
 const { createDefaultTags } = require('./src/seeds/tags');
+const cors = require('cors');
 
 const app = express();
+
+app.use(cors());
 
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(express.json());
