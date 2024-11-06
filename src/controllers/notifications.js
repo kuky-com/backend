@@ -19,11 +19,7 @@ var admin = require("firebase-admin");
 const { v4: uuidv4 } = require('uuid')
 const Notifications = require('../models/notifications')
 
-// var serviceAccount = require("../config/serviceAccountKey.json");
 const Sessions = require('../models/sessions');
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount)
-// });
 
 async function getNotificationList({ user_id }) {
     try {

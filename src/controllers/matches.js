@@ -18,13 +18,15 @@ const { Op, Sequelize } = require('sequelize');
 var admin = require("firebase-admin");
 const { v4: uuidv4 } = require('uuid')
 
-var serviceAccount = require("../config/serviceAccountKey.json");
+// var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
