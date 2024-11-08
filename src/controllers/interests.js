@@ -43,7 +43,33 @@ async function getPurposes({ user_id }) {
             data: purposes
         })
     } catch (error) {
-        console.error('Error user purposes:', error);
+        console.log('Error user purposes:', error);
+        return Promise.reject(error)
+    }
+}
+
+async function getAllInterests({ user_id }) {
+    try {
+        const interests = await UserInterests.findAll({
+            where: {
+                user_id: user_id
+            },
+            attributes: {
+                include: [
+                    [Sequelize.col('interest.name'), 'name'],
+                ],
+            },
+            include: [
+                { model: Interests, attributes: [['name', 'name']] }
+            ]
+        })
+
+        return Promise.resolve({
+            message: "Success",
+            data: interests
+        })
+    } catch (error) {
+        console.log('Error user interests:', error);
         return Promise.reject(error)
     }
 }
@@ -70,7 +96,7 @@ async function getLikes({ user_id }) {
             data: likes
         })
     } catch (error) {
-        console.error('Error user likes:', error);
+        console.log('Error user likes:', error);
         return Promise.reject(error)
     }
 }
@@ -97,7 +123,7 @@ async function getDislikes({ user_id }) {
             data: likes
         })
     } catch (error) {
-        console.error('Error user dislikes:', error);
+        console.log('Error user dislikes:', error);
         return Promise.reject(error)
     }
 }
@@ -168,7 +194,7 @@ async function updatePurposes({ user_id, purposes }) {
             data: newUserPurposes
         })
     } catch (error) {
-        console.error('Error user update purposes:', error);
+        console.log('Error user update purposes:', error);
         return Promise.reject(error)
     }
 }
@@ -231,7 +257,7 @@ async function updateLikes({ user_id, likes }) {
             data: newUserLikes
         })
     } catch (error) {
-        console.error('Error user update likes:', error);
+        console.log('Error user update likes:', error);
         return Promise.reject(error)
     }
 }
@@ -276,7 +302,11 @@ async function updateDislikes({ user_id, dislikes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentDislikesIds.includes(interest_id)) {
-                await UserInterests.create({ user_id, interest_type: 'dislike', interest_id });
+                try {
+                    await UserInterests.create({ user_id, interest_type: 'dislike', interest_id });
+                } catch (error) {
+                    
+                }
             }
         }));
 
@@ -290,7 +320,7 @@ async function updateDislikes({ user_id, dislikes }) {
             data: newUserDislikes
         })
     } catch (error) {
-        console.error('Error user update dislikes:', error);
+        console.log('Error user update dislikes:', error);
         return Promise.reject(error)
     }
 }
@@ -354,7 +384,7 @@ async function updateProfileTag({ user_id }) {
         })
 
     } catch (error) {
-        console.error('Error user update dislikes:', error);
+        console.log('Error user update dislikes:', error);
         const updatedUser = await Users.update({ profile_tag: 1 }, {
             where: { id: user_id }
         })
@@ -537,5 +567,6 @@ module.exports = {
     updateDislikes,
     updateProfileTag,
     normalizePurposes,
-    normalizeInterests
+    normalizeInterests,
+    getAllInterests
 }

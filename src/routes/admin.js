@@ -207,13 +207,13 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
         });
 });
 
-router.post('/profile-action', authAdminMiddleware, (request, response, next) => {
-    const { approved, user_id } = request.body;
+router.post('/profile-action', (request, response, next) => {
+    const { user_id, reason } = request.body;
 
-    if (!approved || !user_id) {
+    if (!user_id || !reason) {
         return response.json({
             success: false,
-            message: 'Missing required params: approved, user_id',
+            message: 'Missing required params: user_id, reason',
         });
     }
 

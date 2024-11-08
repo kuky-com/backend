@@ -119,7 +119,7 @@ async function matchUsers(targetId, compareIds) {
 
         return response.choices[0].text.trim();
     } catch (error) {
-        console.error('Error matching users:', error);
+        console.log('Error matching users:', error);
         throw error;
     }
 }
@@ -472,7 +472,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
         matchedUsersWithScores.sort((a, b) => b.score - a.score);
 
         const suggestions = []
-        
+
         for(var i = (Math.max(page -1, 0) * limit); i < Math.min((Math.max(page -1, 0) * limit) + limit, matchedUsersWithScores.length); i++) {
             const rawuser = matchedUsersWithScores[i]
             const userInfo = await getProfile({ user_id: rawuser.user_id })
@@ -831,7 +831,7 @@ const createConversation = async (user1Id, user2Id) => {
 
         return conversation_id
     } catch (error) {
-        console.error('Error creating conversation: ', error);
+        console.log('Error creating conversation: ', error);
         throw new Error('Failed to create conversation');
     }
 }

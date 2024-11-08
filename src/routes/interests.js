@@ -182,6 +182,31 @@ router.get('/dislikes', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/all-interests', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return interests.getAllInterests({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.get('/normalize-interests', (request, response, next) => {
     return interests.normalizeInterests().then(({ data, message }) => {
         return response.json({

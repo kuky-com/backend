@@ -49,7 +49,7 @@ async function updateProfile({ user_id, full_name, gender, location, pronouns, b
             message: 'Update successfully'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }
@@ -75,7 +75,7 @@ async function getProfile({ user_id }) {
             data: user,
         })
     } catch (error) {
-        console.error('Error fetching user info:', error);
+        console.log('Error fetching user info:', error);
         return Promise.reject(error)
     }
 }
@@ -135,7 +135,7 @@ async function getFriendProfile({ user_id, friend_id }) {
             },
         })
     } catch (error) {
-        console.error('Error fetching user info:', error);
+        console.log('Error fetching user info:', error);
         return Promise.reject(error)
     }
 }
@@ -158,7 +158,7 @@ async function getUser(user_id) {
 
         return Promise.resolve(user)
     } catch (error) {
-        console.error('Error fetching user info:', error);
+        console.log('Error fetching user info:', error);
         return Promise.reject(error)
     }
 }
@@ -183,7 +183,7 @@ async function blockUser({ user_id, friend_id }) {
             message: "User has been blocked!"
         })
     } catch (error) {
-        console.error('Error block user:', error);
+        console.log('Error block user:', error);
         return Promise.reject(error)
     }
 }
@@ -201,7 +201,7 @@ async function unblockUser({ user_id, friend_id }) {
             message: "User has been unblocked!"
         })
     } catch (error) {
-        console.error('Error block user:', error);
+        console.log('Error block user:', error);
         return Promise.reject(error)
     }
 }
@@ -222,7 +222,7 @@ async function getBlockedUsers({ user_id }) {
             data: users
         })
     } catch (error) {
-        console.error('Error block user:', error);
+        console.log('Error block user:', error);
         return Promise.reject(error)
     }
 }
@@ -240,7 +240,7 @@ async function deactiveAccount({ user_id }) {
             data: updatedUser
         })
     } catch (error) {
-        console.error('Error deactive user:', error);
+        console.log('Error deactive user:', error);
         return Promise.reject(error)
     }
 }
@@ -275,7 +275,7 @@ async function deleteAccount({ user_id, reason }) {
             data: updatedUser
         })
     } catch (error) {
-        console.error('Error delete user:', error);
+        console.log('Error delete user:', error);
         return Promise.reject(error)
     }
 }
@@ -293,7 +293,7 @@ async function reportUser({ user_id, reporter_id, reason }) {
             data: reportUser
         })
     } catch (error) {
-        console.error('Error report user:', error);
+        console.log('Error report user:', error);
         return Promise.reject(error)
     }
 }
@@ -310,7 +310,7 @@ async function updateSessionToken({ user_id, session_id, session_token }) {
             message: 'Update successfully'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }
@@ -325,7 +325,7 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
             message: "Review has been added"
         })
     } catch (error) {
-        console.error('Error review user:', error);
+        console.log('Error review user:', error);
         return Promise.reject(error)
     }
 }
@@ -341,7 +341,7 @@ async function getLatestVersion() {
             data: version
         })
     } catch (error) {
-        console.error('Error review user:', error);
+        console.log('Error review user:', error);
         return Promise.reject(error)
     }
 }

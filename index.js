@@ -37,12 +37,12 @@ async function syncDatabase() {
         createDefaultTags()
         console.log('Database & tables have been created successfully.');
     } catch (error) {
-        console.error('Error syncing the database:', error);
+        console.log('Error syncing the database:', error);
     }
 }
 
 syncDatabase();
 
-app.listen(8001, () => {
+app.listen(8000, () => {
     console.log('Server is running on port 8000');
 });

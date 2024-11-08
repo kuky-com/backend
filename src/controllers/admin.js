@@ -82,7 +82,7 @@ async function createLeadUsers(users) {
             message: 'Update successfully'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }
@@ -180,7 +180,7 @@ async function checkSuggestion({ to_email, suggest_email }) {
             message: 'This suggestion is valid!'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }
@@ -295,7 +295,7 @@ async function sendSuggestion({ to_email, suggest_email }) {
             message: 'Suggestion email sent!'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }
@@ -358,7 +358,7 @@ async function login({ username, password }) {
             message: 'Login successful'
         })
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return Promise.reject('Login failed! Please try again!')
     }
 }
@@ -384,7 +384,7 @@ async function getUsers({ page = 1, limit = 20 }) {
             message: 'Users list'
         })
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return Promise.reject('Login failed! Please try again!')
     }
 }
@@ -420,7 +420,7 @@ async function profileAction({ approved, reason, user_id }) {
             message: 'Profile updated!'
         })
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.log('Profile update error:', error);
         return Promise.reject(error)
     }
 }

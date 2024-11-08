@@ -290,7 +290,7 @@ async function login({ email, password, session_token, device_id, platform }) {
             message: 'Login successful',
         });
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return Promise.reject('Login failed! Please try again!');
     }
 }
@@ -351,7 +351,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
             message: 'Login successful',
         });
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return Promise.reject(error);
     }
 }
@@ -425,7 +425,7 @@ async function appleLogin({
             return Promise.reject('Invalid Apple token');
         }
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return Promise.reject('Invalid Apple token');
     }
 }
@@ -445,7 +445,7 @@ async function logout({ session_id }) {
             message: 'Logged out successfully',
         });
     } catch (error) {
-        console.error('Logout error:', error);
+        console.log('Logout error:', error);
         return Promise.reject(error);
     }
 }
@@ -474,7 +474,7 @@ async function updatePassword({ user_id, current_password, new_password }) {
 
         return Promise.resolve('Password updated successfully.');
     } catch (error) {
-        console.error('Error updating password:', error);
+        console.log('Error updating password:', error);
         return Promise.reject('Internal server error.');
     }
 }
