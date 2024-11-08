@@ -207,7 +207,7 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
         });
 });
 
-router.post('/profile-action', (request, response, next) => {
+router.post('/profile-action', authAdminMiddleware, (request, response, next) => {
     const { user_id, reason } = request.body;
 
     if (!user_id || !reason) {
