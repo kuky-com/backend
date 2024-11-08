@@ -38,14 +38,14 @@ function generateToken(session_id, admin_id) {
 async function createLeadUsers(users) {
     try {
         users.forEach(async user => {
-            
+
             let purpose = await Purposes.findOne({
                 where: {
                     name: user.purpose
                 }
             })
 
-            if(!purpose) {
+            if (!purpose) {
                 purpose = await Purposes.create({
                     name: user.purpose
                 });
@@ -58,7 +58,7 @@ async function createLeadUsers(users) {
                 }
             })
 
-            if(!userInfo) {
+            if (!userInfo) {
                 await LeadUsers.create({
                     ...user,
                     purpose_id: purpose.id
@@ -87,9 +87,9 @@ async function createLeadUsers(users) {
     }
 }
 
-async function checkSuggestion({to_email, suggest_email}) {
+async function checkSuggestion({ to_email, suggest_email }) {
     try {
-        if(to_email === suggest_email) {
+        if (to_email === suggest_email) {
             return Promise.reject('To email and suggestion is same')
         }
 
@@ -99,11 +99,11 @@ async function checkSuggestion({to_email, suggest_email}) {
             }
         })
 
-        if(!suggestUser) {
+        if (!suggestUser) {
             return Promise.reject('Suggest user not exist')
         }
 
-        if(!suggestUser) {
+        if (!suggestUser) {
             return Promise.reject('Suggest user not exist')
         }
 
@@ -129,7 +129,7 @@ async function checkSuggestion({to_email, suggest_email}) {
         let to_email_purposes = []
         const suggest_email_purposes = suggestPurposes.map(up => up.name)
 
-        if(user) {
+        if (user) {
             let existMatch = await Matches.findOne({
                 where: {
                     [Op.or]: [
@@ -139,7 +139,7 @@ async function checkSuggestion({to_email, suggest_email}) {
                 }
             })
 
-            if(existMatch) {
+            if (existMatch) {
                 return Promise.reject('These 2 people has already connected.')
             }
 
@@ -164,7 +164,7 @@ async function checkSuggestion({to_email, suggest_email}) {
                 }
             })
 
-            if(!leadUser) {
+            if (!leadUser) {
                 return Promise.reject(`Dont have information about ${to_email}!`)
             }
 
@@ -185,10 +185,10 @@ async function checkSuggestion({to_email, suggest_email}) {
     }
 }
 
-async function sendSuggestion({to_email, suggest_email}) {
+async function sendSuggestion({ to_email, suggest_email }) {
     try {
 
-        if(to_email === suggest_email) {
+        if (to_email === suggest_email) {
             return Promise.reject('To email and suggestion is same')
         }
 
@@ -198,11 +198,11 @@ async function sendSuggestion({to_email, suggest_email}) {
             }
         })
 
-        if(!suggestUser) {
+        if (!suggestUser) {
             return Promise.reject('Suggest user not exist')
         }
 
-        if(!suggestUser) {
+        if (!suggestUser) {
             return Promise.reject('Suggest user not exist')
         }
 
@@ -229,7 +229,7 @@ async function sendSuggestion({to_email, suggest_email}) {
         let to_full_name = ''
         const suggest_email_purposes = suggestPurposes.map(up => up.name)
 
-        if(user) {
+        if (user) {
             let existMatch = await Matches.findOne({
                 where: {
                     [Op.or]: [
@@ -239,7 +239,7 @@ async function sendSuggestion({to_email, suggest_email}) {
                 }
             })
 
-            if(existMatch) {
+            if (existMatch) {
                 return Promise.reject('These 2 people has already connected.')
             }
 
@@ -268,12 +268,12 @@ async function sendSuggestion({to_email, suggest_email}) {
                 }
             })
 
-            if(!leadUser) {
+            if (!leadUser) {
                 return Promise.reject(`Dont have information about ${to_email}!`)
             }
 
             to_email_purposes = [leadUser.purpose]
-            to_full_name= leadUser.full_name
+            to_full_name = leadUser.full_name
         }
 
         const suggestion = await Suggestions.create({
@@ -324,7 +324,7 @@ async function createAdmin({ full_name, username, password }) {
     }
 }
 
-async function login({ username, password}) {
+async function login({ username, password }) {
 
     try {
         const admin = await AdminUsers.findOne({ where: { username } });
@@ -363,12 +363,12 @@ async function login({ username, password}) {
     }
 }
 
-async function getUsers({ page = 1, limit = 20}) {
+async function getUsers({ page = 1, limit = 20 }) {
 
     try {
         const offset = (page - 1) * limit;
 
-        const {count, rows} = await Users.findAndCountAll()
+        const { count, rows } = await Users.findAndCountAll()
 
         const users = await Users.findAll({
             limit: limit,
@@ -389,6 +389,41 @@ async function getUsers({ page = 1, limit = 20}) {
     }
 }
 
+async function profileAction({ approved, reason, user_id }) {
+    try {
+
+        const user = await Users.findOne({
+            where: {
+                id: user_id
+            }
+        })
+
+        if (!user) {
+            return Promise.reject('User not exist')
+        }
+
+        await Users.update({ profile_approved: approved }, {
+            where: {
+                id: user_id
+            }
+        })
+
+        if(approved) {
+            addNewNotification(user.id, null, null, null, 'profile_approved', 'Your profile has been approved', 'Your account has been approved, and you’re all set to start connecting on Kuky.')
+            addNewPushNotification(user.id, null, null, 'profile_approved', 'Your profile has been approved', `Your account has been approved, and you’re all set to start connecting on Kuky.`)
+        } else {
+            addNewNotification(user.id, null, null, null, 'profile_rejected', 'Your profile has been rejected', `Unfortunately, your account couldn’t be approved at this time due to the following reason: ${reason}.`)
+            addNewPushNotification(user.id, null, null, 'profile_rejected', 'Your profile has been rejected', `Unfortunately, your account couldn’t be approved at this time due to the following reason: ${reason}.`)
+        }
+
+        return Promise.resolve({
+            message: 'Profile updated!'
+        })
+    } catch (error) {
+        console.error('Profile update error:', error);
+        return Promise.reject(error)
+    }
+}
 
 module.exports = {
     createLeadUsers,
@@ -396,5 +431,6 @@ module.exports = {
     sendSuggestion,
     createAdmin,
     login,
-    getUsers
+    getUsers,
+    profileAction
 }

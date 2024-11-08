@@ -207,4 +207,31 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
         });
 });
 
+router.post('/profile-action', authAdminMiddleware, (request, response, next) => {
+    const { approved, user_id } = request.body;
+
+    if (!approved || !user_id) {
+        return response.json({
+            success: false,
+            message: 'Missing required params: approved, user_id',
+        });
+    }
+
+    return admin
+        .profileAction({ ...request.body })
+        .then(({ data, message }) => {
+            return response.json({
+                success: true,
+                data: data,
+                message: message,
+            });
+        })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`,
+            });
+        });
+});
+
 module.exports = router;

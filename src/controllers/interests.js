@@ -150,7 +150,11 @@ async function updatePurposes({ user_id, purposes }) {
 
         await Promise.all(newPurposeIds.map(async (purpose_id) => {
             if (!currentPurposeIds.includes(purpose_id)) {
-                await UserPurposes.create({ user_id, purpose_id });
+                try {
+                    await UserPurposes.create({ user_id, purpose_id });
+                } catch (error) {
+                    
+                }
             }
         }));
 
@@ -209,7 +213,11 @@ async function updateLikes({ user_id, likes }) {
 
         await Promise.all(newInterestIds.map(async (interest_id) => {
             if (!currentLikesIds.includes(interest_id)) {
-                await UserInterests.create({ user_id, interest_type: 'like', interest_id });
+                try {
+                    await UserInterests.create({ user_id, interest_type: 'like', interest_id });
+                } catch (error) {
+                    
+                }
             }
         }));
 
@@ -399,6 +407,34 @@ async function normalizePurposes(purposeId) {
             }
         }
 
+        //find all invalid purposes word then delete it
+        const inValidPurposeIds = await Purposes.findAll({
+            where: {
+                normalized_purpose_id: {
+                    [Op.eq]: null
+                }
+            },
+            attributes: ['id'],
+            raw: true
+        })
+
+        const ids = inValidPurposeIds.map((item) => item.id)
+
+        await UserPurposes.destroy({
+            where: {
+                purpose_id: {
+                    [Op.in]: ids
+                }
+            }
+        })
+        await Purposes.destroy({
+            where: {
+                id: {
+                    [Op.in]: ids
+                }
+            }
+        })
+
         return Promise.resolve({
             message: 'Updated purposes!',
         })
@@ -450,6 +486,34 @@ async function normalizeInterests(interestId) {
                 console.log({ error })
             }
         }
+
+        //find all invalid interests word then delete it
+        const inValidInterestIds = await Interests.findAll({
+            where: {
+                normalized_interest_id: {
+                    [Op.eq]: null
+                }
+            },
+            attributes: ['id'],
+            raw: true
+        })
+
+        const ids = inValidInterestIds.map((item) => item.id)
+
+        await UserInterests.destroy({
+            where: {
+                interest_id: {
+                    [Op.in]: ids
+                }
+            }
+        })
+        await Interests.destroy({
+            where: {
+                id: {
+                    [Op.in]: ids
+                }
+            }
+        })
 
         return Promise.resolve({
             message: 'Updated interests!',

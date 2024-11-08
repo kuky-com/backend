@@ -53,7 +53,7 @@ router.get('/less-matches', authMiddleware, (request, response, next) => {
         })
 })
 
-router.get('/best-matches', authMiddleware, (request, response, next) => {
+router.post('/best-matches', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
     if (!user_id) {

@@ -300,7 +300,7 @@ async function findLessMatches({ user_id }) {
     }
 }
 
-async function findBestMatches({ user_id }) {
+async function findBestMatches({ user_id, page = 1, limit = 20 }) {
     try {
         const currentUser = await Users.findByPk(user_id);
 
@@ -472,15 +472,22 @@ async function findBestMatches({ user_id }) {
         matchedUsersWithScores.sort((a, b) => b.score - a.score);
 
         const suggestions = []
-        for (const rawuser of matchedUsersWithScores) {
-            if (suggestions.length > 20) {
-                break
-            }
-
+        
+        for(var i = (Math.max(page -1, 0) * limit); i < Math.min((Math.max(page -1, 0) * limit) + limit, matchedUsersWithScores.length); i++) {
+            const rawuser = matchedUsersWithScores[i]
             const userInfo = await getProfile({ user_id: rawuser.user_id })
 
             suggestions.push(userInfo.data)
         }
+        // for (const rawuser of matchedUsersWithScores) {
+        //     if (suggestions.length > 20) {
+        //         break
+        //     }
+
+        //     const userInfo = await getProfile({ user_id: rawuser.user_id })
+
+        //     suggestions.push(userInfo.data)
+        // }
 
         return Promise.resolve({
             message: 'Best matches list',
