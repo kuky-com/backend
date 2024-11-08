@@ -25,7 +25,7 @@ const Users = sequelize.define('users', {
         type: DataTypes.STRING,
     },
     login_type: {
-        type: DataTypes.ENUM('phone', 'email', 'apple', 'google')
+        type: DataTypes.ENUM('phone', 'email', 'apple', 'google'),
     },
     gender: {
         type: DataTypes.STRING,
@@ -57,23 +57,23 @@ const Users = sequelize.define('users', {
     },
     publicGender: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true
+        defaultValue: true,
     },
     publicPronouns: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true
+        defaultValue: true,
     },
     emailNotificationEnable: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true
+        defaultValue: true,
     },
     notificationEnable: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true
+        defaultValue: true,
     },
     subscribeEmail: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true
+        defaultValue: true,
     },
     location: {
         type: DataTypes.STRING,
@@ -90,29 +90,40 @@ const Users = sequelize.define('users', {
     is_hidden_users: {
         type: DataTypes.BOOLEAN,
         allowNull: true,
-        defaultValue: false
+        defaultValue: false,
     },
     is_premium_user: {
         type: DataTypes.BOOLEAN,
         allowNull: true,
-        defaultValue: false
+        defaultValue: false,
     },
     profile_approved: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false
+        defaultValue: false,
     },
     profile_tag: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-          model: 'tags',
-          key: 'id',
+            model: 'tags',
+            key: 'id',
         },
         onDelete: 'NO ACTION',
-      },
+    },
 });
 
 Users.belongsTo(Tags, { foreignKey: 'profile_tag' });
+Users.addScope('defaultScope', {
+    attributes: {
+        exclude: ['password'],
+    },
+});
 
-module.exports = Users
+Users.addScope('withPassword', {
+    attributes: {
+        include: ['password'],
+    },
+});
+
+module.exports = Users;
