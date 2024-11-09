@@ -211,17 +211,48 @@ router.post(
     '/profile-action',
     authAdminMiddleware,
     (request, response, next) => {
-        const { user_id, reason } = request.body;
+        const { status, user_id, reason } = request.body;
 
-        if (!user_id || !reason) {
+        if (!status || !user_id || !reason) {
             return response.json({
                 success: false,
-                message: 'Missing required params: user_id, reason',
+                message: 'Missing required params: status, user_id, reason',
             });
         }
 
         return admin
             .profileAction({ ...request.body })
+            .then(({ data, message }) => {
+                return response.json({
+                    success: true,
+                    data: data,
+                    message: message,
+                });
+            })
+            .catch((error) => {
+                return response.json({
+                    success: false,
+                    message: `${error}`,
+                });
+            });
+    }
+);
+
+router.post(
+    '/add-version',
+    authAdminMiddleware,
+    (request, response, next) => {
+        const { version_ios, version_android, is_required, description, version_title, } = request.body;
+
+        if (!version_ios || !version_android || !is_required || !description || !version_title) {
+            return response.json({
+                success: false,
+                message: 'Missing required params: version_ios, version_android, is_required, description, version_title',
+            });
+        }
+
+        return admin
+            .addVersion({ ...request.body })
             .then(({ data, message }) => {
                 return response.json({
                     success: true,

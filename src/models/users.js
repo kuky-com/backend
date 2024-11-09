@@ -98,9 +98,9 @@ const Users = sequelize.define('users', {
         defaultValue: false,
     },
     profile_approved: {
-        type: DataTypes.BOOLEAN,
+        type: DataTypes.ENUM('pending', 'rejected', 'approved'),
         allowNull: false,
-        defaultValue: false,
+        defaultValue: 'pending',
     },
     profile_tag: {
         type: DataTypes.INTEGER,

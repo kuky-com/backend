@@ -117,7 +117,7 @@ async function signUp({ full_name, email, password }) {
         //     },
         // };
 
-        await sendVerificationEmail({ to_email: email, code });
+        await sendVerificationEmail({ to_email: email, full_name, code });
 
         return Promise.resolve({
             message: 'Verification code sent to your email',
@@ -170,7 +170,7 @@ async function resendVerification({ email }) {
         //     },
         // };
 
-        await sendVerificationEmail({ to_email: email, code });
+        await sendVerificationEmail({ to_email: email, full_name: existingUnverifyUser.full_name, code });
 
         return Promise.resolve({
             message: 'Verification code sent to your email',

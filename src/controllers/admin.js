@@ -29,6 +29,7 @@ const {
 } = require('./notifications');
 const AdminUsers = require('../models/admin_users');
 const AdminSessions = require('../models/admin_sessions');
+const AppVersions = require('../models/versions');
 
 function generateToken(session_id, admin_id) {
     return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -401,7 +402,7 @@ async function getUsers({ page = 1, limit = 20 }) {
     }
 }
 
-async function profileAction({ approved, reason, user_id }) {
+async function profileAction({ status, reason, user_id }) {
     try {
         const user = await Users.findOne({
             where: {
@@ -414,7 +415,7 @@ async function profileAction({ approved, reason, user_id }) {
         }
 
         await Users.update(
-            { profile_approved: approved },
+            { profile_approved: status },
             {
                 where: {
                     id: user_id,
@@ -422,7 +423,7 @@ async function profileAction({ approved, reason, user_id }) {
             }
         );
 
-        if (approved) {
+        if (status === 'approved') {
             addNewNotification(
                 user.id,
                 null,
@@ -469,6 +470,26 @@ async function profileAction({ approved, reason, user_id }) {
     }
 }
 
+async function addVersion({ version_ios, version_android, is_required, description, version_title }) {
+    try {
+        const version = await AppVersions.create({
+            version_ios, 
+            version_android, 
+            is_required, 
+            description, 
+            version_title
+        })
+
+        return Promise.resolve({
+            message: 'Version added!',
+            data: version
+        });
+    } catch (error) {
+        console.log('Profile update error:', error);
+        return Promise.reject(error);
+    }
+}
+
 module.exports = {
     createLeadUsers,
     checkSuggestion,
@@ -477,4 +498,5 @@ module.exports = {
     login,
     getUsers,
     profileAction,
+    addVersion
 };

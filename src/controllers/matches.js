@@ -209,7 +209,7 @@ async function findLessMatches({ user_id }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
-                profile_approved: true,
+                profile_approved: 'approved',
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -385,7 +385,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
-                profile_approved: true,
+                profile_approved: 'approved',
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -542,7 +542,7 @@ async function getExploreList({ user_id }) {
             where: {
                 is_active: true,
                 is_hidden_users: false,
-                profile_approved: true,
+                profile_approved: 'approved',
                 profile_tag: {
                     [Op.ne]: null
                 },
@@ -699,7 +699,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
             where: { id: user_id }
         })
 
-        if(requestUser && !requestUser.profile_approved) {
+        if(requestUser && requestUser.profile_approved !== 'approved') {
             return Promise.reject('Your account is almost ready! While we complete the approval, feel free to browse and get familiar with other profiles. You’ll be connecting soon!')
         }
 

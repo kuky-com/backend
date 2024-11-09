@@ -82,28 +82,6 @@ async function getProfile({ user_id }) {
 
 async function getFriendProfile({ user_id, friend_id }) {
     try {
-        const user = await Users.findOne({
-            where: { id: friend_id },
-            attributes: { exclude: ['password'] },
-            include: [
-                { model: Purposes },
-                { model: Interests },
-                { model: Tags }
-            ]
-        });
-
-        const match = await Matches.findOne({
-            where: {
-                sender_id: user_id,
-                receiver_id: friend_id
-            },
-            order: [['id', 'desc']]
-        });
-
-        if (!user) {
-            return Promise.reject('User not found')
-        }
-
         const blocked = await BlockedUsers.findOne({
             where: {
                 [Op.or]: [
@@ -126,6 +104,28 @@ async function getFriendProfile({ user_id, friend_id }) {
                     blocked: true, user: {}, match: null
                 },
             })
+        }
+        
+        const user = await Users.findOne({
+            where: { id: friend_id },
+            attributes: { exclude: ['password'] },
+            include: [
+                { model: Purposes },
+                { model: Interests },
+                { model: Tags }
+            ]
+        });
+
+        const match = await Matches.findOne({
+            where: {
+                sender_id: user_id,
+                receiver_id: friend_id
+            },
+            order: [['id', 'desc']]
+        });
+
+        if (!user) {
+            return Promise.reject('User not found')
         }
 
         return Promise.resolve({

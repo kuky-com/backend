@@ -106,10 +106,10 @@ async function sendWelcomeEmail({ to_email }) {
     }
 }
 
-async function sendVerificationEmail({ to_email, code }) {
+async function sendVerificationEmail({ to_email, full_name, code }) {
 
     try {
-        const result = await sendEmail(to_email, 'Welcome to Kuky!', 'verification_email', { to_email, code })
+        const result = await sendEmail(to_email, 'Welcome to Kuky!', 'verification_email', { to_email, full_name: full_name ?? to_email, code })
 
         if (!result) {
             return Promise.reject('Error sending connection request email')

@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Kuky!</title>
+    <title style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Welcome to Kuky!</title>
     <style>
         body {
             margin: 0;
@@ -16,19 +16,20 @@
             display: grid;
             place-items: center;
             width: 100%;
-            font-family: 'Comfortaa', sans-serif;
+            font-family: 'Comfortaa', sans-serif !important;
             color: white;
         }
 
         .email-container {
             background-color: #6b45de;
-            color: #ffffff;
+            color: #ffffff !important;
             padding: 30px;
             max-width: 600px;
             margin: 20px auto;
             border-radius: 10px;
+            font-family: 'Comfortaa', sans-serif !important;
         }
-        
+
         .header {
             text-align: center;
             padding-bottom: 20px;
@@ -39,8 +40,8 @@
         }
 
         .title {
-            color: #fff54e;
-            font-size: 24px;
+            color: #E8FF58;
+            font-size: 20px;
             font-weight: bold;
         }
 
@@ -139,12 +140,12 @@
     <div class="email-container">
         <div class="header">
             <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
-            <h1 class="title">Your Verification Code</h1>
+            <h1 class="title" style="color: #E8FF58 !important; font-family: 'Comfortaa', sans-serif !important;">Your Verification Code</h1>
             <div class="content">
-                <p>Hi {{to_email}},</p>
-                <p>Please find your verification code </p>
-                <p>{{code}}</p>
-                <p>Now it’s time to start a meaningful conversation, share experiences, and collaborate on your personal
+                <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Hi {{full_name}},</p>
+                <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Please find your verification code:</p>
+                <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">{{code}}</p>
+                <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Now it’s time to start a meaningful conversation, share experiences, and collaborate on your personal
                     growth journey.</p>
             </div>
         </div>
@@ -155,13 +156,13 @@
         </div>
 
         <div class="button-container">
-            <a href="kuky://" class="button">Click to Verify</a>
+            <a href="kuky://" class="button" style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Click to Verify</a>
         </div>
 
         <div class="footer">
             <img class="footer-logo" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png"
                 alt="Logo">
-            <p>Download the KUKY app now!</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important;">Download the KUKY app now!</p>
             <a href="https://apps.apple.com/au/app/kuky/id6711341485">
                 <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png"
                     alt="App Store">

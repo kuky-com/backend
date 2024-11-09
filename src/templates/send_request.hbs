@@ -45,7 +45,7 @@
         }
 
         .title {
-            color: #fff54e;
+            color: #E8FF58;
             font-size: 20px;
             font-weight: bold;
         }
@@ -131,18 +131,18 @@
     <div class="email-container">
         <div class="header">
             <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
-            <h1 class="title">You Have a New Connection Request on Kuky!</h1>
+            <h1 class="title" style="color: #E8FF58 !important; font-family: 'Comfortaa', sans-serif !important; font-size: 20px;">You Have a New Connection Request on Kuky!</h1>
         </div>
 
         <div class="content">
-            <p>Hi {{to_name}}!</p>
-            <p>Here are some users who are also interested in {{to_purposes}} to the Gym on Kuky.</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">Hi {{to_name}}!</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">You have new connection requests from users who share your interest in "<span style="color: #E8FF58;">{{to_purposes}}</span>" on Kuky.</p>
         </div>
 
         <div class="profile-card-container">
             <div class="profile-card">
-                <h3>{{sender_name}}</h3>
-                <p>Interested in "{{sender_purposes}}"</p>
+                <h3 style="color: #333333 !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">{{sender_name}}</h3>
+                <p style="color: #333333 !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">Interested in "{{sender_purposes}}"</p>
             </div>
         </div>
 
@@ -151,8 +151,8 @@
         </div>
 
         <div class="content">
-            <p>We love seeing you connect with others who share your journey. Keep the momentum going!</p>
-            <p>Best,<br>The Kuky Team</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 11px;">We love seeing you connect with others who share your journey. <br>Keep the momentum going!</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 11px;">Best,<br>The Kuky Team</p>
         </div>
 
         <div class="footer">
