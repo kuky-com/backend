@@ -233,8 +233,6 @@ async function updatePurposes({ user_id, purposes }) {
             }]
         });
 
-        console.log({ newUserPurposes })
-
         return Promise.resolve({
             message: newUserPurposes.length < purposes.length ? `Oops! That doesn't look like an English word. Please try again.` : 'User purposes updated successfully.',
             data: newUserPurposes

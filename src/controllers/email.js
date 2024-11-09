@@ -18,7 +18,6 @@ const sesClient = new SESClient({ region: process.env.AWS_REGION })
 
 function loadTemplate(templateName, data) {
     const templatePath = path.join(__dirname, '..', 'templates', `${templateName}.hbs`);
-    console.log({ templatePath })
     const templateSource = fs.readFileSync(templatePath, 'utf8');
     const template = handlebars.compile(templateSource);
     return template(data);
