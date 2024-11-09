@@ -34,7 +34,15 @@ async function getPurposes({ user_id }) {
                 ],
             },
             include: [
-                { model: Purposes, attributes: [['name', 'name']] }
+                {
+                    model: Purposes,
+                    attributes: [['name', 'name']],
+                    where: {
+                        normalized_purpose_id: {
+                            [Op.ne]: null
+                        }
+                    }
+                }
             ]
         })
 
@@ -60,7 +68,14 @@ async function getAllInterests({ user_id }) {
                 ],
             },
             include: [
-                { model: Interests, attributes: [['name', 'name']] }
+                {
+                    model: Interests, attributes: [['name', 'name']],
+                    where: {
+                        normalized_interest_id: {
+                            [Op.ne]: null
+                        }
+                    },
+                }
             ]
         })
 
@@ -87,7 +102,14 @@ async function getLikes({ user_id }) {
                 ],
             },
             include: [
-                { model: Interests, attributes: [['name', 'name']] }
+                {
+                    model: Interests, attributes: [['name', 'name']],
+                    where: {
+                        normalized_interest_id: {
+                            [Op.ne]: null
+                        }
+                    },
+                }
             ]
         })
 
@@ -114,7 +136,14 @@ async function getDislikes({ user_id }) {
                 ],
             },
             include: [
-                { model: Interests, attributes: [['name', 'name']] }
+                {
+                    model: Interests, attributes: [['name', 'name']],
+                    where: {
+                        normalized_interest_id: {
+                            [Op.ne]: null
+                        }
+                    },
+                }
             ]
         })
 
@@ -132,7 +161,15 @@ const getUserInterests = async (user_id) => {
     const userInterests = await UserInterests.findAll({
         where: { user_id },
         include: [
-            { model: Interests, attributes: [['name', 'name']] }
+            {
+                model: Interests,
+                attributes: [['name', 'name']],
+                where: {
+                    normalized_interest_id: {
+                        [Op.ne]: null
+                    }
+                }
+            }
         ]
     });
 
@@ -179,18 +216,27 @@ async function updatePurposes({ user_id, purposes }) {
                 try {
                     await UserPurposes.create({ user_id, purpose_id });
                 } catch (error) {
-                    
+
                 }
             }
         }));
 
         const newUserPurposes = await UserPurposes.findAll({
             where: { user_id },
-            include: [{ model: Purposes }]
+            include: [{
+                model: Purposes,
+                where: {
+                    normalized_purpose_id: {
+                        [Op.ne]: null
+                    }
+                }
+            }]
         });
 
+        console.log({ newUserPurposes })
+
         return Promise.resolve({
-            message: 'User purposes updated successfully.',
+            message: newUserPurposes.length < purposes.length ? `Oops! That doesn't look like an English word. Please try again.` : 'User purposes updated successfully.',
             data: newUserPurposes
         })
     } catch (error) {
@@ -242,18 +288,25 @@ async function updateLikes({ user_id, likes }) {
                 try {
                     await UserInterests.create({ user_id, interest_type: 'like', interest_id });
                 } catch (error) {
-                    
+
                 }
             }
         }));
 
         const newUserLikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'like' },
-            include: [{ model: Interests }]
+            include: [{
+                model: Interests,
+                where: {
+                    normalized_interest_id: {
+                        [Op.ne]: null
+                    }
+                },
+            }]
         });
 
         return Promise.resolve({
-            message: 'User likes updated successfully.',
+            message: newUserLikes.length < likes.length ? `Oops! That doesn't look like an English word. Please try again.` : 'User likes updated successfully.',
             data: newUserLikes
         })
     } catch (error) {
@@ -305,18 +358,25 @@ async function updateDislikes({ user_id, dislikes }) {
                 try {
                     await UserInterests.create({ user_id, interest_type: 'dislike', interest_id });
                 } catch (error) {
-                    
+
                 }
             }
         }));
 
         const newUserDislikes = await UserInterests.findAll({
             where: { user_id, interest_type: 'dislike' },
-            include: [{ model: Interests }]
+            include: [{
+                model: Interests,
+                where: {
+                    normalized_interest_id: {
+                        [Op.ne]: null
+                    }
+                },
+            }]
         });
 
         return Promise.resolve({
-            message: 'User dislikes updated successfully.',
+            message: newUserDislikes.length < dislikes.length ? `Oops! That doesn't look like an English word. Please try again.` : 'User dislikes updated successfully.',
             data: newUserDislikes
         })
     } catch (error) {
@@ -420,7 +480,7 @@ async function normalizePurposes(purposeId) {
         const categoryNames = Object.keys(categoryMap)
 
         for (let purpose of purposes) {
-            const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list.\n\nPurpose: ${purpose.name}\nCategory:`;
+            const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose is English meaningful word or phase.\n\nPurpose: ${purpose.name}\nCategory:`;
 
             const response = await openai.completions.create({
                 model: 'gpt-3.5-turbo-instruct',
@@ -500,7 +560,7 @@ async function normalizeInterests(interestId) {
         const categoryNames = Object.keys(categoryMap)
 
         for (let interest of interests) {
-            const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the interest to the closest, most relevant category, only show category in the given list.\n\nInterest: ${interest.name}\nCategory:`;
+            const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the interest to the closest, most relevant category, only show category in the given list, only return if interest is English meaningful word or phase.\n\nInterest: ${interest.name}\nCategory:`;
 
             const response = await openai.completions.create({
                 model: 'gpt-3.5-turbo-instruct',

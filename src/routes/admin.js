@@ -211,12 +211,12 @@ router.post(
     '/profile-action',
     authAdminMiddleware,
     (request, response, next) => {
-        const { status, user_id, reason } = request.body;
+        const { status, user_id } = request.body;
 
-        if (!status || !user_id || !reason) {
+        if (!status || !user_id) {
             return response.json({
                 success: false,
-                message: 'Missing required params: status, user_id, reason',
+                message: 'Missing required params: status, user_id',
             });
         }
 

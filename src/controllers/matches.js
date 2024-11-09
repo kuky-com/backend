@@ -45,7 +45,15 @@ async function getUserDetails(user_id) {
             ],
         },
         include: [
-            { model: Interests, attributes: [['name', 'name']] }
+            {
+                model: Interests,
+                attributes: [['name', 'name']],
+                where: {
+                    normalized_interest_id: {
+                        [Op.ne]: null
+                    }
+                },
+            }
         ],
         raw: true
     });
@@ -58,7 +66,15 @@ async function getUserDetails(user_id) {
             ],
         },
         include: [
-            { model: Purposes, attributes: [['name', 'name']] }
+            {
+                model: Purposes,
+                attributes: [['name', 'name']],
+                where: {
+                    normalized_purpose_id: {
+                        [Op.ne]: null
+                    }
+                }
+            }
         ],
         raw: true
     });
@@ -473,7 +489,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 
         const suggestions = []
 
-        for(var i = (Math.max(page -1, 0) * limit); i < Math.min((Math.max(page -1, 0) * limit) + limit, matchedUsersWithScores.length); i++) {
+        for (var i = (Math.max(page - 1, 0) * limit); i < Math.min((Math.max(page - 1, 0) * limit) + limit, matchedUsersWithScores.length); i++) {
             const rawuser = matchedUsersWithScores[i]
             const userInfo = await getProfile({ user_id: rawuser.user_id })
 
@@ -699,7 +715,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
             where: { id: user_id }
         })
 
-        if(requestUser && requestUser.profile_approved !== 'approved') {
+        if (requestUser && requestUser.profile_approved !== 'approved') {
             return Promise.reject('Your account is almost ready! While we complete the approval, feel free to browse and get familiar with other profiles. You’ll be connecting soon!')
         }
 
@@ -714,7 +730,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
                     last_message_date: new Date()
                 })
 
-                
+
                 if (requestUser) {
                     addNewNotification(friend_id, user_id, existMatch.id, null, 'new_request', 'You get new connect request.', `${requestUser.full_name} wants to connect with you!`)
                     addNewPushNotification(friend_id, existMatch, null, 'notification', 'New connect request!', `${requestUser.full_name} wants to connect with you!`)
@@ -728,7 +744,14 @@ async function acceptSuggestion({ user_id, friend_id }) {
                                 ],
                             },
                             include: [
-                                { model: Purposes, attributes: [['name', 'name']] }
+                                {
+                                    model: Purposes, attributes: [['name', 'name']],
+                                    where: {
+                                        normalized_purpose_id: {
+                                            [Op.ne]: null
+                                        }
+                                    }
+                                }
                             ],
                             raw: true
                         });
@@ -743,7 +766,15 @@ async function acceptSuggestion({ user_id, friend_id }) {
                                 ],
                             },
                             include: [
-                                { model: Purposes, attributes: [['name', 'name']] }
+                                {
+                                    model: Purposes,
+                                    attributes: [['name', 'name']],
+                                    where: {
+                                        normalized_purpose_id: {
+                                            [Op.ne]: null
+                                        }
+                                    }
+                                }
                             ],
                             raw: true
                         });
@@ -755,7 +786,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
                         })
 
                         sendRequestEmail({
-                            to_email: receiveUser.email, 
+                            to_email: receiveUser.email,
                             to_name: receiveUser.full_name,
                             to_purposes: receiver_purposes,
                             sender_name: requestUser.full_name,
@@ -763,7 +794,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
                             conversation_id
                         })
                     } catch (error) {
-                        
+
                     }
                 }
             }
@@ -916,7 +947,7 @@ async function getConversation({ user_id, conversation_id }) {
             })
         }
 
-        
+
     } catch (error) {
         console.log({ error })
         return Promise.reject(error)
