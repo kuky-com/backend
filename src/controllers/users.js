@@ -333,7 +333,7 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
 async function getLatestVersion() {
     try {
         const version = await AppVersions.findOne({
-            order: [['id', 'desc']]
+            order: [['version_title', 'desc']]
         })
 
         return Promise.resolve({
