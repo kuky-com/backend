@@ -376,7 +376,17 @@ async function getUsers({ page = 1, limit = 20 }) {
             limit: limit,
             offset: offset,
             order: [['id', 'DESC']],
+            include: [
+                {
+                    model: Purposes,
+                    attributes: ['name'],
+                },
+                {
+                    model: Interests,
+                },
+            ],
         });
+        console.log(users);
 
         return Promise.resolve({
             data: {
