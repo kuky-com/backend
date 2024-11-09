@@ -191,7 +191,7 @@ router.post('/login', (request, response, next) => {
 
 router.get('/users-list', authAdminMiddleware, (request, response, next) => {
     return admin
-        .getUsers({ ...request.body })
+        .getUsers({ ...request.query })
         .then(({ data, message }) => {
             return response.json({
                 success: true,
@@ -207,31 +207,35 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
         });
 });
 
-router.post('/profile-action', authAdminMiddleware, (request, response, next) => {
-    const { user_id, reason } = request.body;
+router.post(
+    '/profile-action',
+    authAdminMiddleware,
+    (request, response, next) => {
+        const { user_id, reason } = request.body;
 
-    if (!user_id || !reason) {
-        return response.json({
-            success: false,
-            message: 'Missing required params: user_id, reason',
-        });
+        if (!user_id || !reason) {
+            return response.json({
+                success: false,
+                message: 'Missing required params: user_id, reason',
+            });
+        }
+
+        return admin
+            .profileAction({ ...request.body })
+            .then(({ data, message }) => {
+                return response.json({
+                    success: true,
+                    data: data,
+                    message: message,
+                });
+            })
+            .catch((error) => {
+                return response.json({
+                    success: false,
+                    message: `${error}`,
+                });
+            });
     }
-
-    return admin
-        .profileAction({ ...request.body })
-        .then(({ data, message }) => {
-            return response.json({
-                success: true,
-                data: data,
-                message: message,
-            });
-        })
-        .catch((error) => {
-            return response.json({
-                success: false,
-                message: `${error}`,
-            });
-        });
-});
+);
 
 module.exports = router;
