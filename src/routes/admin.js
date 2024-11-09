@@ -213,10 +213,10 @@ router.post(
     (request, response, next) => {
         const { user_id, reason } = request.body;
 
-        if (!user_id || !reason) {
+        if (!user_id) {
             return response.json({
                 success: false,
-                message: 'Missing required params: user_id, reason',
+                message: 'Missing required params: user_id',
             });
         }
 
