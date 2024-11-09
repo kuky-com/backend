@@ -15,7 +15,7 @@ const AppVersions = sequelize.define('app_versions', {
     defaultValue: false
   },
   description: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: false,
   },
   version_title: {
