@@ -287,8 +287,33 @@ router.post('/review-user', authMiddleware, (request, response, next) => {
         })
 })
 
-router.get('/latest-version', authMiddleware, (request, response, next) => {
+router.get('/latest-version', (request, response, next) => {
     return users.getLatestVersion().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/version-info', (request, response, next) => {
+    const { version_ios, version_android } = request.body
+
+    if (!version_ios && !version_android) {
+        return response.json({
+            success: false,
+            message: "Missing required params: version_ios or version_android"
+        })
+    }
+
+    return users.getVersionInfo({...request.body}).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

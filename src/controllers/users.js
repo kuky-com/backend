@@ -105,7 +105,7 @@ async function getFriendProfile({ user_id, friend_id }) {
                 },
             })
         }
-        
+
         const user = await Users.findOne({
             where: { id: friend_id },
             attributes: { exclude: ['password'] },
@@ -341,7 +341,35 @@ async function getLatestVersion() {
             data: version
         })
     } catch (error) {
-        console.log('Error review user:', error);
+        console.log('Error latest version:', error);
+        return Promise.reject(error)
+    }
+}
+
+async function getVersionInfo({version_ios, version_android}) {
+    try {
+        let version = null
+        
+        if(version_ios) {
+            version = await AppVersions.findOne({
+                where: {
+                    version_ios: version_ios
+                }
+            })
+        } else {
+            version = await AppVersions.findOne({
+                where: {
+                    version_android: version_android
+                }
+            })
+        }
+        
+        return Promise.resolve({
+            message: "Version info",
+            data: version
+        })
+    } catch (error) {
+        console.log('Error version info:', error);
         return Promise.reject(error)
     }
 }
@@ -359,5 +387,6 @@ module.exports = {
     updateSessionToken,
     getFriendProfile,
     reviewUser,
-    getLatestVersion
+    getLatestVersion,
+    getVersionInfo
 }
