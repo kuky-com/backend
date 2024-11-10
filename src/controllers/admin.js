@@ -122,14 +122,17 @@ async function checkSuggestion({ to_email, suggest_email }) {
             attributes: {
                 include: [[Sequelize.col('purpose.name'), 'name']],
             },
-            include: [{
-                model: Purposes, attributes: [['name', 'name']],
-                where: {
-                    normalized_purpose_id: {
-                        [Op.ne]: null
-                    }
-                }
-            }],
+            include: [
+                {
+                    model: Purposes,
+                    attributes: [['name', 'name']],
+                    where: {
+                        normalized_purpose_id: {
+                            [Op.ne]: null,
+                        },
+                    },
+                },
+            ],
             raw: true,
         });
 
@@ -155,14 +158,17 @@ async function checkSuggestion({ to_email, suggest_email }) {
                 attributes: {
                     include: [[Sequelize.col('purpose.name'), 'name']],
                 },
-                include: [{
-                    model: Purposes, attributes: [['name', 'name']],
-                    where: {
-                        normalized_purpose_id: {
-                            [Op.ne]: null
-                        }
-                    }
-                }],
+                include: [
+                    {
+                        model: Purposes,
+                        attributes: [['name', 'name']],
+                        where: {
+                            normalized_purpose_id: {
+                                [Op.ne]: null,
+                            },
+                        },
+                    },
+                ],
                 raw: true,
             });
 
@@ -228,14 +234,17 @@ async function sendSuggestion({ to_email, suggest_email }) {
             attributes: {
                 include: [[Sequelize.col('purpose.name'), 'name']],
             },
-            include: [{
-                model: Purposes, attributes: [['name', 'name']],
-                where: {
-                    normalized_purpose_id: {
-                        [Op.ne]: null
-                    }
-                }
-            }],
+            include: [
+                {
+                    model: Purposes,
+                    attributes: [['name', 'name']],
+                    where: {
+                        normalized_purpose_id: {
+                            [Op.ne]: null,
+                        },
+                    },
+                },
+            ],
             raw: true,
         });
 
@@ -262,14 +271,17 @@ async function sendSuggestion({ to_email, suggest_email }) {
                 attributes: {
                     include: [[Sequelize.col('purpose.name'), 'name']],
                 },
-                include: [{
-                    model: Purposes, attributes: [['name', 'name']],
-                    where: {
-                        normalized_purpose_id: {
-                            [Op.ne]: null
-                        }
-                    }
-                }],
+                include: [
+                    {
+                        model: Purposes,
+                        attributes: [['name', 'name']],
+                        where: {
+                            normalized_purpose_id: {
+                                [Op.ne]: null,
+                            },
+                        },
+                    },
+                ],
                 raw: true,
             });
 
@@ -359,7 +371,9 @@ async function createAdmin({ full_name, username, password }) {
 
 async function login({ username, password }) {
     try {
-        const admin = await AdminUsers.findOne({ where: { username } });
+        const admin = await AdminUsers.scope('withPassword').findOne({
+            where: { username },
+        });
 
         if (!admin) {
             return Promise.reject('Admin not found');
@@ -381,10 +395,11 @@ async function login({ username, password }) {
         });
 
         const token = generateToken(newSession.id, admin.id);
-
+        const jsonAdmin = admin.toJSON();
+        delete jsonAdmin.password;
         return Promise.resolve({
             data: {
-                admin,
+                admin: jsonAdmin,
                 token,
             },
             message: 'Login successful',
@@ -447,16 +462,16 @@ async function profileAction({ status, reason, user_id }) {
         }
 
         await Users.update(
-            status === 'rejected' ?
-                {
-                    profile_approved: 'rejected',
-                    profile_rejected_reason: reason,
-                    profile_action_date: new Date()
-                } :
-                {
-                    profile_approved: status,
-                    profile_action_date: new Date()
-                },
+            status === 'rejected'
+                ? {
+                      profile_approved: 'rejected',
+                      profile_rejected_reason: reason,
+                      profile_action_date: new Date(),
+                  }
+                : {
+                      profile_approved: status,
+                      profile_action_date: new Date(),
+                  },
             {
                 where: {
                     id: user_id,
@@ -511,19 +526,25 @@ async function profileAction({ status, reason, user_id }) {
     }
 }
 
-async function addVersion({ version_ios, version_android, is_required, description, version_title }) {
+async function addVersion({
+    version_ios,
+    version_android,
+    is_required,
+    description,
+    version_title,
+}) {
     try {
         const version = await AppVersions.create({
             version_ios,
             version_android,
             is_required,
             description,
-            version_title
-        })
+            version_title,
+        });
 
         return Promise.resolve({
             message: 'Version added!',
-            data: version
+            data: version,
         });
     } catch (error) {
         console.log('Profile update error:', error);
@@ -539,5 +560,5 @@ module.exports = {
     login,
     getUsers,
     profileAction,
-    addVersion
+    addVersion,
 };
