@@ -122,13 +122,14 @@ async function checkSuggestion({ to_email, suggest_email }) {
             attributes: {
                 include: [[Sequelize.col('purpose.name'), 'name']],
             },
-            include: [{ model: Purposes, attributes: [['name', 'name']],
+            include: [{
+                model: Purposes, attributes: [['name', 'name']],
                 where: {
                     normalized_purpose_id: {
                         [Op.ne]: null
                     }
                 }
-             }],
+            }],
             raw: true,
         });
 
@@ -154,13 +155,14 @@ async function checkSuggestion({ to_email, suggest_email }) {
                 attributes: {
                     include: [[Sequelize.col('purpose.name'), 'name']],
                 },
-                include: [{ model: Purposes, attributes: [['name', 'name']],
+                include: [{
+                    model: Purposes, attributes: [['name', 'name']],
                     where: {
                         normalized_purpose_id: {
                             [Op.ne]: null
                         }
                     }
-                 }],
+                }],
                 raw: true,
             });
 
@@ -226,14 +228,14 @@ async function sendSuggestion({ to_email, suggest_email }) {
             attributes: {
                 include: [[Sequelize.col('purpose.name'), 'name']],
             },
-            include: [{ 
+            include: [{
                 model: Purposes, attributes: [['name', 'name']],
                 where: {
                     normalized_purpose_id: {
                         [Op.ne]: null
                     }
                 }
-             }],
+            }],
             raw: true,
         });
 
@@ -260,14 +262,14 @@ async function sendSuggestion({ to_email, suggest_email }) {
                 attributes: {
                     include: [[Sequelize.col('purpose.name'), 'name']],
                 },
-                include: [{ 
+                include: [{
                     model: Purposes, attributes: [['name', 'name']],
                     where: {
                         normalized_purpose_id: {
                             [Op.ne]: null
                         }
                     }
-                 }],
+                }],
                 raw: true,
             });
 
@@ -430,7 +432,7 @@ async function getUsers({ page = 1, limit = 20 }) {
 
 async function profileAction({ status, reason, user_id }) {
     try {
-        if(status === 'rejected' && !reason) {
+        if (status === 'rejected' && !reason) {
             return Promise.reject('Reject profile require reason');
         }
 
@@ -445,7 +447,16 @@ async function profileAction({ status, reason, user_id }) {
         }
 
         await Users.update(
-            { profile_approved: status },
+            status === 'rejected' ?
+                {
+                    profile_approved: 'rejected',
+                    profile_rejected_reason: reason,
+                    profile_action_date: new Date()
+                } :
+                {
+                    profile_approved: status,
+                    profile_action_date: new Date()
+                },
             {
                 where: {
                     id: user_id,
@@ -503,10 +514,10 @@ async function profileAction({ status, reason, user_id }) {
 async function addVersion({ version_ios, version_android, is_required, description, version_title }) {
     try {
         const version = await AppVersions.create({
-            version_ios, 
-            version_android, 
-            is_required, 
-            description, 
+            version_ios,
+            version_android,
+            is_required,
+            description,
             version_title
         })
 

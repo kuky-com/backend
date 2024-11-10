@@ -102,6 +102,15 @@ const Users = sequelize.define('users', {
         allowNull: false,
         defaultValue: 'pending',
     },
+    profile_rejected_reason:
+    {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    profile_action_date: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
     profile_tag: {
         type: DataTypes.INTEGER,
         allowNull: true,
