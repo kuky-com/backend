@@ -78,6 +78,31 @@ router.post('/best-matches', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/best-matches', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return matches.findBestMatches({ user_id, page: 1, limit: 20 }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.post('/disconnect', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { friend_id, id } = request.body
