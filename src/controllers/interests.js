@@ -616,6 +616,65 @@ async function normalizeInterests(interestId) {
     }
 }
 
+async function wordlistValidation({ words }) {
+    try {
+        const validWords = []
+
+
+        for (const word of words) {
+            let interest = await Interests.findOne({
+                where: {
+                    name: word,
+                    normalized_interest_id: {
+                        [Op.ne]: null
+                    }
+                }
+            });
+            if (interest) {
+                validWords.push(word)
+            } else {
+                let purpose = await Purposes.findOne({
+                    where: {
+                        name: word,
+                        normalized_purpose_id: {
+                            [Op.ne]: null
+                        }
+                    }
+                });
+
+                if (purpose) {
+                    validWords.push(word)
+                } else {
+                    const prompt = `Is the following phase is English. Just response yes or no. Phase: '${word}'`;
+                    
+                    const response = await openai.completions.create({
+                        model: 'gpt-3.5-turbo-instruct',
+                        prompt: prompt,
+                        max_tokens: 10,
+                    });
+
+                    try {
+                        if (response.choices[0].text.trim().toLowerCase() === 'yes') {
+                            validWords.push(word)
+                        }
+                    } catch (error) {
+                        console.log({ error })
+                    }
+                }
+            }
+        }
+
+        return Promise.resolve({
+            message: 'Checkover',
+            data: validWords
+        })
+    } catch (error) {
+        console.log(error);
+
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     getPurposes,
     getLikes,
@@ -626,5 +685,6 @@ module.exports = {
     updateProfileTag,
     normalizePurposes,
     normalizeInterests,
-    getAllInterests
+    getAllInterests,
+    wordlistValidation
 }

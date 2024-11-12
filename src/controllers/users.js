@@ -21,7 +21,7 @@ const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
 const AppVersions = require('../models/versions');
 
-async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, avatar, ...restParams
+async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, ...restParams
  }) {
     try {
         const updates = {...restParams};

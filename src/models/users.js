@@ -111,6 +111,25 @@ const Users = sequelize.define('users', {
         type: DataTypes.DATE,
         allowNull: true,
     },
+    video_intro_public: {
+        type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+    video_intro:
+    {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    video_purpose:
+    {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    video_purpose_audio:
+    {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     profile_tag: {
         type: DataTypes.INTEGER,
         allowNull: true,

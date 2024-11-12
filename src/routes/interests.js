@@ -239,4 +239,29 @@ router.get('/normalize-purposes', (request, response, next) => {
         })
 })
 
+router.post('/wordlist-validation', (request, response, next) => {
+    const {words} = request.body
+
+    if (!words) {
+        return response.json({
+            success: false,
+            message: "Missing required params: words"
+        })
+    }
+
+    return interests.wordlistValidation({words}).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;
