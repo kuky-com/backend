@@ -238,35 +238,44 @@ router.post(
     }
 );
 
-router.post(
-    '/add-version',
-    authAdminMiddleware,
-    (request, response, next) => {
-        const { version_ios, version_android, is_required, description, version_title, } = request.body;
+router.post('/add-version', authAdminMiddleware, (request, response, next) => {
+    const {
+        version_ios,
+        version_android,
+        is_required,
+        description,
+        version_title,
+    } = request.body;
 
-        if (!version_ios || !version_android || !is_required || !description || !version_title) {
+    if (
+        !version_ios ||
+        !version_android ||
+        !is_required ||
+        !description ||
+        !version_title
+    ) {
+        return response.json({
+            success: false,
+            message:
+                'Missing required params: version_ios, version_android, is_required, description, version_title',
+        });
+    }
+
+    return admin
+        .addVersion({ ...request.body })
+        .then(({ data, message }) => {
+            return response.json({
+                success: true,
+                data: data,
+                message: message,
+            });
+        })
+        .catch((error) => {
             return response.json({
                 success: false,
-                message: 'Missing required params: version_ios, version_android, is_required, description, version_title',
+                message: `${error}`,
             });
-        }
-
-        return admin
-            .addVersion({ ...request.body })
-            .then(({ data, message }) => {
-                return response.json({
-                    success: true,
-                    data: data,
-                    message: message,
-                });
-            })
-            .catch((error) => {
-                return response.json({
-                    success: false,
-                    message: `${error}`,
-                });
-            });
-    }
-);
+        });
+});
 
 module.exports = router;

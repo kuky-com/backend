@@ -135,7 +135,6 @@ async function checkSuggestion({ to_email, suggest_email }) {
 
         let to_email_purposes = [];
         const suggest_email_purposes = suggestPurposes.map((up) => up.name);
-        console.log('SUGGEST', suggest_email_purposes);
         if (user) {
             let existMatch = await Matches.findOne({
                 where: {
