@@ -57,64 +57,58 @@ async function updateProfile({
 			message: 'Update successfully',
 		});
 	} catch (error) {
-		console.log('Profile update error:', error);
 		return Promise.reject(error);
 	}
+}
+
+async function getReviewStats(user_id) {
+	const reviewsObj = await Users.findOne({
+		where: { id: user_id },
+		attributes: {
+			include: [
+				[
+					Sequelize.fn(
+						'COUNT',
+						Sequelize.col('reviews.id')
+					),
+					'reviewsCount',
+				],
+				[
+					Sequelize.fn(
+						'AVG',
+						Sequelize.col('reviews.rating')
+					),
+					'avgRating',
+				],
+			],
+		},
+		group: ['users.id'],
+		include: [
+			{
+				model: ReviewUsers,
+				attributes: [],
+				as: 'reviews',
+				where: {
+					status: 'approved',
+				},
+			},
+		],
+	});
+	const data = reviewsObj?.toJSON();
+	return {
+		reviewsCount: data?.reviewsCount || 0,
+		avgRating: data?.avgRating || 0,
+	};
 }
 
 async function getProfile({ user_id }) {
 	try {
 		const user = await Users.findOne({
 			where: { id: user_id },
-			attributes: {
-				include: [
-					[
-						Sequelize.fn(
-							'COUNT',
-							Sequelize.col(
-								'reviews.id'
-							)
-						),
-						'reviewsCount',
-					],
-					[
-						Sequelize.fn(
-							'AVG',
-							Sequelize.col(
-								'reviews.rating'
-							)
-						),
-						'avgRating',
-					],
-				],
-			},
-			group: [
-				'users.id',
-				// 'purposes.id',
-				// 'interests.id',
-				// 'tags.id',
-			],
 			include: [
-				{
-					model: Purposes,
-					attributes: [],
-					through: { attributes: [] },
-				},
-				{
-					model: Interests,
-					attributes: [],
-					through: { attributes: [] },
-				},
-				{
-					model: Tags,
-					attributes: [],
-					through: { attributes: [] },
-				},
-				{
-					model: ReviewUsers,
-					attributes: [],
-					as: 'reviews',
-				},
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
 			],
 		});
 
@@ -122,9 +116,15 @@ async function getProfile({ user_id }) {
 			return Promise.reject('User not found');
 		}
 
+		const reviewsData = await getReviewStats(user_id);
+
 		return Promise.resolve({
 			message: 'User info retrieved successfully',
-			data: user,
+			data: {
+				...user.toJSON(),
+				reviewsCount: reviewsData.reviewsCount,
+				avgRating: reviewsData.avgRating,
+			},
 		});
 	} catch (error) {
 		console.log('Error fetching user info:', error);
@@ -133,10 +133,12 @@ async function getProfile({ user_id }) {
 }
 
 async function getReviews({ userId }) {
-	return ReviewUsers.findAll({
+	const reviews = await ReviewUsers.findAll({
 		where: {
 			user_id: userId,
+			status: 'approved',
 		},
+		order: [['createdAt', 'DESC']],
 		include: [
 			{
 				model: Users,
@@ -145,6 +147,8 @@ async function getReviews({ userId }) {
 			},
 		],
 	});
+	const reviewsData = await getReviewStats(userId);
+	return { reviews, ...reviewsData };
 }
 
 async function getFriendProfile({ user_id, friend_id }) {
@@ -184,39 +188,6 @@ async function getFriendProfile({ user_id, friend_id }) {
 			],
 		});
 
-		const reviewsObj = await Users.findOne({
-			where: { id: friend_id },
-			attributes: {
-				include: [
-					[
-						Sequelize.fn(
-							'COUNT',
-							Sequelize.col(
-								'reviews.id'
-							)
-						),
-						'reviewsCount',
-					],
-					[
-						Sequelize.fn(
-							'AVG',
-							Sequelize.col(
-								'reviews.rating'
-							)
-						),
-						'avgRating',
-					],
-				],
-			},
-			group: ['users.id'],
-			include: [
-				{
-					model: ReviewUsers,
-					attributes: [],
-					as: 'reviews',
-				},
-			],
-		});
 		const match = await Matches.findOne({
 			where: {
 				sender_id: user_id,
@@ -229,7 +200,8 @@ async function getFriendProfile({ user_id, friend_id }) {
 			return Promise.reject('User not found');
 		}
 
-		const reviewsData = reviewsObj.toJSON();
+		const reviewsData = await getReviewStats(friend_id);
+
 		return Promise.resolve({
 			message: 'User info retrieved successfully',
 			data: {

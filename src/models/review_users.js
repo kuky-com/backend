@@ -43,6 +43,11 @@ const ReviewUsers = sequelize.define('review_users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	status: {
+		type: DataTypes.ENUM('pending', 'rejected', 'approved'),
+		allowNull: false,
+		defaultValue: 'pending',
+	},
 });
 
 ReviewUsers.belongsTo(User, {
