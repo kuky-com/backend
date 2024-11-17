@@ -5,7 +5,7 @@ const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const crypto = require('crypto')
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
 const Purposes = require('../models/purposes');
@@ -20,373 +20,478 @@ const { Op } = require('sequelize');
 const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
 const AppVersions = require('../models/versions');
+const Sequelize = require('../config/database');
 
-async function updateProfile({ user_id, full_name, gender, location, pronouns, birthday, ...restParams
- }) {
-    try {
-        const updates = {...restParams};
-        if (full_name) updates.full_name = full_name;
-        if (gender) updates.gender = gender;
-        if (location) updates.location = location;
-        if (pronouns) updates.pronouns = pronouns;
-        if (birthday) updates.birthday = birthday;
-        // if (publicGender) updates.publicGender = publicGender;
-        // if (publicPronouns) updates.publicPronouns = publicPronouns;
-        // if (notificationEnable) updates.notificationEnable = notificationEnable;
-        // if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
-        // if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
+async function updateProfile({
+	user_id,
+	full_name,
+	gender,
+	location,
+	pronouns,
+	birthday,
+	...restParams
+}) {
+	try {
+		const updates = { ...restParams };
+		if (full_name) updates.full_name = full_name;
+		if (gender) updates.gender = gender;
+		if (location) updates.location = location;
+		if (pronouns) updates.pronouns = pronouns;
+		if (birthday) updates.birthday = birthday;
+		// if (publicGender) updates.publicGender = publicGender;
+		// if (publicPronouns) updates.publicPronouns = publicPronouns;
+		// if (notificationEnable) updates.notificationEnable = notificationEnable;
+		// if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
+		// if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
 
-        const updatedUser = await Users.update(updates, {
-            where: { id: user_id },
-            returning: true,
-            plain: true,
-        });
+		const updatedUser = await Users.update(updates, {
+			where: { id: user_id },
+			returning: true,
+			plain: true,
+		});
 
-        const userInfo = await getUser(user_id)
+		const userInfo = await getUser(user_id);
 
-        return Promise.resolve({
-            data: userInfo,
-            message: 'Update successfully'
-        })
-    } catch (error) {
-        console.log('Profile update error:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			data: userInfo,
+			message: 'Update successfully',
+		});
+	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
+async function getReviewStats(user_id) {
+	const reviewsObj = await Users.findOne({
+		where: { id: user_id },
+		attributes: {
+			include: [
+				[
+					Sequelize.fn(
+						'COUNT',
+						Sequelize.col('reviews.id')
+					),
+					'reviewsCount',
+				],
+				[
+					Sequelize.fn(
+						'AVG',
+						Sequelize.col('reviews.rating')
+					),
+					'avgRating',
+				],
+			],
+		},
+		group: ['users.id'],
+		include: [
+			{
+				model: ReviewUsers,
+				attributes: [],
+				as: 'reviews',
+				where: {
+					status: 'approved',
+				},
+			},
+		],
+	});
+	const data = reviewsObj?.toJSON();
+	return {
+		reviewsCount: data?.reviewsCount || 0,
+		avgRating: data?.avgRating || 0,
+	};
 }
 
 async function getProfile({ user_id }) {
-    try {
-        const user = await Users.findOne({
-            where: { id: user_id },
-            attributes: { exclude: ['password'] },
-            include: [
-                { model: Purposes },
-                { model: Interests },
-                { model: Tags }
-            ]
-        });
+	try {
+		const user = await Users.findOne({
+			where: { id: user_id },
+			include: [
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
+			],
+		});
 
-        if (!user) {
-            return Promise.reject('User not found')
-        }
+		if (!user) {
+			return Promise.reject('User not found');
+		}
 
-        return Promise.resolve({
-            message: 'User info retrieved successfully',
-            data: user,
-        })
-    } catch (error) {
-        console.log('Error fetching user info:', error);
-        return Promise.reject(error)
-    }
+		const reviewsData = await getReviewStats(user_id);
+
+		return Promise.resolve({
+			message: 'User info retrieved successfully',
+			data: {
+				...user.toJSON(),
+				reviewsCount: reviewsData.reviewsCount,
+				avgRating: reviewsData.avgRating,
+			},
+		});
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
+}
+
+async function getReviews({ userId }) {
+	const reviews = await ReviewUsers.findAll({
+		where: {
+			user_id: userId,
+			status: 'approved',
+		},
+		order: [['createdAt', 'DESC']],
+		include: [
+			{
+				model: Users,
+				as: 'reviewer', // Alias defined in the association
+				attributes: ['id', 'full_name', 'avatar'], // Specify the fields you want from the reviewer
+			},
+		],
+	});
+	const reviewsData = await getReviewStats(userId);
+	return { reviews, ...reviewsData };
 }
 
 async function getFriendProfile({ user_id, friend_id }) {
-    try {
-        const blocked = await BlockedUsers.findOne({
-            where: {
-                [Op.or]: [
-                    {
-                        user_id: user_id,
-                        blocked_id: friend_id
-                    },
-                    {
-                        user_id: friend_id,
-                        blocked_id: user_id
-                    }
-                ]
-            },
-        });
+	try {
+		const blocked = await BlockedUsers.findOne({
+			where: {
+				[Op.or]: [
+					{
+						user_id: user_id,
+						blocked_id: friend_id,
+					},
+					{
+						user_id: friend_id,
+						blocked_id: user_id,
+					},
+				],
+			},
+		});
 
-        if (blocked) {
-            return Promise.resolve({
-                message: 'User info retrieved successfully',
-                data: {
-                    blocked: true, user: {}, match: null
-                },
-            })
-        }
+		if (blocked) {
+			return Promise.resolve({
+				message: 'User info retrieved successfully',
+				data: {
+					blocked: true,
+					user: {},
+					match: null,
+				},
+			});
+		}
 
-        const user = await Users.findOne({
-            where: { id: friend_id },
-            attributes: { exclude: ['password'] },
-            include: [
-                { model: Purposes },
-                { model: Interests },
-                { model: Tags }
-            ]
-        });
+		const user = await Users.findOne({
+			where: { id: friend_id },
+			include: [
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
+			],
+		});
 
-        const match = await Matches.findOne({
-            where: {
-                sender_id: user_id,
-                receiver_id: friend_id
-            },
-            order: [['id', 'desc']]
-        });
+		const match = await Matches.findOne({
+			where: {
+				sender_id: user_id,
+				receiver_id: friend_id,
+			},
+			order: [['id', 'desc']],
+		});
 
-        if (!user) {
-            return Promise.reject('User not found')
-        }
+		if (!user) {
+			return Promise.reject('User not found');
+		}
 
-        return Promise.resolve({
-            message: 'User info retrieved successfully',
-            data: {
-                user, match
-            },
-        })
-    } catch (error) {
-        console.log('Error fetching user info:', error);
-        return Promise.reject(error)
-    }
+		const reviewsData = await getReviewStats(friend_id);
+
+		return Promise.resolve({
+			message: 'User info retrieved successfully',
+			data: {
+				user: {
+					...user.toJSON(),
+					reviewsCount: reviewsData.reviewsCount,
+					avgRating: reviewsData.avgRating,
+				},
+
+				match,
+			},
+		});
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function getUser(user_id) {
-    try {
-        const user = await Users.findOne({
-            where: { id: user_id },
-            attributes: { exclude: ['password'] },
-            include: [
-                { model: Purposes },
-                { model: Interests },
-                { model: Tags }
-            ]
-        });
+	try {
+		const user = await Users.findOne({
+			where: { id: user_id },
+			attributes: { exclude: ['password'] },
+			include: [
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
+			],
+		});
 
-        if (!user) {
-            return Promise.reject('User not found')
-        }
+		if (!user) {
+			return Promise.reject('User not found');
+		}
 
-        return Promise.resolve(user)
-    } catch (error) {
-        console.log('Error fetching user info:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve(user);
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function blockUser({ user_id, friend_id }) {
-    try {
-        await BlockedUsers.create({
-            user_id: user_id,
-            blocked_id: friend_id
-        })
+	try {
+		await BlockedUsers.create({
+			user_id: user_id,
+			blocked_id: friend_id,
+		});
 
-        await Matches.update({ status: 'deleted' }, {
-            where: {
-                [Op.or]: [
-                    { sender_id: user_id, receiver_id: friend_id },
-                    { sender_id: friend_id, receiver_id: user_id }
-                ]
-            }
-        })
+		await Matches.update(
+			{ status: 'deleted' },
+			{
+				where: {
+					[Op.or]: [
+						{
+							sender_id: user_id,
+							receiver_id: friend_id,
+						},
+						{
+							sender_id: friend_id,
+							receiver_id: user_id,
+						},
+					],
+				},
+			}
+		);
 
-        return Promise.resolve({
-            message: "User has been blocked!"
-        })
-    } catch (error) {
-        console.log('Error block user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been blocked!',
+		});
+	} catch (error) {
+		console.log('Error block user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function unblockUser({ user_id, friend_id }) {
-    try {
-        await BlockedUsers.destroy({
-            where: {
-                user_id: user_id,
-                blocked_id: friend_id
-            }
-        })
+	try {
+		await BlockedUsers.destroy({
+			where: {
+				user_id: user_id,
+				blocked_id: friend_id,
+			},
+		});
 
-        return Promise.resolve({
-            message: "User has been unblocked!"
-        })
-    } catch (error) {
-        console.log('Error block user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been unblocked!',
+		});
+	} catch (error) {
+		console.log('Error block user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function getBlockedUsers({ user_id }) {
-    try {
-        const users = await BlockedUsers.findAll({
-            where: {
-                user_id: user_id
-            },
-            include: [
-                { model: Users, as: 'blockedUser' }
-            ]
-        })
+	try {
+		const users = await BlockedUsers.findAll({
+			where: {
+				user_id: user_id,
+			},
+			include: [{ model: Users, as: 'blockedUser' }],
+		});
 
-        return Promise.resolve({
-            message: "User has been unblocked!",
-            data: users
-        })
-    } catch (error) {
-        console.log('Error block user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been unblocked!',
+			data: users,
+		});
+	} catch (error) {
+		console.log('Error block user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function deactiveAccount({ user_id }) {
-    try {
-        const updatedUser = await Users.update({ is_active: false }, {
-            where: { id: user_id },
-            returning: true,
-            plain: true,
-        });
+	try {
+		const updatedUser = await Users.update(
+			{ is_active: false },
+			{
+				where: { id: user_id },
+				returning: true,
+				plain: true,
+			}
+		);
 
-        return Promise.resolve({
-            message: "User has been deactived!",
-            data: updatedUser
-        })
-    } catch (error) {
-        console.log('Error deactive user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been deactived!',
+			data: updatedUser,
+		});
+	} catch (error) {
+		console.log('Error deactive user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function deleteAccount({ user_id, reason }) {
-    try {
-        const user = await Users.findOne({
-            where: {
-                id: user_id
-            },
-            raw: true
-        })
-        delete user.id
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id,
+			},
+			raw: true,
+		});
+		delete user.id;
 
-        console.log({ user })
+		await InactiveUsers.create({
+			...user,
+			inactive_type: 'self-deleted',
+			user_id: user_id,
+			reason,
+		});
 
-        await InactiveUsers.create({
-            ...user,
-            inactive_type: 'self-deleted',
-            user_id: user_id,
-            reason
-        })
+		const updatedUser = await Users.update(
+			{
+				is_active: false,
+				email: `deletedAccount${user_id}@kuky.com`,
+			},
+			{
+				where: {
+					id: user_id,
+				},
+			}
+		);
 
-        const updatedUser = await Users.update({ is_active: false, email: `deletedAccount${user_id}@kuky.com` }, {
-            where: {
-                id: user_id
-            },
-        })
-
-        return Promise.resolve({
-            message: "User has been deleted!",
-            data: updatedUser
-        })
-    } catch (error) {
-        console.log('Error delete user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been deleted!',
+			data: updatedUser,
+		});
+	} catch (error) {
+		console.log('Error delete user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function reportUser({ user_id, reporter_id, reason }) {
-    try {
-        const reportUser = await ReportUsers.create({
-            user_id,
-            reason,
-            reporter_id
-        })
+	try {
+		const reportUser = await ReportUsers.create({
+			user_id,
+			reason,
+			reporter_id,
+		});
 
-        return Promise.resolve({
-            message: "User has been reported!",
-            data: reportUser
-        })
-    } catch (error) {
-        console.log('Error report user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'User has been reported!',
+			data: reportUser,
+		});
+	} catch (error) {
+		console.log('Error report user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function updateSessionToken({ user_id, session_id, session_token }) {
-    try {
-        const updatedSession = await Sessions.update({ session_token: session_token, last_active: new Date() }, {
-            where: { user_id: user_id, id: session_id },
-            plain: true,
-        });
+	try {
+		const updatedSession = await Sessions.update(
+			{
+				session_token: session_token,
+				last_active: new Date(),
+			},
+			{
+				where: { user_id: user_id, id: session_id },
+				plain: true,
+			}
+		);
 
-        return Promise.resolve({
-            data: updatedSession,
-            message: 'Update successfully'
-        })
-    } catch (error) {
-        console.log('Profile update error:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			data: updatedSession,
+			message: 'Update successfully',
+		});
+	} catch (error) {
+		console.log('Profile update error:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
-    try {
-        await ReviewUsers.create({
-            user_id, reviewer_id, rating, reason, note 
-        })
+	try {
+		await ReviewUsers.create({
+			user_id,
+			reviewer_id,
+			rating,
+			reason,
+			note,
+		});
 
-        return Promise.resolve({
-            message: "Review has been added"
-        })
-    } catch (error) {
-        console.log('Error review user:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'Review has been added',
+		});
+	} catch (error) {
+		console.log('Error review user:', error);
+		return Promise.reject(error);
+	}
 }
 
 async function getLatestVersion() {
-    try {
-        const version = await AppVersions.findOne({
-            order: [['version_title', 'desc']]
-        })
+	try {
+		const version = await AppVersions.findOne({
+			order: [['version_title', 'desc']],
+		});
 
-        return Promise.resolve({
-            message: "Latest version",
-            data: version
-        })
-    } catch (error) {
-        console.log('Error latest version:', error);
-        return Promise.reject(error)
-    }
+		return Promise.resolve({
+			message: 'Latest version',
+			data: version,
+		});
+	} catch (error) {
+		console.log('Error latest version:', error);
+		return Promise.reject(error);
+	}
 }
 
-async function getVersionInfo({version_ios, version_android}) {
-    try {
-        let version = null
-        
-        if(version_ios) {
-            version = await AppVersions.findOne({
-                where: {
-                    version_ios: version_ios
-                }
-            })
-        } else {
-            version = await AppVersions.findOne({
-                where: {
-                    version_android: version_android
-                }
-            })
-        }
-        
-        return Promise.resolve({
-            message: "Version info",
-            data: version
-        })
-    } catch (error) {
-        console.log('Error version info:', error);
-        return Promise.reject(error)
-    }
+async function getVersionInfo({ version_ios, version_android }) {
+	try {
+		let version = null;
+
+		if (version_ios) {
+			version = await AppVersions.findOne({
+				where: {
+					version_ios: version_ios,
+				},
+			});
+		} else {
+			version = await AppVersions.findOne({
+				where: {
+					version_android: version_android,
+				},
+			});
+		}
+
+		return Promise.resolve({
+			message: 'Version info',
+			data: version,
+		});
+	} catch (error) {
+		console.log('Error version info:', error);
+		return Promise.reject(error);
+	}
 }
 
 module.exports = {
-    updateProfile,
-    getUser,
-    getProfile,
-    blockUser,
-    unblockUser,
-    getBlockedUsers,
-    deactiveAccount,
-    deleteAccount,
-    reportUser,
-    updateSessionToken,
-    getFriendProfile,
-    reviewUser,
-    getLatestVersion,
-    getVersionInfo
-}
+	updateProfile,
+	getUser,
+	getProfile,
+	blockUser,
+	unblockUser,
+	getBlockedUsers,
+	deactiveAccount,
+	deleteAccount,
+	reportUser,
+	updateSessionToken,
+	getFriendProfile,
+	reviewUser,
+	getLatestVersion,
+	getVersionInfo,
+	getReviews,
+};
