@@ -26,4 +26,16 @@ const AdminUsers = sequelize.define('admin_users', {
     },
 });
 
-module.exports = AdminUsers
+AdminUsers.addScope('defaultScope', {
+    attributes: {
+        exclude: ['password'],
+    },
+});
+
+AdminUsers.addScope('withPassword', {
+    attributes: {
+        include: ['password'],
+    },
+});
+
+module.exports = AdminUsers;
