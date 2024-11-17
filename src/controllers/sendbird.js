@@ -58,7 +58,38 @@ async function generateSendbirdToken(userId) {
 	return data.token;
 }
 
+/**
+ * payload = {
+ * 	nickname?:full_name
+ * profile_url?: avatar
+ * }
+ */
+async function updateSendbirdUser(userId, payload) {
+	const response = await fetch(`${BASE_URL}/users/${getUserId(userId)}`, {
+		method: 'PUT',
+		headers,
+		body: JSON.stringify(payload),
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json();
+		console.log(errorData);
+
+		if (errorData.code === 400201) {
+			await createSendbirdUser(userId);
+			return updateSendbirdUser(userId, payload);
+		}
+		console.log(`Failed to generate token: ${errorData.message}`);
+		throw new Error(errorData);
+	}
+
+	const data = await response.json();
+	console.log(`Access token generated for user ${userId}: ${data.token}`);
+	return data.token;
+}
+
 module.exports = {
 	generateSendbirdToken,
 	createSendbirdUser,
+	updateSendbirdUser,
 };
