@@ -4,6 +4,7 @@ const express = require('express');
 const auth = require('@controllers/auth');
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware');
+const sendbird = require('@controllers/sendbird');
 
 router.post('/register', (request, response, next) => {
 	const { full_name, email, password } = request.body;
@@ -36,7 +37,9 @@ router.get('/sendbird-token', authMiddleware, async (req, response, next) => {
 	const { user_id } = req;
 
 	try {
-		const sendbirdToken = await auth.generateSendbirdToken(user_id);
+		const sendbirdToken = await sendbird.generateSendbirdToken(
+			user_id
+		);
 		return response.json({
 			success: true,
 			data: {
