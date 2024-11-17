@@ -20,6 +20,64 @@ function generateToken(session_id, user_id) {
 		expiresIn: '30d',
 	});
 }
+async function createSendbirdUser(userId) {
+	const user = await usersController.getUser(userId);
+
+	const sendbirdUserId = `${process.env.NODE_ENV}_${userId}`;
+
+	const response = await fetch(
+		`https://api-${process.env.SENDBIRD_APP_ID}.sendbird.com/v3/users`,
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Api-Token': process.env.SENDBIRD_TOKEN,
+			},
+			body: JSON.stringify({
+				user_id: sendbirdUserId,
+				nickname: user.full_name,
+				profile_url: user.avatar,
+			}),
+		}
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json();
+
+		throw new Error(errorData);
+	}
+
+	return generateSendbirdToken(userId);
+}
+
+async function generateSendbirdToken(userId) {
+	const response = await fetch(
+		`https://api-${process.env.SENDBIRD_APP_ID}.sendbird.com/v3/users/${process.env.NODE_ENV}_${userId}/token`,
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Api-Token': process.env.SENDBIRD_TOKEN,
+			},
+			body: JSON.stringify({}),
+		}
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json();
+		console.log(errorData);
+
+		if (errorData.code === 400201) {
+			return createSendbirdUser(userId);
+		}
+		console.log(`Failed to generate token: ${errorData.message}`);
+		throw new Error(errorData);
+	}
+
+	const data = await response.json();
+	console.log(`Access token generated for user ${userId}: ${data.token}`);
+	return data.token;
+}
 
 async function updateUserFromLead(email) {
 	const leadUser = await LeadUsers.findOne({
@@ -245,13 +303,14 @@ async function verifyEmail({
 		});
 
 		const token = generateToken(newSession.id, user.id);
-
+		const sendbirdToken = await generateSendbirdToken(user.id);
 		const userInfo = await usersController.getUser(user.id);
 
 		return Promise.resolve({
 			data: {
 				user: userInfo,
 				token,
+				sendbirdToken,
 			},
 			message: 'Email verified successfully',
 		});
@@ -313,11 +372,13 @@ async function login({ email, password, session_token, device_id, platform }) {
 		}
 
 		const userInfo = await usersController.getUser(user.id);
+		const sendbirdToken = await generateSendbirdToken(user.id);
 
 		return Promise.resolve({
 			data: {
 				user: userInfo,
 				token,
+				sendbirdToken,
 			},
 			message: 'Login successful',
 		});
@@ -376,6 +437,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 		});
 
 		const access_token = generateToken(newSession.id, user.id);
+		const sendbirdToken = await generateSendbirdToken(user.id);
 
 		if (!user.is_active) {
 			await Users.update(
@@ -390,6 +452,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 			data: {
 				user: userInfo,
 				token: access_token,
+				sendbirdToken,
 			},
 			message: 'Login successful',
 		});
@@ -464,6 +527,9 @@ async function appleLogin({
 				newSession.id,
 				user.id
 			);
+			const sendbirdToken = await generateSendbirdToken(
+				user.id
+			);
 
 			if (!user.is_active) {
 				await Users.update(
@@ -478,6 +544,7 @@ async function appleLogin({
 				data: {
 					user: userInfo,
 					token: access_token,
+					sendbirdToken,
 				},
 				message: 'Login successful',
 			});
@@ -550,4 +617,5 @@ module.exports = {
 	logout,
 	updatePassword,
 	resendVerification,
+	generateSendbirdToken,
 };
