@@ -333,6 +333,44 @@ router.post('/version-info', (request, response, next) => {
 		});
 });
 
+router.get('/disclaime', (request, response, next) => {
+	return users
+		.getDisclaime()
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.get('/:userId/share-link',
+	[authMiddleware, blockedUserMiddleware(true)],
+	async (request, response, next) => {
+		return users
+			.getShareLink({ userId: request.params.userId })
+			.then(({ data, message }) => {
+				return response.json({
+					success: true,
+					data: data,
+					message: message,
+				});
+			})
+			.catch((error) => {
+				return response.json({
+					success: false,
+					message: `${error}`,
+				});
+			});
+	});
+
 /**    REVIEWS SECTION  */
 router.get(
 	'/:userId/reviews',

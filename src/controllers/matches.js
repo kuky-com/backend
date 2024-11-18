@@ -21,7 +21,7 @@ const { v4: uuidv4 } = require('uuid')
 // var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
-const { findUnique } = require('../utils/utils');
+const { findUnique, getRandomElements } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 
@@ -954,6 +954,26 @@ async function getConversation({ user_id, conversation_id }) {
     }
 }
 
+async function getSampleProfiles({ }) {
+    try {
+        const suggestions = []
+        const randomSampleUsers = getRandomElements((process.env.SAMPLE_PROFILES ?? []), 3)
+        for (const rawuser of randomSampleUsers) {
+            const userInfo = await getProfile({ user_id: rawuser })
+
+            suggestions.push(userInfo.data)
+        }
+
+        return Promise.resolve({
+            message: 'Sample profile',
+            data: suggestions
+        })
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     getExploreList,
     getMatches,
@@ -963,5 +983,6 @@ module.exports = {
     disconnect,
     findBestMatches,
     findLessMatches,
-    getConversation
+    getConversation,
+    getSampleProfiles
 }
