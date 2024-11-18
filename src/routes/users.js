@@ -352,10 +352,30 @@ router.get('/disclaime', (request, response, next) => {
 });
 
 router.get('/:userId/share-link',
-	[authMiddleware, blockedUserMiddleware(true)],
+	authMiddleware,
 	async (request, response, next) => {
 		return users
 			.getShareLink({ userId: request.params.userId })
+			.then(({ data, message }) => {
+				return response.json({
+					success: true,
+					data: data,
+					message: message,
+				});
+			})
+			.catch((error) => {
+				return response.json({
+					success: false,
+					message: `${error}`,
+				});
+			});
+	});
+
+router.get('/:userId/reapply-profile-review',
+	authMiddleware,
+	async (request, response, next) => {
+		return users
+			.reapplyProfileReview({ userId: request.params.userId })
 			.then(({ data, message }) => {
 				return response.json({
 					success: true,

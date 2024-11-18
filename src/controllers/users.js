@@ -523,6 +523,29 @@ async function getShareLink({ userId }) {
 	}
 }
 
+async function reapplyProfileReview({
+	userId
+}) {
+	try {
+		await Users.update({
+			profile_approved: 'pending'
+		}, {
+			where: { id: userId },
+			returning: true,
+			plain: true,
+		});
+
+		const userInfo = await getUser(userId);
+
+		return Promise.resolve({
+			data: userInfo,
+			message: 'Update successfully',
+		});
+	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -540,5 +563,6 @@ module.exports = {
 	getVersionInfo,
 	getReviews,
 	getDisclaime,
-	getShareLink
+	getShareLink,
+	reapplyProfileReview
 };
