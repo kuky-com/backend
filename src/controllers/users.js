@@ -50,6 +50,21 @@ async function updateProfile({
 			plain: true,
 		});
 
+		if (updates.avatar || updates.full_name) {
+			const sendbirdPayload = {};
+			if (updates.avatar) {
+				sendbirdPayload.profile_url = updates.avatar;
+			}
+			if (updates.full_name) {
+				sendbirdPayload.nickname = updates.full_name;
+			}
+			const sendbird = require('./sendbird');
+			await sendbird.updateSendbirdUser(
+				user_id,
+				sendbirdPayload
+			);
+		}
+
 		const userInfo = await getUser(user_id);
 
 		return Promise.resolve({
