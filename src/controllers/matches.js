@@ -954,10 +954,11 @@ async function getConversation({ user_id, conversation_id }) {
     }
 }
 
-async function getSampleProfiles({ }) {
+async function getSampleProfiles() {
     try {
         const suggestions = []
-        const randomSampleUsers = getRandomElements((process.env.SAMPLE_PROFILES ?? []), 3)
+        const randomSampleUsers = getRandomElements((process.env.SAMPLE_PROFILES.split(',') ?? []), 3)
+
         for (const rawuser of randomSampleUsers) {
             const userInfo = await getProfile({ user_id: rawuser })
 
@@ -965,7 +966,7 @@ async function getSampleProfiles({ }) {
         }
 
         return Promise.resolve({
-            message: 'Sample profile',
+            message: 'Sample profiles',
             data: suggestions
         })
     } catch (error) {
