@@ -88,6 +88,32 @@ router.get('/user-info', authMiddleware, (request, response, next) => {
 		});
 });
 
+router.post('/friend-info', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { friend_id } = request.body
+
+    if (!user_id || !friend_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, friend_id"
+        })
+    }
+
+    return users.getFriendProfile({ user_id, friend_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 // TODO: use the middleware here
 router.get('/:userId/profile', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
