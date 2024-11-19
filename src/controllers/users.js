@@ -495,9 +495,9 @@ async function getVersionInfo({ version_ios, version_android }) {
 
 async function getDisclaime() {
 	try {
-		const disclaime = `Kuky is a peer support network designed to connect individuals facing similar mental and health-related challenges.\n` +
-			`Please note that Kuky is not a substitute for professional medical or mental health care.\n` +
-			`We strongly encourage all members to seek professional advice and continue their existing treatment or therapy when necessary.\n` +
+		const disclaime = `Kuky is a peer support network designed to connect individuals facing similar mental and health-related challenges.\n\n` +
+			`Please note that Kuky is not a substitute for professional medical or mental health care.\n\n` +
+			`We strongly encourage all members to seek professional advice and continue their existing treatment or therapy when necessary.\n\n` +
 			`Always consult with a qualified healthcare provider regarding any questions or concerns about your health.`
 
 		return Promise.resolve({
