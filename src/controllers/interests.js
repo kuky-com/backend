@@ -478,8 +478,9 @@ async function normalizePurposes(purposeId) {
         const categoryNames = Object.keys(categoryMap)
 
         for (let purpose of purposes) {
-            const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose is English meaningful word or phase.\n\nPurpose: ${purpose.name}\nCategory:`;
+            const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${purpose.name}\nCategory:`;
 
+            // console.log({prompt})
             const response = await openai.completions.create({
                 model: 'gpt-3.5-turbo-instruct',
                 prompt: prompt,
@@ -496,32 +497,32 @@ async function normalizePurposes(purposeId) {
         }
 
         //find all invalid purposes word then delete it
-        const inValidPurposeIds = await Purposes.findAll({
-            where: {
-                normalized_purpose_id: {
-                    [Op.eq]: null
-                }
-            },
-            attributes: ['id'],
-            raw: true
-        })
+        // const inValidPurposeIds = await Purposes.findAll({
+        //     where: {
+        //         normalized_purpose_id: {
+        //             [Op.eq]: null
+        //         }
+        //     },
+        //     attributes: ['id'],
+        //     raw: true
+        // })
 
-        const ids = inValidPurposeIds.map((item) => item.id)
+        // const ids = inValidPurposeIds.map((item) => item.id)
 
-        await UserPurposes.destroy({
-            where: {
-                purpose_id: {
-                    [Op.in]: ids
-                }
-            }
-        })
-        await Purposes.destroy({
-            where: {
-                id: {
-                    [Op.in]: ids
-                }
-            }
-        })
+        // await UserPurposes.destroy({
+        //     where: {
+        //         purpose_id: {
+        //             [Op.in]: ids
+        //         }
+        //     }
+        // })
+        // await Purposes.destroy({
+        //     where: {
+        //         id: {
+        //             [Op.in]: ids
+        //         }
+        //     }
+        // })
 
         return Promise.resolve({
             message: 'Updated purposes!',
@@ -558,7 +559,7 @@ async function normalizeInterests(interestId) {
         const categoryNames = Object.keys(categoryMap)
 
         for (let interest of interests) {
-            const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the interest to the closest, most relevant category, only show category in the given list, only return if interest is English meaningful word or phase.\n\nInterest: ${interest.name}\nCategory:`;
+            const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join("', '")}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${interest.name}\nCategory:`;
 
             const response = await openai.completions.create({
                 model: 'gpt-3.5-turbo-instruct',
@@ -576,32 +577,32 @@ async function normalizeInterests(interestId) {
         }
 
         //find all invalid interests word then delete it
-        const inValidInterestIds = await Interests.findAll({
-            where: {
-                normalized_interest_id: {
-                    [Op.eq]: null
-                }
-            },
-            attributes: ['id'],
-            raw: true
-        })
+        // const inValidInterestIds = await Interests.findAll({
+        //     where: {
+        //         normalized_interest_id: {
+        //             [Op.eq]: null
+        //         }
+        //     },
+        //     attributes: ['id'],
+        //     raw: true
+        // })
 
-        const ids = inValidInterestIds.map((item) => item.id)
+        // const ids = inValidInterestIds.map((item) => item.id)
 
-        await UserInterests.destroy({
-            where: {
-                interest_id: {
-                    [Op.in]: ids
-                }
-            }
-        })
-        await Interests.destroy({
-            where: {
-                id: {
-                    [Op.in]: ids
-                }
-            }
-        })
+        // await UserInterests.destroy({
+        //     where: {
+        //         interest_id: {
+        //             [Op.in]: ids
+        //         }
+        //     }
+        // })
+        // await Interests.destroy({
+        //     where: {
+        //         id: {
+        //             [Op.in]: ids
+        //         }
+        //     }
+        // })
 
         return Promise.resolve({
             message: 'Updated interests!',
@@ -654,7 +655,7 @@ async function wordlistValidation({ words }) {
                     });
 
                     try {
-                        if (response.choices[0].text.trim().toLowerCase() === 'yes') {
+                        if (response.choices[0].text.trim().toLowerCase().includes('yes')) {
                             validWords.push(word)
                         }
                     } catch (error) {
