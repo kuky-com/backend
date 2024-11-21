@@ -21,6 +21,7 @@ const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
 const AppVersions = require('../models/versions');
 const Sequelize = require('../config/database');
+const { isStringInteger } = require('../utils/utils');
 
 async function updateProfile({
 	user_id,
@@ -168,15 +169,30 @@ async function getReviews({ userId }) {
 
 async function getFriendProfile({ user_id, friend_id }) {
 	try {
+		const findCondition = isStringInteger(friend_id) ? { id: friend_id } : { referral_id: friend_id }
+
+		const user = await Users.findOne({
+			where: findCondition,
+			include: [
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
+			],
+		});
+
+		if (!user) {
+			return Promise.reject('User not found');
+		}
+
 		const blocked = await BlockedUsers.findOne({
 			where: {
 				[Op.or]: [
 					{
 						user_id: user_id,
-						blocked_id: friend_id,
+						blocked_id: user.id,
 					},
 					{
-						user_id: friend_id,
+						user_id: user.id,
 						blocked_id: user_id,
 					},
 				],
@@ -194,28 +210,17 @@ async function getFriendProfile({ user_id, friend_id }) {
 			});
 		}
 
-		const user = await Users.findOne({
-			where: { id: friend_id },
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-			],
-		});
-
 		const match = await Matches.findOne({
 			where: {
 				sender_id: user_id,
-				receiver_id: friend_id,
+				receiver_id: user.id,
 			},
 			order: [['id', 'desc']],
 		});
 
-		if (!user) {
-			return Promise.reject('User not found');
-		}
+		
 
-		const reviewsData = await getReviewStats(friend_id);
+		const reviewsData = await getReviewStats(user.id);
 
 		return Promise.resolve({
 			message: 'User info retrieved successfully',
@@ -512,7 +517,21 @@ async function getDisclaime() {
 
 async function getShareLink({ userId }) {
 	try {
-		const shareLink = `https://kuky.com/profile/${userId}`
+		const user = await Users.findOne({
+			where: {
+				id: userId,
+			},
+			attributes: ['referral_id']
+		});
+
+		if(!user) {
+			return Promise.resolve({
+				message: 'Profile share link',
+				data: '',
+			});
+		}
+
+		const shareLink = `https://kuky.com/profile/${user.referral_id}`
 		return Promise.resolve({
 			message: 'Profile share link',
 			data: shareLink,

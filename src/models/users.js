@@ -1,6 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
 const Tags = require('./tags');
+const { v4: uuidv4 } = require('uuid');
 
 const Users = sequelize.define('users', {
 	id: {
@@ -125,6 +126,12 @@ const Users = sequelize.define('users', {
 	video_purpose_audio: {
 		type: DataTypes.STRING,
 		allowNull: true,
+	},
+	referral_id: {
+		type: DataTypes.STRING,
+		allowNull: false,
+		unique: true,
+		defaultValue: () => uuidv4().replace(/-/g, '').toUpperCase(),
 	},
 	profile_tag: {
 		type: DataTypes.INTEGER,

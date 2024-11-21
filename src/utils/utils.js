@@ -7,8 +7,12 @@ function getRandomElements(arr, count) {
     return shuffled.slice(0, count);
 }
 
+function isStringInteger(value) {
+    return (Number.isInteger(value) || (typeof value === 'string' && Number.isInteger(Number(value))));
+  }
 
 module.exports = {
     findUnique,
-    getRandomElements
+    getRandomElements,
+    isStringInteger
 }
