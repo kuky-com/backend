@@ -60,10 +60,7 @@ async function updateProfile({
 				sendbirdPayload.nickname = updates.full_name;
 			}
 			const sendbird = require('./sendbird');
-			await sendbird.updateSendbirdUser(
-				user_id,
-				sendbirdPayload
-			);
+			await sendbird.updateSendbirdUser(user_id, sendbirdPayload);
 		}
 
 		const userInfo = await getUser(user_id);
@@ -83,19 +80,10 @@ async function getReviewStats(user_id) {
 		attributes: {
 			include: [
 				[
-					Sequelize.fn(
-						'COUNT',
-						Sequelize.col('reviews.id')
-					),
+					Sequelize.fn('COUNT', Sequelize.col('reviews.id')),
 					'reviewsCount',
 				],
-				[
-					Sequelize.fn(
-						'AVG',
-						Sequelize.col('reviews.rating')
-					),
-					'avgRating',
-				],
+				[Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'avgRating'],
 			],
 		},
 		group: ['users.id'],
@@ -121,11 +109,7 @@ async function getProfile({ user_id }) {
 	try {
 		const user = await Users.findOne({
 			where: { id: user_id },
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-			],
+			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {
@@ -169,15 +153,13 @@ async function getReviews({ userId }) {
 
 async function getFriendProfile({ user_id, friend_id }) {
 	try {
-		const findCondition = isStringInteger(friend_id) ? { id: friend_id } : { referral_id: friend_id }
+		const findCondition = isStringInteger(friend_id)
+			? { id: friend_id }
+			: { referral_id: friend_id };
 
 		const user = await Users.findOne({
 			where: findCondition,
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-			],
+			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {
@@ -218,8 +200,6 @@ async function getFriendProfile({ user_id, friend_id }) {
 			order: [['id', 'desc']],
 		});
 
-		
-
 		const reviewsData = await getReviewStats(user.id);
 
 		return Promise.resolve({
@@ -245,11 +225,7 @@ async function getUser(user_id) {
 		const user = await Users.findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-			],
+			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {
@@ -500,10 +476,11 @@ async function getVersionInfo({ version_ios, version_android }) {
 
 async function getDisclaime() {
 	try {
-		const disclaime = `Kuky is a peer support network designed to connect individuals facing similar mental and health-related challenges.\n\n` +
+		const disclaime =
+			`Kuky is a peer support network designed to connect individuals facing similar mental and health-related challenges.\n\n` +
 			`Please note that Kuky is not a substitute for professional medical or mental health care.\n\n` +
 			`We strongly encourage all members to seek professional advice and continue their existing treatment or therapy when necessary.\n\n` +
-			`Always consult with a qualified healthcare provider regarding any questions or concerns about your health.`
+			`Always consult with a qualified healthcare provider regarding any questions or concerns about your health.`;
 
 		return Promise.resolve({
 			message: 'Disclaime information',
@@ -521,17 +498,17 @@ async function getShareLink({ userId }) {
 			where: {
 				id: userId,
 			},
-			attributes: ['referral_id']
+			attributes: ['referral_id'],
 		});
 
-		if(!user) {
+		if (!user) {
 			return Promise.resolve({
 				message: 'Profile share link',
 				data: '',
 			});
 		}
 
-		const shareLink = `https://kuky.com/profile/${user.referral_id}`
+		const shareLink = `https://kuky.com/profile/${user.referral_id}`;
 		return Promise.resolve({
 			message: 'Profile share link',
 			data: shareLink,
@@ -542,17 +519,18 @@ async function getShareLink({ userId }) {
 	}
 }
 
-async function reapplyProfileReview({
-	userId
-}) {
+async function reapplyProfileReview({ userId }) {
 	try {
-		await Users.update({
-			profile_approved: 'pending'
-		}, {
-			where: { id: userId },
-			returning: true,
-			plain: true,
-		});
+		await Users.update(
+			{
+				profile_approved: 'resubmitted',
+			},
+			{
+				where: { id: userId },
+				returning: true,
+				plain: true,
+			}
+		);
 
 		const userInfo = await getUser(userId);
 
@@ -583,5 +561,5 @@ module.exports = {
 	getReviews,
 	getDisclaime,
 	getShareLink,
-	reapplyProfileReview
+	reapplyProfileReview,
 };

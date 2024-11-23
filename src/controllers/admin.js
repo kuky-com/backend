@@ -433,8 +433,6 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
             END
         `);
 
-		console.log(profileStatus === '');
-
 		if (profileStatus === '') {
 			return {
 				data: {
