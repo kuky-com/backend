@@ -600,6 +600,92 @@ async function addVersion({
 	}
 }
 
+async function getMatches({ page = 1, limit = 20, query = '', status = '' }) {
+	const isNumericQuery = !isNaN(query) && query !== '';
+	const offset = (page - 1) * limit;
+
+	const relevanceScore = Sequelize.literal(`
+		CASE
+			WHEN receiver_id =  ${isNumericQuery ? Number.parseInt(query) : -1} THEN 60
+			WHEN sender_id =  ${isNumericQuery ? Number.parseInt(query) : -1} THEN 60
+
+			WHEN sender.email LIKE '%${query}%' THEN 2
+			WHEN receiver.email LIKE '%${query}%' THEN 2
+
+			WHEN sender.full_name LIKE '%${query}%' THEN 1
+			WHEN receiver.full_name LIKE '%${query}%' THEN 1
+
+			ELSE 0
+		END
+	`);
+
+	if (status === '') {
+		return {
+			count: 0,
+			rows: [],
+		};
+	}
+
+	const { rows, count } = await Matches.findAndCountAll({
+		limit,
+		offset,
+		include: [
+			{
+				model: Users,
+				as: 'sender',
+				attributes: ['id', 'full_name', 'email', 'avatar'],
+			},
+			{
+				model: Users,
+				as: 'receiver',
+				attributes: ['id', 'full_name', 'email', 'avatar'],
+			},
+		],
+		where: {
+			status: status.split(','),
+			[Op.or]: [
+				{
+					sender_id: {
+						[Op.eq]: isNumericQuery ? query : -1,
+					},
+				},
+				{
+					receiver_id: {
+						[Op.eq]: isNumericQuery ? query : -1,
+					},
+				},
+				{
+					'$sender.full_name$': {
+						[Op.like]: `%${query}%`,
+					},
+				},
+				{
+					'$receiver.full_name$': {
+						[Op.like]: `%${query}%`,
+					},
+				},
+				{
+					'$sender.email$': {
+						[Op.like]: `%${query}%`,
+					},
+				},
+				{
+					'$receiver.email$': {
+						[Op.like]: `%${query}%`,
+					},
+				},
+			],
+		},
+
+		order: [
+			[relevanceScore, 'DESC'],
+			['createdAt', 'DESC'],
+		],
+	});
+
+	return { rows, count };
+}
+
 module.exports = {
 	createLeadUsers,
 	checkSuggestion,
@@ -609,4 +695,5 @@ module.exports = {
 	getUsers,
 	profileAction,
 	addVersion,
+	getMatches,
 };
