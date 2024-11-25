@@ -98,7 +98,14 @@ function generateMatchingPrompt(targetUser, compareUsers) {
     Target person Purposes: ${targetUser.purposes.join(', ')}
 
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
-    my target person, sort from best match to lower: `;
+    my target person, sort from best match to lower. 
+	Let's have the following scoring system: 
+	 - If the targeted user has the same purpose with compared user then it's very important. That should be 5 points.
+	 - If the users have somehow similar purposes, then it should be 3 points.
+	 - If the targeted user has similar likes or dislikes with the compared user, it's kind of important. Each common like should be 1 point, each common dislike should be -1p
+	 - If the targeted has a like that the compared user dislikes, or the compared user has a like that the targeted user dislikes it should be -2 point (negative two)
+	Please calculate internally the score and sort this users:
+	: `;
 
 	for (const user of compareUsers) {
 		prompt += `
@@ -117,6 +124,7 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 
 	prompt += `
                 Return the list of sorted people ID separate by "," only, no other words`;
+	console.log(prompt);
 
 	return prompt;
 }
@@ -137,7 +145,7 @@ async function matchUsers(targetId, compareIds) {
 			model: 'gpt-3.5-turbo-instruct',
 			prompt: prompt,
 			max_tokens: 150,
-			temperature: 0.7,
+			temperature: 0.1,
 		});
 
 		return response.choices[0].text.trim();
@@ -649,6 +657,8 @@ async function getExploreList({ user_id }) {
 
 		const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
 
+		console.log(avoidUserIds.length);
+
 		const allUserIds = await Users.findAll({
 			where: {
 				is_active: true,
@@ -662,6 +672,7 @@ async function getExploreList({ user_id }) {
 				},
 			},
 			attributes: ['id'],
+			order: [['id', 'desc']],
 			raw: true,
 		});
 
@@ -679,6 +690,7 @@ async function getExploreList({ user_id }) {
 		}
 
 		for (const rawuser of idSuggestions) {
+			console.log(rawuser);
 			if (suggestions.length > 20) {
 				break;
 			}
@@ -1216,6 +1228,7 @@ async function getMessages(conversationId, pageSize = 10, nextPageToken) {
 
 	if (nextPageToken && nextPageToken !== '') {
 		const snapshot = await messagesRef.doc(nextPageToken).get();
+		console.log('snapshot', snapshot);
 		if (!snapshot.exists) {
 			throw Error('Invalid nextPageToken');
 		}
