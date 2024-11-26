@@ -194,8 +194,10 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 		const match = await Matches.findOne({
 			where: {
-				sender_id: user_id,
-				receiver_id: user.id,
+				[Op.or]: [
+					{ sender_id: user_id, receiver_id: user.id },
+					{ sender_id: user.id, receiver_id: user_id },
+				],
 			},
 			order: [['id', 'desc']],
 		});
