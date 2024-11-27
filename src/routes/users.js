@@ -397,6 +397,28 @@ router.get('/:userId/share-link',
 			});
 	});
 
+	router.get('/reapply-profile-review',
+		authMiddleware,
+		async (request, response, next) => {
+			const { user_id } = request;
+
+			return users
+				.reapplyProfileReview({ userId: user_id })
+				.then(({ data, message }) => {
+					return response.json({
+						success: true,
+						data: data,
+						message: message,
+					});
+				})
+				.catch((error) => {
+					return response.json({
+						success: false,
+						message: `${error}`,
+					});
+				});
+		});
+
 router.get('/:userId/reapply-profile-review',
 	authMiddleware,
 	async (request, response, next) => {
