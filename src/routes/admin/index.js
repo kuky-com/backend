@@ -15,7 +15,7 @@ const upload = multer({ dest: uploadDir });
 
 const adminUsers = require('./admin-users');
 
-router.use('/users', adminUsers);
+router.use('/users', authAdminMiddleware, adminUsers);
 
 router.post('/check-suggestion', authAdminMiddleware, (request, response, next) => {
 	const { to_email, suggest_email } = request.body;
