@@ -141,9 +141,7 @@ async function resendVerification({ email }) {
 			where: { email, email_verified: false },
 		});
 		if (!existingUnverifyUser) {
-			return Promise.reject(
-				'This user cannot receive verification email!'
-			);
+			return Promise.reject('This user cannot receive verification email!');
 		}
 
 		const code = crypto.randomInt(1000, 9999).toString();
@@ -192,13 +190,7 @@ async function resendVerification({ email }) {
 	}
 }
 
-async function verifyEmail({
-	email,
-	code,
-	session_token,
-	device_id,
-	platform,
-}) {
+async function verifyEmail({ email, code, session_token, device_id, platform }) {
 	try {
 		const record = await VerificationCode.findOne({
 			where: { email, code },
@@ -206,15 +198,10 @@ async function verifyEmail({
 		});
 
 		if (!record || new Date() > record.expires_at) {
-			return Promise.reject(
-				'Invalid or expired verification code'
-			);
+			return Promise.reject('Invalid or expired verification code');
 		}
 
-		await Users.update(
-			{ email_verified: true },
-			{ where: { email } }
-		);
+		await Users.update({ email_verified: true }, { where: { email } });
 
 		await sendWelcomeEmail({ to_email: email });
 
@@ -246,9 +233,7 @@ async function verifyEmail({
 		});
 
 		const token = generateToken(newSession.id, user.id);
-		const sendbirdToken = await sendbird.generateSendbirdToken(
-			user.id
-		);
+		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
 		const userInfo = await usersController.getUser(user.id);
 
 		return Promise.resolve({
@@ -310,16 +295,11 @@ async function login({ email, password, session_token, device_id, platform }) {
 		const token = generateToken(newSession.id, user.id);
 
 		if (!user.is_active) {
-			await Users.update(
-				{ is_active: true },
-				{ where: { email } }
-			);
+			await Users.update({ is_active: true }, { where: { email } });
 		}
 
 		const userInfo = await usersController.getUser(user.id);
-		const sendbirdToken = await sendbird.generateSendbirdToken(
-			user.id
-		);
+		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
 
 		return Promise.resolve({
 			data: {
@@ -384,15 +364,10 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 		});
 
 		const access_token = generateToken(newSession.id, user.id);
-		const sendbirdToken = await sendbird.generateSendbirdToken(
-			user.id
-		);
+		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
 
 		if (!user.is_active) {
-			await Users.update(
-				{ is_active: true },
-				{ where: { email } }
-			);
+			await Users.update({ is_active: true }, { where: { email } });
 		}
 
 		const userInfo = await usersController.getUser(user.id);
@@ -411,21 +386,11 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 	}
 }
 
-async function appleLogin({
-	full_name,
-	token,
-	session_token,
-	device_id,
-	platform,
-}) {
+async function appleLogin({ full_name, token, session_token, device_id, platform }) {
 	try {
-		appleIdInfo = await appleSigninAuth.verifyIdToken(token);
+		const appleIdInfo = await appleSigninAuth.verifyIdToken(token);
 
-		if (
-			appleIdInfo &&
-			appleIdInfo.email &&
-			appleIdInfo.email_verified
-		) {
+		if (appleIdInfo && appleIdInfo.email && appleIdInfo.email_verified) {
 			const email = appleIdInfo.email;
 			let user = await Users.findOne({ where: { email } });
 
@@ -472,18 +437,11 @@ async function appleLogin({
 				session_token,
 			});
 
-			const access_token = generateToken(
-				newSession.id,
-				user.id
-			);
-			const sendbirdToken =
-				await sendbird.generateSendbirdToken(user.id);
+			const access_token = generateToken(newSession.id, user.id);
+			const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
 
 			if (!user.is_active) {
-				await Users.update(
-					{ is_active: true },
-					{ where: { email } }
-				);
+				await Users.update({ is_active: true }, { where: { email } });
 			}
 
 			const userInfo = await usersController.getUser(user.id);
@@ -527,18 +485,13 @@ async function logout({ session_id }) {
 
 async function updatePassword({ user_id, current_password, new_password }) {
 	try {
-		const user = await Users.scope('withPassword').findByPk(
-			user_id
-		);
+		const user = await Users.scope('withPassword').findByPk(user_id);
 
 		if (!user) {
 			return Promise.reject('User not found.');
 		}
 
-		const isPasswordValid = await bcrypt.compare(
-			current_password,
-			user.password
-		);
+		const isPasswordValid = await bcrypt.compare(current_password, user.password);
 
 		if (!isPasswordValid) {
 			return Promise.reject('Current password is incorrect.');

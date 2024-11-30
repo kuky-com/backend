@@ -73,7 +73,7 @@ router.post('/send-suggestion', authAdminMiddleware, (request, response, next) =
 
 router.post('/add-users', upload.single('file'), authAdminMiddleware, (request, response, next) => {
 	if (!request.file) {
-		return res.status(400).send('No file uploaded.');
+		return request.status(400).send('No file uploaded.');
 	}
 
 	try {
