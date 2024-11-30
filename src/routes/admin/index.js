@@ -3,7 +3,7 @@
 const express = require('express');
 const admin = require('@controllers/admin');
 const router = express.Router();
-const authAdminMiddleware = require('../milddleware/authAdminMiddleware');
+const authAdminMiddleware = require('../../milddleware/authAdminMiddleware');
 const multer = require('multer');
 const path = require('path');
 const XLSX = require('xlsx');
@@ -12,6 +12,10 @@ const matches = require('@controllers/matches');
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 const upload = multer({ dest: uploadDir });
+
+const adminUsers = require('./admin-users');
+
+router.use('/users', adminUsers);
 
 router.post('/check-suggestion', authAdminMiddleware, (request, response, next) => {
 	const { to_email, suggest_email } = request.body;
