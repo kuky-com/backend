@@ -142,6 +142,10 @@ const Users = sequelize.define('users', {
 		},
 		onDelete: 'NO ACTION',
 	},
+	note: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 });
 
 module.exports = Users;

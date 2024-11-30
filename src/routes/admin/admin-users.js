@@ -8,6 +8,7 @@ const {
 	deleteInterest,
 	createUserPurpose,
 } = require('../../controllers/interests');
+const { updateUserNote } = require('@controllers/users');
 const router = express.Router();
 const { Sequelize } = require('sequelize');
 
@@ -27,6 +28,18 @@ router.get('/', (request, response) => {
 				message: `${error}`,
 			});
 		});
+});
+
+router.patch('/:userId/note', async (request, response) => {
+	try {
+		await updateUserNote({
+			userId: request.params.userId,
+			note: request.body.note,
+		});
+		return response.json({ ok: 'true' });
+	} catch (err) {
+		return response.status(400).json({ message: err.message });
+	}
 });
 
 // Add new interest
