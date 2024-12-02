@@ -730,18 +730,24 @@ async function createUserPurpose({ userId, purposeName }) {
 	}
 
 	const purpose = await createGeneralPurpose(purposeName);
-	console.log(purpose.id);
 	// link user with purpose
 	const userPurpose = await UserPurposes.create({
 		user_id: userId,
 		purpose_id: purpose.id,
 	});
-	return UserPurposes.findOne({
-		where: {
-			id: userPurpose.id,
-		},
-		include: [{ model: Purposes }],
-	});
+	const user_purposes = (
+		await UserPurposes.findOne({
+			where: {
+				id: userPurpose.id,
+			},
+			include: [{ model: Purposes }],
+		})
+	).toJSON();
+
+	return {
+		...user_purposes.purpose,
+		user_purposes,
+	};
 }
 
 async function deletePurpose({ userId, userPurposeId }) {
@@ -783,16 +789,22 @@ async function createUserInterest({ userId, interestName, interestType }) {
 		interest_type: interestType,
 	});
 
-	return UserInterests.findOne({
-		where: {
-			id: userInterest.id,
-		},
-		include: [{ model: Interests }],
-	});
+	const user_interests = (
+		await UserInterests.findOne({
+			where: {
+				id: userInterest.id,
+			},
+			include: [{ model: Interests }],
+		})
+	).toJSON();
+
+	return {
+		...user_interests.interest,
+		user_interests,
+	};
 }
 
 async function deleteInterest({ userId, userInterestId }) {
-	console.log(userId, userInterestId);
 	const userInterest = await UserInterests.findOne({
 		where: {
 			id: userInterestId,

@@ -472,7 +472,7 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 			include: [
 				{
 					model: Purposes,
-					attributes: ['name'],
+					// attributes: ['name'],
 				},
 				{
 					model: Interests,

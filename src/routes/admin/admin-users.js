@@ -30,15 +30,15 @@ router.get('/', (request, response) => {
 		});
 });
 
-router.patch('/:userId/note', async (request, response) => {
+router.put('/:userId/note', async (request, response) => {
 	try {
 		await updateUserNote({
 			userId: request.params.userId,
 			note: request.body.note,
 		});
-		return response.json({ ok: 'true' });
+		return response.json({ ok: 'true', success: true });
 	} catch (err) {
-		return response.status(400).json({ message: err.message });
+		return response.status(400).json({ message: err.message, success: false });
 	}
 });
 
@@ -48,10 +48,10 @@ router.post('/:userId/interests', async (request, response) => {
 		const interest = await createUserInterest({
 			userId: request.params.userId,
 			interestName: request.body.name,
-			interestType: request.body.interestType,
+			interestType: request.body.type,
 		});
 
-		return response.json({ interest });
+		return response.json({ data: interest, success: true });
 	} catch (error) {
 		let validationErr;
 		if (error instanceof Sequelize.ValidationError) {
@@ -64,6 +64,7 @@ router.post('/:userId/interests', async (request, response) => {
 
 		return response.status(500).json({
 			mesasge: validationErr ? 'User already has this interest' : error.message,
+			success: false,
 		});
 	}
 });
@@ -76,9 +77,9 @@ router.delete('/:userId/interests/:interestId', async (request, response) => {
 			userInterestId: request.params.interestId,
 		});
 
-		return response.json({ message: 'ok' });
+		return response.json({ message: 'ok', success: true });
 	} catch (err) {
-		return response.status(500).json({ message: err.message });
+		return response.status(500).json({ message: err.message, success: false });
 	}
 });
 
@@ -90,11 +91,12 @@ router.post('/:userId/purposes', async (request, response) => {
 			purposeName: request.body.name,
 		});
 
-		return response.json({ purpose });
+		return response.json({ data: purpose, success: true });
 	} catch (err) {
 		return response.status(500).json({
 			message: `Got error while creating the purpose`,
 			err: err.message,
+			success: false,
 		});
 	}
 });
@@ -107,10 +109,11 @@ router.delete('/:userId/purposes/:purposeId', async (request, response) => {
 			userPurposeId: request.params.purposeId,
 		});
 
-		return response.json({ message: 'ok' });
+		return response.json({ message: 'ok', success: true });
 	} catch (err) {
 		return response.status(500).json({
 			message: err.message,
+			success: false,
 		});
 	}
 });
