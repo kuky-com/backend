@@ -17,6 +17,7 @@ const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
 var admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
+const sequelize = require('../config/database');
 
 // var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
@@ -98,7 +99,14 @@ function generateMatchingPrompt(targetUser, compareUsers) {
     Target person Purposes: ${targetUser.purposes.join(', ')}
 
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
-    my target person, sort from best match to lower: `;
+    my target person, sort from best match to lower. 
+	Let's have the following scoring system: 
+	 - If the targeted user has the same purpose with compared user then it's very important. That should be 5 points.
+	 - If the users have somehow similar purposes, then it should be 3 points.
+	 - If the targeted user has similar likes or dislikes with the compared user, it's kind of important. Each common like should be 1 point, each common dislike should be -1p
+	 - If the targeted has a like that the compared user dislikes, or the compared user has a like that the targeted user dislikes it should be -2 point (negative two)
+	Please calculate internally the score and sort this users:
+	: `;
 
 	for (const user of compareUsers) {
 		prompt += `
@@ -117,6 +125,7 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 
 	prompt += `
                 Return the list of sorted people ID separate by "," only, no other words`;
+	console.log(prompt);
 
 	return prompt;
 }
@@ -137,7 +146,7 @@ async function matchUsers(targetId, compareIds) {
 			model: 'gpt-3.5-turbo-instruct',
 			prompt: prompt,
 			max_tokens: 150,
-			temperature: 0.7,
+			temperature: 0.1,
 		});
 
 		return response.choices[0].text.trim();
@@ -257,6 +266,7 @@ async function findLessMatches({ user_id }) {
 				id: { [Op.notIn]: [user_id, ...avoidUserIds] },
 			},
 			attributes: ['id', 'profile_tag'],
+			orderBy: [['id', 'DESC']],
 		});
 
 		const matchedUsersWithScores = [];
@@ -470,6 +480,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 				id: { [Op.notIn]: [user_id, ...avoidUserIds] },
 			},
 			attributes: ['id', 'profile_tag'],
+			orderBy: [['id', 'DESC']],
 		});
 
 		const matchedUsersWithScores = [];
@@ -566,7 +577,12 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 			}
 		}
 
-		matchedUsersWithScores.sort((a, b) => b.score - a.score);
+		matchedUsersWithScores.sort((a, b) => {
+			if (b.score === a.score) {
+				return b.user_id - a.user_id;
+			}
+			return b.score - a.score;
+		});
 
 		const suggestions = [];
 
@@ -649,36 +665,41 @@ async function getExploreList({ user_id }) {
 
 		const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
 
-		const allUserIds = await Users.findAll({
-			where: {
-				is_active: true,
-				is_hidden_users: false,
-				profile_approved: 'approved',
-				profile_tag: {
-					[Op.ne]: null,
-				},
-				id: {
-					[Op.notIn]: [user_id, ...avoidUserIds],
-				},
-			},
-			attributes: ['id'],
-			raw: true,
-		});
+		// const allUserIds = await Users.findAll({
+		// 	where: {
+		// 		is_active: true,
+		// 		is_hidden_users: false,
+		// 		profile_approved: 'approved',
+		// 		profile_tag: {
+		// 			[Op.ne]: null,
+		// 		},
+		// 		id: {
+		// 			[Op.notIn]: [user_id, ...avoidUserIds],
+		// 		},
+		// 	},
+		// 	attributes: ['id'],
+		// 	order: [['id', 'desc']],
+		// 	raw: true,
+		// });
 
-		let matchResult = [];
-		let idSuggestions = [];
-		if (allUserIds.length > 1) {
-			try {
-				matchResult = await matchUsers(user_id, allUserIds);
-				idSuggestions = matchResult.match(/\d+/g);
-			} catch (error) {
-				idSuggestions = allUserIds.map((item) => item.id);
-			}
-		} else {
-			idSuggestions = allUserIds.map((item) => item.id);
-		}
+		// let matchResult = [];
+		// let idSuggestions = [];
+		// if (allUserIds.length > 1) {
+		// 	try {
+		// 		matchResult = await matchUsers(user_id, allUserIds);
+		// 		idSuggestions = matchResult.match(/\d+/g);
+		// 	} catch (error) {
+		// 		idSuggestions = allUserIds.map((item) => item.id);
+		// 	}
+		// } else {
+		// 	idSuggestions = allUserIds.map((item) => item.id);
+		// }
+		const users = (await calculateMatchScore(user_id, avoidUserIds, 20)).map(
+			(u) => u.user_id
+		);
 
-		for (const rawuser of idSuggestions) {
+		for (const rawuser of users) {
+			console.log(rawuser);
 			if (suggestions.length > 20) {
 				break;
 			}
@@ -1216,6 +1237,7 @@ async function getMessages(conversationId, pageSize = 10, nextPageToken) {
 
 	if (nextPageToken && nextPageToken !== '') {
 		const snapshot = await messagesRef.doc(nextPageToken).get();
+		console.log('snapshot', snapshot);
 		if (!snapshot.exists) {
 			throw Error('Invalid nextPageToken');
 		}
@@ -1244,6 +1266,67 @@ async function getMessages(conversationId, pageSize = 10, nextPageToken) {
 		nextPageToken: lastDoc.id,
 	};
 }
+
+async function calculateMatchScore(userId, incompatibleUserIds, limit = 20) {
+	const matches = await sequelize.query(
+		`
+
+		SELECT user_id, COALESCE(interests_table.matching_score + purposes_table.score,interests_table.matching_score,0)  as match_score FROM (
+		SELECT 
+    u2.id AS user_id,
+    COALESCE(SUM(
+        CASE
+            WHEN ui1.interest_type = ui2.interest_type THEN 1
+            WHEN ui1.interest_type != ui2.interest_type THEN -1
+            ELSE 0
+        END
+    ), 0) AS matching_score
+FROM users u1
+CROSS JOIN users u2
+LEFT JOIN user_interests ui1 ON u1.id = ui1.user_id
+LEFT JOIN interests i1 ON ui1.interest_id = i1.id
+LEFT JOIN interests i2 ON i1.normalized_interest_id = i2.normalized_interest_id
+LEFT JOIN user_interests ui2 ON i2.id = ui2.interest_id AND u2.id = ui2.user_id
+WHERE u1.id = :currentUserId AND u2.id != :currentUserId
+   AND u2.profile_approved = 'approved' AND u2.is_active = TRUE AND u2.is_hidden_users = FALSE
+   AND u2.profile_tag IS NOT NULL
+   AND u2.id NOT IN (:incompatibleUserIds)
+GROUP BY u2.id
+
+) interests_table 
+
+LEFT JOIN (
+
+	SELECT ui2.user_id AS uid, COUNT(*)*2 as score
+	FROM users u1
+	 JOIN user_purposes ui1 ON u1.id = ui1.user_id
+	 JOIN purposes i1 ON ui1.purpose_id = i1.id
+	 JOIN purposes i2 ON i1.normalized_purpose_id = i2.normalized_purpose_id
+	 JOIN user_purposes ui2 ON i2.id = ui2.purpose_id
+	WHERE u1.id = :currentUserId
+		AND ui2.user_id != :currentUserId
+		AND u1.profile_approved = 'approved' AND u1.is_active = TRUE AND u1.is_hidden_users = FALSE
+		AND u1.profile_tag IS NOT NULL
+		AND u1.id NOT IN (:incompatibleUserIds)
+	GROUP BY ui2.user_id
+
+	) purposes_table ON interests_table.user_id = purposes_table.uid
+	 ORDER BY match_score DESC,
+	 user_id DESC 
+	 LIMIT ${limit};
+
+
+        `,
+		{
+			type: sequelize.QueryTypes.SELECT,
+			replacements: { currentUserId: userId, incompatibleUserIds, limit },
+		}
+	);
+
+	return matches;
+}
+
+module.exports = findBestMatches;
 
 module.exports = {
 	getMessages,
