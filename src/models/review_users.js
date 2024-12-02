@@ -55,4 +55,9 @@ ReviewUsers.belongsTo(User, {
 	foreignKey: 'reviewer_id',
 });
 
+ReviewUsers.belongsTo(User, {
+	as: 'user', // Alias to use for the relationship
+	foreignKey: 'user_id',
+});
+
 module.exports = ReviewUsers;
