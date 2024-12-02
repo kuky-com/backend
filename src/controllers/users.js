@@ -545,6 +545,15 @@ async function reapplyProfileReview({ userId }) {
 	}
 }
 
+async function updateUserNote({ userId, note }) {
+	return Users.update(
+		{
+			note,
+		},
+		{ where: { id: userId } }
+	);
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -564,4 +573,5 @@ module.exports = {
 	getDisclaime,
 	getShareLink,
 	reapplyProfileReview,
+	updateUserNote,
 };
