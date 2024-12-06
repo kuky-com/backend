@@ -831,6 +831,216 @@ async function deleteInterest({ userId, userInterestId }) {
 	return true;
 }
 
+/**
+ * user1: { 
+	purposes: [
+{ name: 'p1', id: 1 },
+{name: 'p2', id: 2 }
+	]
+likes: [ { 
+name: 'puppies',
+id: 1,
+} , ...],
+ dislikes: [{name: 'cats', id: 2 }, ...]
+
+ user2: same ...
+}
+ * 
+If there's no common purpose, maybe there is a common like. Or one user as a purpose that another user likes.
+
+		If there's no common purpose or no common like, use the common dislikes. 
+
+		The most important thing in the match is the purpose, so if you can find something common in the user purposes please use that,
+		 then likes and then dislikes. 
+
+		If one user likes something that another user dislikes, that is not something in common.
+
+		The message should be something succint that matches both users. No "OR"
+
+		Based on both users intersts likes, and dislikes please return this message show the common purpose/like/dislike 
+		that made you choose that specific message.
+
+
+
+
+
+
+		----
+
+				Focus on what the users have in common, the number one priority being a shared purpose. 
+		For example, if one user likes bears and another one likes bunnies, they both like animals.
+
+		Do the following thing: 
+		For each of the user1 purposes, take each of the user2 purposes and ask yourself: "Do this purposes have anything in common?" 
+		If the answer is yes, then compose a message based on that, if there's not a 
+
+
+		You can extrapolate the common purpose/like/disliks.
+
+			FOR 4o we can use: 
+
+				response_format: {
+			type: 'json_schema',
+			json_schema: {
+				name: 'answer',
+				schema: {
+					match: 'match number',
+					message: 'The reason why the users should talk based on the common purpsoe',
+					tag: 'The extrapolated common purpose',
+				},
+			},
+		},
+
+*/
+async function checkPurposeMatch(user1, user2) {
+	const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+
+		When two users are matched, we want to show them a reason for their match, a reason to start a conversation. 
+		For example, if one user purpose is 'learning guitar' and another user purpose is 'learning to play drums' we 
+		want to show them a prompt saying "You are both learning a musical instrument".  Basically, their common purpose,
+		a reason that they should start a conversation. 
+
+
+		I'll give you a list of two items to match with the following format:
+		Item1: user 1 purpose
+		Item2:  user2 2 purpose 
+		
+		
+		For each pair of items you will you will: 
+			1. Extrapolate the common purpose from these items. 
+			2. Generate a number between 0 and 100 that signifies how alike are the two purposes
+			. 0 - not alike at all,
+			  25 - small similarity
+			  50- kind of alike, but not exactly the same
+			  75- very close, but not exactly the same
+			  100 - the same, only wording differs
+				
+			3. Create a message that encourages users to talk based on these common purpose of the items. Make the message succint 
+
+
+		The response should be a json in the following format: 
+		[{
+			match: match number
+			message: The reason why the users should talk based on the common purpose. 
+			Should be formulated as something that you display in the app, about what the users have in common
+			 "You both are going though....". 
+}, ...]
+		`;
+
+	const messages = [];
+
+	if (user1.purposes.length === 0 || user2.purposes.length === 0) {
+		return [];
+	}
+
+	for (let purpose of user1.purposes) {
+		for (let purpose2 of user2.purposes) {
+			console.log(purpose, purpose2);
+			messages.push(`
+				 Item1 : ${purpose.name}
+				 Item2: ${purpose2.name}
+				 
+				 ------
+				 `);
+		}
+	}
+
+	const response = await openai.chat.completions.create({
+		model: 'gpt-3.5-turbo',
+
+		messages: [
+			{ content: context, role: 'system' },
+			{ content: messages.join(), role: 'user' },
+		],
+	});
+	const result = JSON.parse(response.choices[0].message.content.trim());
+
+	return result.filter((r) => r.match > 0).sort((a, b) => b.match - a.match);
+}
+
+async function checkInterestMatch(user1, user2) {
+	const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+
+		When two users are matched, we want to show them a reason for their match, a reason to start a conversation. 
+		For example, if one user likes dogs and another user likes 'cats'' we 
+		want to show them a prompt saying "Discuss about your shared love for animals".  Basically, their common like or dislike,
+		a reason that they should start a conversation. 
+
+
+		I'll give you a list of two items to match with the following format:
+		Type: type of match
+		Item1: user 1 purpose
+		Item2:  user2 2 purpose 
+		
+		
+		For each pair of items you will you will: 
+			1. Extrapolate the common like from these items. 
+			2. Generate a number between 0 and 100 that signifies how alike are the two likes/dislikes
+			. 0 - not alike at all,
+			  25 - small similarity
+			  50- kind of alike, but not exactly the same
+			  75- very close, but not exactly the same
+			  100 - the same, only wording differs
+				
+			3. Create a message that encourages users to talk based on these common interest of the items. Make the message succint.
+				If tag is dislike, make formulate the message like this: "You both dislike..."
+
+		The match number should be 0 if there's nothing common in the interests
+
+		Analyse each pair individually! 
+		The response should be a json in the following format: 
+		[{
+			type: the same type from the input
+			match: match number
+			tag: The common denomitor of the interests. 1-2 words max. Example: Music, Mental Health, Fitness, Animals...etc
+			message: The reason why the users should talk based on the common like/dislike. 
+			Should be formulated as something that you display in the app, about what the users have in common
+			 "You both dislike....." or "You both like....". 
+}, ...]
+		`;
+
+	const messages = [];
+
+	for (let like of user1.likes) {
+		for (let like2 of user2.likes) {
+			messages.push(`
+				 Tag: "like"
+				 Item1 : ${like.name}
+				 Item2: ${like2.name}
+				 
+				 ------
+				 `);
+		}
+	}
+
+	for (let dislike of user1.dislikes) {
+		for (let dislike2 of user2.dislikes) {
+			messages.push(`
+				 Tag: "dislike"
+				 Item1 : ${dislike.name}
+				 Item2: ${dislike2.name}
+				 
+				 ------
+				 `);
+		}
+	}
+
+	if (messages.length === 0) {
+		return [];
+	}
+	const response = await openai.chat.completions.create({
+		model: 'gpt-3.5-turbo',
+
+		messages: [
+			{ content: context, role: 'system' },
+			{ content: messages.join(), role: 'user' },
+		],
+	});
+	const result = JSON.parse(response.choices[0].message.content.trim());
+
+	return result.sort((a, b) => b.match - a.match).filter((m) => m.match > 0);
+}
+
 module.exports = {
 	getPurposes,
 	getLikes,
@@ -847,4 +1057,6 @@ module.exports = {
 	deletePurpose,
 	createUserInterest,
 	deleteInterest,
+	checkPurposeMatch,
+	checkInterestMatch,
 };

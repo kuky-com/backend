@@ -553,6 +553,68 @@ async function updateUserNote({ userId, note }) {
 		{ where: { id: userId } }
 	);
 }
+/**
+ * user1: { 
+	purposes: [
+{ name: 'p1', id: 1 },
+{name: 'p2', id: 2 }
+	]
+likes: [ { 
+name: 'puppies',
+id: 1,
+} , ...],
+ dislikes: [{name: 'cats', id: 2 }, ...]
+
+ user2: same ...
+}
+ *  */
+async function checkMatchingUsers(user1, user2) {
+	const message = `
+		Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+		The most important thing in the match is the purpose, then likes and then dislikes. 
+
+		When two users are matched, we want to show them a reason for their match, a reason to start a conversation. 
+		For example, if one user purpose is 'learning guitar' and another user purpose is 'learning to play drums' we 
+		want to show them a prompt saying "You are both learning a musical instrument".  Basically, their common interest,
+		a reason that they should talk. 
+		
+		The same for interests. 
+
+		Based on both users intersts likes, and dislikes please return this message. Also, from the list of user2 interests, show the purpose/like/dislike 
+		that made you choose that specific message.
+		If the users don't have nothing in common, please leve the message purpose.
+		Return the response in the following format
+
+		{
+		"message": "Discuss your shared love for cooking." 
+		"reasons": [
+			{
+				purpose: {
+					id: user2purposeID,
+					name: Purpose name
+				}
+			},
+			{ 
+				like: {
+					id: user2LikeId,
+					name: Like name
+				}
+			},
+			{
+				dislike: { 
+					id: user2DislikeId,
+					name: dislike name
+				}
+			}
+		]
+		}
+
+		Again, the reasons should be chosen from the user2 data. You can have as many reasons as you want, even 0. 
+
+		User1 Data: ${JSON.stringify(user1)}
+		user2 Data: ${JSON.stringify(user2)}
+	`;
+}
 
 module.exports = {
 	updateProfile,

@@ -15,6 +15,7 @@ const upload = multer({ dest: uploadDir });
 
 const adminUsers = require('./admin-users');
 const adminReviews = require('./admin-reviews');
+const interests = require('@controllers/interests');
 
 router.use('/users', authAdminMiddleware, adminUsers);
 router.use('/reviews', authAdminMiddleware, adminReviews);
@@ -282,6 +283,32 @@ router.get('/matches/:matchId/messages', authAdminMiddleware, async (request, re
 	} catch (err) {
 		console.log(err);
 		return response.status(500).send(`Error while fetching matches: ${err}`);
+	}
+});
+
+router.post('/test/match/purpose', authAdminMiddleware, async (request, response) => {
+	try {
+		const answer = await interests.checkPurposeMatch(
+			request.body.user1,
+			request.body.user2
+		);
+
+		return response.status(200).json(answer);
+	} catch (err) {
+		return response.status(400).json({ message: err.message });
+	}
+});
+
+router.post('/test/match/interests', authAdminMiddleware, async (request, response) => {
+	try {
+		const answer = await interests.checkInterestMatch(
+			request.body.user1,
+			request.body.user2
+		);
+
+		return response.status(200).json(answer);
+	} catch (err) {
+		return response.status(400).json({ message: err.message });
 	}
 });
 
