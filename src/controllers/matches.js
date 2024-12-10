@@ -1209,6 +1209,27 @@ async function getSampleProfiles() {
 	}
 }
 
+async function getSampleExplore() {
+	try {
+		const suggestions = [];
+		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',')
+
+		for (const rawuser of randomSampleUsers) {
+			const userInfo = await getProfile({ user_id: rawuser });
+
+			suggestions.push(userInfo.data);
+		}
+
+		return Promise.resolve({
+			message: 'Sample profiles',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getMatchById(id) {
 	return Matches.findOne({ where: { id } });
 }
@@ -1341,4 +1362,5 @@ module.exports = {
 	getConversation,
 	getSampleProfiles,
 	getMatchById,
+	getSampleExplore
 };
