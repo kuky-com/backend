@@ -27,7 +27,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-region: ${{ env.AWS_REGION }}
+        aws-region: ${{ vars.AWS_REGION }}
         role-to-assume: arn:aws:iam::608961235058:role/GithubOcidRole    
     - name: Login to Amazon ECR Public
       id: login-ecr-public
@@ -37,7 +37,7 @@ jobs:
     - name: Build, tag, and push docker image to Amazon ECR Public
       env:
         REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        REPOSITORY: ${{ env.ECR_REPOSITORY }}
+        REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
@@ -48,14 +48,14 @@ jobs:
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION_PATH }}
-        container-name: ${{ env.CONTAINER_NAME }}
+        task-definition: ${{ vars.ECS_TASK_DEFINITION_PATH }}
+        container-name: ${{ vars.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
+        service: ${{ vars.ECS_SERVICE }}
+        cluster: ${{ vars.ECS_CLUSTER }}
         wait-for-service-stability: true
