@@ -32,7 +32,8 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "node index.js",
+    "migrate": "echo Running migration for postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB} && npx sequelize-cli db:migrate --url postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}",
+    "start": "yarn migrate && node index.js",
     "dev": "nodemon index.js",
     "lint": "eslint .",
     "lint:fix": "eslint --fix ."
