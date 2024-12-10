@@ -300,6 +300,21 @@ router.get('/sample-profiles', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/sample-explore', (request, response, next) => {
+    return matches.getSampleExplore().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
 
 
 module.exports = router;
