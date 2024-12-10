@@ -42,12 +42,7 @@ jobs:
       run: |
         docker build -t $REPOSITORY:$IMAGE_TAG .
         docker push $REPOSITORY:$IMAGE_TAG
-        echo "image=$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-    - name: Re-Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: ${{ vars. AWS_REGION }}
-        role-to-assume: arn:aws:iam::608961235058:role/GithubOcidRole    
+        echo "image=$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT  
     - name: Print output
       run: echo ${{ toJson(steps)}}
     - name: Fill in the new image ID in the Amazon ECS task definition
