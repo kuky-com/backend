@@ -23,7 +23,7 @@ jobs:
     - name: check
       run: echo ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'dev'    && 'staging'}}
     - name: Print env
-      run: echo ${{ toJson(env) }}
+      run: echo ${{ toJson(vars) }}
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
