@@ -26,7 +26,7 @@ app.use(
 app.get('/health', (req, res) => {
 	res.status(200).json({
 		status: 'UP',
-		message: 'The server is running normally',
+		message: 'The server is running normally!',
 		timestamp: new Date().toISOString(),
 	});
 });
