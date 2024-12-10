@@ -43,8 +43,7 @@ jobs:
         docker build -t $REPOSITORY:$IMAGE_TAG .
         docker push $REPOSITORY:$IMAGE_TAG
         echo "image=$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-    - name: Print output
-      run: echo $$GITHUB_OUTPUT
+
     - name: Re-Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -57,7 +56,7 @@ jobs:
       with:
         task-definition: ${{ vars.ECS_TASK_DEFINITION_PATH }}
         container-name: ${{ vars.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+        image: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
