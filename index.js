@@ -6,9 +6,11 @@ const router = require('./src/routes');
 const bodyParser = require('body-parser');
 const errorHandler = require('errorhandler');
 const { createDefaultTags } = require('./src/seeds/tags');
+const path = require('path');
 
 const app = express();
 
+app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(express.json());
 
