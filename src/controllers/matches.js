@@ -89,13 +89,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	let prompt = `I have target person with information about likes, dislikes, and purposes.
   
     Target person Likes: ${targetUser.interests
-		.filter((i) => i.type === 'like')
-		.map((i) => i.name)
-		.join(', ')}
+			.filter((i) => i.type === 'like')
+			.map((i) => i.name)
+			.join(', ')}
     Target person Dislikes: ${targetUser.interests
-		.filter((i) => i.type === 'dislike')
-		.map((i) => i.name)
-		.join(', ')}
+			.filter((i) => i.type === 'dislike')
+			.map((i) => i.name)
+			.join(', ')}
     Target person Purposes: ${targetUser.purposes.join(', ')}
 
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
@@ -111,13 +111,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	for (const user of compareUsers) {
 		prompt += `
             Person with ID=${user.id} Likes: ${user.interests
-			.filter((i) => i.type === 'like')
-			.map((i) => i.name)
-			.join(', ')}
+				.filter((i) => i.type === 'like')
+				.map((i) => i.name)
+				.join(', ')}
             Person with ID=${user.id} Dislikes: ${user.interests
-			.filter((i) => i.type === 'dislike')
-			.map((i) => i.name)
-			.join(', ')}
+				.filter((i) => i.type === 'dislike')
+				.map((i) => i.name)
+				.join(', ')}
             Person with ID=${user.id} Purposes: ${user.purposes.join(', ')}
 
         `;
@@ -839,6 +839,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		const requestUser = await Users.findOne({
 			where: { id: user_id },
+			attributes: ['id', 'full_name', 'profile_approved', 'email']
+		});
+
+		const receiveUser = await Users.findOne({
+			where: { id: friend_id },
+			attributes: ['id', 'full_name', 'profile_approved', 'email']
 		});
 
 		if (requestUser && requestUser.profile_approved !== 'approved') {
@@ -849,6 +855,11 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		if (!existMatch) {
 			const conversation_id = await createConversation(user_id, friend_id);
+			try {
+				addMessageToConversation(conversation_id, requestUser, receiveUser)
+			} catch (error) {
+				
+			}
 			if (conversation_id) {
 				existMatch = await Matches.create({
 					sender_id: user_id,
@@ -898,10 +909,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 									],
 									where: {
 										normalized_purpose_id:
-											{
-												[Op.ne]:
-													null,
-											},
+										{
+											[Op.ne]:
+												null,
+										},
 									},
 								},
 							],
@@ -936,10 +947,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 										],
 										where: {
 											normalized_purpose_id:
-												{
-													[Op.ne]:
-														null,
-												},
+											{
+												[Op.ne]:
+													null,
+											},
 										},
 									},
 								],
@@ -951,10 +962,6 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							(up) => up.name
 						);
 
-						const receiveUser = await Users.findOne({
-							where: { id: friend_id },
-						});
-
 						sendRequestEmail({
 							to_email: receiveUser.email,
 							to_name: receiveUser.full_name,
@@ -963,7 +970,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							sender_purposes: sender_purposes,
 							conversation_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			}
 		} else {
@@ -1084,6 +1091,35 @@ const createConversation = async (user1Id, user2Id) => {
 		throw new Error('Failed to create conversation');
 	}
 };
+
+const addMessageToConversation = async (conversationId, fromUser, toUser) => {
+	try {
+		const messageId = uuidv4();
+		const message = `Hi ${toUser.full_name},\n` +
+						`I’d love to connect with you as we share the same interests. 😊\n\n` +
+						`Looking forward to connecting!`
+
+		await db
+			.collection("conversations")
+			.doc(conversationId)
+			.collection("messages")
+			.add({
+				_id: messageId,
+				text: message,
+				createdAt: new Date(),
+				user: {
+					_id: fromUser?.id,
+					name: fromUser?.full_name ?? "",
+				},
+				readBy: [fromUser.id],
+				type: 'text'
+			})
+	} catch (error) {
+		console.log('Error creating conversation: ', error);
+		throw new Error('Failed to create conversation');
+	}
+};
+
 
 async function updateLastMessage({ user_id, conversation_id, last_message }) {
 	try {
