@@ -192,7 +192,7 @@ async function updatePurposes({ user_id, purposes }) {
 				if (!currentPurposeIds.includes(purpose_id)) {
 					try {
 						await UserPurposes.create({ user_id, purpose_id });
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -274,7 +274,7 @@ async function updateLikes({ user_id, likes }) {
 							interest_type: 'like',
 							interest_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -354,7 +354,7 @@ async function updateDislikes({ user_id, dislikes }) {
 							interest_type: 'dislike',
 							interest_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -399,6 +399,10 @@ const getTagIdsByName = async (tagNames) => {
 async function updateProfileTag({ user_id }) {
 	try {
 		const interests = await getUserInterests(user_id);
+
+		if (interests.length === 0) {
+			return Promise.reject('There is no selected interest');
+		}
 
 		let likes = [];
 		let dislikes = [];
@@ -449,20 +453,24 @@ async function updateProfileTag({ user_id }) {
 			data: userInfo.data,
 		});
 	} catch (error) {
-		console.log('Error user update dislikes:', error);
-		const updatedUser = await Users.update(
-			{ profile_tag: 1 },
-			{
-				where: { id: user_id },
-			}
-		);
+		try {
+			console.log('Error user update dislikes:', error);
+			const updatedUser = await Users.update(
+				{ profile_tag: 1 },
+				{
+					where: { id: user_id },
+				}
+			);
 
-		const userInfo = await getProfile({ user_id });
+			const userInfo = await getProfile({ user_id });
 
-		return Promise.resolve({
-			message: 'User profile tag has been updated!',
-			data: userInfo.data,
-		});
+			return Promise.resolve({
+				message: 'User profile tag has been updated!',
+				data: userInfo.data,
+			});
+		} catch (error) {
+			console.log({ error })
+		}
 	}
 }
 
@@ -490,9 +498,8 @@ async function normalizePurposes(purposeId) {
 		for (let purpose of purposes) {
 			const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${
-				purpose.name
-			}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${purpose.name
+				}\nCategory:`;
 
 			// console.log({prompt})
 			const response = await openai.completions.create({
@@ -578,9 +585,8 @@ async function normalizeInterests(interestId) {
 		for (let interest of interests) {
 			const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${
-				interest.name
-			}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${interest.name
+				}\nCategory:`;
 
 			const response = await openai.completions.create({
 				model: 'gpt-3.5-turbo-instruct',
@@ -1041,6 +1047,30 @@ async function checkInterestMatch(user1, user2) {
 	return result.sort((a, b) => b.match - a.match).filter((m) => m.match > 0);
 }
 
+async function forceUpdateProfileTags() {
+	const missingUsers = await Users.findAll({
+		where: {
+			profile_tag: {
+				[Op.eq]: null,
+			}
+		},
+		attributes: ['id', 'profile_tag'],
+		orderBy: [['id', 'DESC']],
+		raw: true,
+	})
+	for (var user of missingUsers) {
+		try {
+			await updateProfileTag({ user_id: user.id })
+		} catch (error) {
+			console.log({error})
+		}
+	}
+
+	return Promise.resolve({
+		message: 'Update completed!',
+	});
+}
+
 module.exports = {
 	getPurposes,
 	getLikes,
@@ -1059,4 +1089,5 @@ module.exports = {
 	deleteInterest,
 	checkPurposeMatch,
 	checkInterestMatch,
+	forceUpdateProfileTags
 };
