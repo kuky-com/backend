@@ -28,11 +28,112 @@ router.get('/suggestions', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/less-matches', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return matches.findLessMatches({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/best-matches', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return matches.findBestMatches({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/best-matches', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return matches.findBestMatches({ user_id, page: 1, limit: 20 }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/disconnect', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { friend_id, id } = request.body
+
+    if (!user_id || !friend_id || !id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, friend_id, id"
+        })
+    }
+
+    return matches.disconnect({ user_id, friend_id, id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.post('/accept', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { friend_id } = request.body
 
-    if (!user_id | !friend_id) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, friend_id"
@@ -58,7 +159,7 @@ router.post('/reject', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { friend_id } = request.body
 
-    if (!user_id | !friend_id) {
+    if (!user_id || !friend_id) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, friend_id"
@@ -90,7 +191,7 @@ router.get('/matches', authMiddleware, (request, response, next) => {
         })
     }
 
-    return matches.getMatches({ user_id, ...request.body }).then(({ data, message }) => {
+    return matches.getMatches({ user_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -109,7 +210,7 @@ router.post('/disconnection', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { matchId } = request.body
 
-    if (!user_id | !matchId) {
+    if (!user_id || !matchId) {
         return response.json({
             success: false,
             message: "Missing required params: user_id, matchId"
@@ -130,5 +231,90 @@ router.post('/disconnection', authMiddleware, (request, response, next) => {
             })
         })
 })
+
+router.post('/last-message', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { last_message, conversation_id } = request.body
+
+    if (!user_id || !last_message || !conversation_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, last_message, conversation_id"
+        })
+    }
+
+    return matches.updateLastMessage({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/conversation', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { conversation_id } = request.body
+
+    if (!user_id || !conversation_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, conversation_id"
+        })
+    }
+
+    return matches.getConversation({ user_id, conversation_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/sample-profiles', authMiddleware, (request, response, next) => {
+    return matches.getSampleProfiles().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/sample-explore', (request, response, next) => {
+    return matches.getSampleExplore().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 
 module.exports = router;

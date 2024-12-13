@@ -7,16 +7,11 @@ const Suggestions = sequelize.define('suggestions', {
     primaryKey: true,
     autoIncrement: true,
   },
-  user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id',
-    },
-    onDelete: 'CASCADE',
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  suggest_id: {
+  friend_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
@@ -30,9 +25,13 @@ const Suggestions = sequelize.define('suggestions', {
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
-  valid_invitation: {
+  suggestion_seen: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: false
+  },
+  suggestion_accept: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
 });
 

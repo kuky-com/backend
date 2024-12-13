@@ -8,6 +8,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.1",
     "@aws-sdk/client-ses": "^3.658.1",
+    "apple-signin-auth": "^1.7.6",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
@@ -16,20 +17,26 @@
     "express": "^4.21.0",
     "firebase-admin": "^12.6.0",
     "google-auth-library": "^9.14.1",
+    "handlebars": "^4.7.8",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
+    "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "openai": "^4.66.1",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
     "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.13.0",
+    "pg": "^8.13.1",
     "sequelize": "^6.37.3",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "migrate": "echo Running migration for postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB} && npx sequelize-cli db:migrate --url postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}",
+    "start": "yarn migrate && node index.js",
+    "dev": "nodemon index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
   },
   "_moduleAliases": {
     "@": "src",
@@ -39,6 +46,9 @@
     "@routes": "src/routes"
   },
   "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "eslint": "^9.16.0",
+    "globals": "^15.12.0",
     "nodemon": "^3.1.7",
     "sequelize-cli": "^6.6.2"
   }

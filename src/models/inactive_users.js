@@ -17,7 +17,6 @@ const InactiveUsers = sequelize.define('inactive_users', {
     email: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
     },
     inactive_type: {
         type: DataTypes.ENUM('banned', 'self-deleted', 'deactived', 'system-deleted')
@@ -44,11 +43,11 @@ const InactiveUsers = sequelize.define('inactive_users', {
     },
     publicGender: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
     },
     publicPronouns: {
         type: DataTypes.BOOLEAN,
-        default: true
+        defaultValue: true
     },
     location: {
         type: DataTypes.STRING,
@@ -61,7 +60,23 @@ const InactiveUsers = sequelize.define('inactive_users', {
     last_latitude: {
         type: DataTypes.DOUBLE,
         allowNull: true,
-    }
+    },
+    reason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    emailNotificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    notificationEnable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    subscribeEmail: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
 });
 
 module.exports = InactiveUsers

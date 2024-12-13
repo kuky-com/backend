@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users');
 
 const Matches = sequelize.define('matches', {
   id: {
@@ -35,11 +36,20 @@ const Matches = sequelize.define('matches', {
     allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('sent', 'accepted', 'rejected')
+    type: DataTypes.ENUM('sent', 'accepted', 'rejected', 'deleted')
   },
   conversation_id: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  last_message_sender: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+    onDelete: 'NO ACTION',
   },
   last_message: {
     type: DataTypes.STRING,
@@ -50,5 +60,8 @@ const Matches = sequelize.define('matches', {
     allowNull: true
   }
 });
+
+Matches.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });
+Matches.belongsTo(Users, { foreignKey: 'receiver_id', as: 'receiver' });
 
 module.exports = Matches;

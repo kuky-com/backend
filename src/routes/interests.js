@@ -107,6 +107,31 @@ router.get('/purposes', authMiddleware, (request, response, next) => {
         })
 })
 
+router.get('/profile-tag', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return interests.updateProfileTag({ user_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.get('/likes', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
@@ -143,6 +168,104 @@ router.get('/dislikes', authMiddleware, (request, response, next) => {
     }
 
     return interests.getDislikes({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/all-interests', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return interests.getAllInterests({ user_id, ...request.body }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/normalize-interests', (request, response, next) => {
+    return interests.normalizeInterests().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/normalize-purposes', (request, response, next) => {
+    return interests.normalizePurposes().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/wordlist-validation', (request, response, next) => {
+    const {words} = request.body
+
+    if (!words) {
+        return response.json({
+            success: false,
+            message: "Missing required params: words"
+        })
+    }
+
+    return interests.wordlistValidation({words}).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/force-update-all-tags', (request, response, next) => {
+    return interests.forceUpdateProfileTags().then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
