@@ -15,17 +15,17 @@ function isStringInteger(value) {
 function formatNamesWithType(objects) {
     if (!Array.isArray(objects) || objects.length === 0) return '';
 
-    const filtered = objects.filter(obj => obj.type === 'like' && obj.tag && obj.tag.length > 0);
+    const uniqueTags = [...new Set(objects
+        .filter(obj => obj.type === 'like' && obj.tag && obj.tag.length > 0)
+        .map(obj => obj.tag))];
 
-    const names = filtered.map(obj => obj.tag);
-
-    if (names.length === 0) {
+    if (uniqueTags.length === 0) {
         return ''
-    } else if (names.length === 1) {
-        return names[0]
+    } else if (uniqueTags.length === 1) {
+        return uniqueTags[0]
     } else {
-        const last = names.pop();
-        return `${names.join(', ')} and ${last}`;
+        const last = uniqueTags.pop();
+        return `${uniqueTags.join(', ')} and ${last}`;
     }
 }
 
