@@ -12,6 +12,7 @@ const UserPurposes = require('../models/user_purposes');
 const UserInterests = require('../models/user_interests');
 const Purposes = require('../models/purposes');
 const Interests = require('../models/interests');
+const interestsController = require('./interests')
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
@@ -22,7 +23,7 @@ const sequelize = require('../config/database');
 // var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
-const { findUnique, getRandomElements } = require('../utils/utils');
+const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 
@@ -858,7 +859,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 			try {
 				addMessageToConversation(conversation_id, requestUser, receiveUser)
 			} catch (error) {
-				
+
 			}
 			if (conversation_id) {
 				existMatch = await Matches.create({
@@ -1094,10 +1095,36 @@ const createConversation = async (user1Id, user2Id) => {
 
 const addMessageToConversation = async (conversationId, fromUser, toUser) => {
 	try {
+		let interestList = []
+		const currentUserLikes = (await interestsController.getLikes({ user_id: fromUser.id })).data.map(
+			(d) => d.dataValues
+		);
+		const friendLikes = (await interestsController.getLikes({ user_id: toUser.id })).data.map(
+			(d) => d.dataValues
+		);
+
+		const currentUserDislikes = (
+			await interestsController.getDislikes({ user_id: fromUser.id })
+		).data.map((d) => d.dataValues);
+		const friendDislikes = (await interestsController.getDislikes({ user_id: toUser.id })).data.map(
+			(d) => d.dataValues
+		);
+
+		try {
+			interestList = await interestsController.checkInterestMatch(
+				{ likes: currentUserLikes, dislikes: currentUserDislikes },
+				{ likes: friendLikes, dislikes: friendDislikes }
+			);
+
+		} catch (err) {
+		}
+
+		const sameInterests = formatNamesWithType(interestList)
+
 		const messageId = uuidv4();
 		const message = `Hi ${toUser.full_name},\n` +
-						`I’d love to connect with you as we share the same interests. 😊\n\n` +
-						`Looking forward to connecting!`
+			`I’d love to connect with you as we share the same interests ${sameInterests.length > 0 ? `in ${sameInterests}` : ''}. 😊\n\n` +
+			`Looking forward to connecting!`
 
 		await db
 			.collection("conversations")
@@ -1398,5 +1425,5 @@ module.exports = {
 	getConversation,
 	getSampleProfiles,
 	getMatchById,
-	getSampleExplore
+	getSampleExplore,
 };
