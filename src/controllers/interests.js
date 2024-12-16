@@ -1044,7 +1044,9 @@ async function checkInterestMatch(user1, user2) {
 	});
 	const result = JSON.parse(response.choices[0].message.content.trim());
 
-	return result.sort((a, b) => b.match - a.match).filter((m) => m.match > 0);
+	return result.sort((a, b) => b.match - a.match).filter((m) => m.match > 0).filter((item, index, self) =>
+		index === self.findIndex((t) => t.type === item.type && t.tag === item.tag)
+	)
 }
 
 async function forceUpdateProfileTags() {

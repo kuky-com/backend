@@ -1155,6 +1155,7 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 				last_message,
 				last_message_date: new Date(),
 				last_message_sender: user_id,
+				messagesCount: sequelize.literal('messagesCount + 1'),
 			},
 			{
 				where: {
@@ -1275,7 +1276,7 @@ async function getSampleProfiles() {
 async function getSampleExplore() {
 	try {
 		const suggestions = [];
-		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',')
+		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
 
 		for (const rawuser of randomSampleUsers) {
 			const userInfo = await getProfile({ user_id: rawuser });

@@ -63,7 +63,7 @@ router.post('/:userId/interests', async (request, response) => {
 		}
 
 		return response.status(500).json({
-			mesasge: validationErr ? 'User already has this interest' : error.message,
+			message: validationErr ? 'User already has this interest' : error.message,
 			success: false,
 		});
 	}
