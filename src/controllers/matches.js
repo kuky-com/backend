@@ -12,6 +12,7 @@ const UserPurposes = require('../models/user_purposes');
 const UserInterests = require('../models/user_interests');
 const Purposes = require('../models/purposes');
 const Interests = require('../models/interests');
+const interestsController = require('./interests');
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
@@ -22,7 +23,7 @@ const sequelize = require('../config/database');
 // var serviceAccount = require("../config/serviceAccountKey.json");
 const { getProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
-const { findUnique, getRandomElements } = require('../utils/utils');
+const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 
@@ -89,13 +90,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	let prompt = `I have target person with information about likes, dislikes, and purposes.
   
     Target person Likes: ${targetUser.interests
-			.filter((i) => i.type === 'like')
-			.map((i) => i.name)
-			.join(', ')}
+		.filter((i) => i.type === 'like')
+		.map((i) => i.name)
+		.join(', ')}
     Target person Dislikes: ${targetUser.interests
-			.filter((i) => i.type === 'dislike')
-			.map((i) => i.name)
-			.join(', ')}
+		.filter((i) => i.type === 'dislike')
+		.map((i) => i.name)
+		.join(', ')}
     Target person Purposes: ${targetUser.purposes.join(', ')}
 
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
@@ -111,13 +112,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	for (const user of compareUsers) {
 		prompt += `
             Person with ID=${user.id} Likes: ${user.interests
-				.filter((i) => i.type === 'like')
-				.map((i) => i.name)
-				.join(', ')}
+			.filter((i) => i.type === 'like')
+			.map((i) => i.name)
+			.join(', ')}
             Person with ID=${user.id} Dislikes: ${user.interests
-				.filter((i) => i.type === 'dislike')
-				.map((i) => i.name)
-				.join(', ')}
+			.filter((i) => i.type === 'dislike')
+			.map((i) => i.name)
+			.join(', ')}
             Person with ID=${user.id} Purposes: ${user.purposes.join(', ')}
 
         `;
@@ -839,12 +840,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		const requestUser = await Users.findOne({
 			where: { id: user_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email']
+			attributes: ['id', 'full_name', 'profile_approved', 'email'],
 		});
 
 		const receiveUser = await Users.findOne({
 			where: { id: friend_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email']
+			attributes: ['id', 'full_name', 'profile_approved', 'email'],
 		});
 
 		if (requestUser && requestUser.profile_approved !== 'approved') {
@@ -856,10 +857,8 @@ async function acceptSuggestion({ user_id, friend_id }) {
 		if (!existMatch) {
 			const conversation_id = await createConversation(user_id, friend_id);
 			try {
-				addMessageToConversation(conversation_id, requestUser, receiveUser)
-			} catch (error) {
-				
-			}
+				addMessageToConversation(conversation_id, requestUser, receiveUser);
+			} catch (error) {}
 			if (conversation_id) {
 				existMatch = await Matches.create({
 					sender_id: user_id,
@@ -909,10 +908,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 									],
 									where: {
 										normalized_purpose_id:
-										{
-											[Op.ne]:
-												null,
-										},
+											{
+												[Op.ne]:
+													null,
+											},
 									},
 								},
 							],
@@ -947,10 +946,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 										],
 										where: {
 											normalized_purpose_id:
-											{
-												[Op.ne]:
-													null,
-											},
+												{
+													[Op.ne]:
+														null,
+												},
 										},
 									},
 								],
@@ -970,7 +969,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							sender_purposes: sender_purposes,
 							conversation_id,
 						});
-					} catch (error) { }
+					} catch (error) {}
 				}
 			}
 		} else {
@@ -1094,32 +1093,58 @@ const createConversation = async (user1Id, user2Id) => {
 
 const addMessageToConversation = async (conversationId, fromUser, toUser) => {
 	try {
+		let interestList = [];
+		const currentUserLikes = (
+			await interestsController.getLikes({ user_id: fromUser.id })
+		).data.map((d) => d.dataValues);
+		const friendLikes = (
+			await interestsController.getLikes({ user_id: toUser.id })
+		).data.map((d) => d.dataValues);
+
+		const currentUserDislikes = (
+			await interestsController.getDislikes({ user_id: fromUser.id })
+		).data.map((d) => d.dataValues);
+		const friendDislikes = (
+			await interestsController.getDislikes({ user_id: toUser.id })
+		).data.map((d) => d.dataValues);
+
+		try {
+			interestList = await interestsController.checkInterestMatch(
+				{ likes: currentUserLikes, dislikes: currentUserDislikes },
+				{ likes: friendLikes, dislikes: friendDislikes }
+			);
+		} catch (err) {}
+
+		const sameInterests = formatNamesWithType(interestList);
+
 		const messageId = uuidv4();
-		const message = `Hi ${toUser.full_name},\n` +
-						`I’d love to connect with you as we share the same interests. 😊\n\n` +
-						`Looking forward to connecting!`
+		const message =
+			`Hi ${toUser.full_name},\n` +
+			`I’d love to connect with you as we share the same interests ${
+				sameInterests.length > 0 ? `in ${sameInterests}` : ''
+			}. 😊\n\n` +
+			`Looking forward to connecting!`;
 
 		await db
-			.collection("conversations")
+			.collection('conversations')
 			.doc(conversationId)
-			.collection("messages")
+			.collection('messages')
 			.add({
 				_id: messageId,
 				text: message,
 				createdAt: new Date(),
 				user: {
 					_id: fromUser?.id,
-					name: fromUser?.full_name ?? "",
+					name: fromUser?.full_name ?? '',
 				},
 				readBy: [fromUser.id],
-				type: 'text'
-			})
+				type: 'text',
+			});
 	} catch (error) {
 		console.log('Error creating conversation: ', error);
 		throw new Error('Failed to create conversation');
 	}
 };
-
 
 async function updateLastMessage({ user_id, conversation_id, last_message }) {
 	try {
@@ -1128,6 +1153,7 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 				last_message,
 				last_message_date: new Date(),
 				last_message_sender: user_id,
+				// messagesCount: sequelize.literal('messagesCount + 1'),
 			},
 			{
 				where: {
@@ -1137,6 +1163,15 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 			}
 		);
 
+		await Matches.increment(
+			{ messagesCount: 1 },
+			{
+				where: {
+					[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
+					conversation_id: conversation_id,
+				},
+			}
+		);
 		const existMatch = await Matches.findOne({
 			where: {
 				[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
@@ -1248,7 +1283,7 @@ async function getSampleProfiles() {
 async function getSampleExplore() {
 	try {
 		const suggestions = [];
-		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',')
+		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
 
 		for (const rawuser of randomSampleUsers) {
 			const userInfo = await getProfile({ user_id: rawuser });
@@ -1398,5 +1433,5 @@ module.exports = {
 	getConversation,
 	getSampleProfiles,
 	getMatchById,
-	getSampleExplore
+	getSampleExplore,
 };
