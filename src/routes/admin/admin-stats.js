@@ -24,8 +24,7 @@ router.get('/matches', async (req, res) => {
 
 router.get('/calls', async (req, res) => {
 	try {
-		console.log('here');
-		const result = await stats.getCallsCount();
+		const result = await stats.getCallsCount(req.query.timeline);
 
 		res.status(200).json({ ...result, success: true });
 	} catch (err) {

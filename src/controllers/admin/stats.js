@@ -222,8 +222,16 @@ async function getProfileViewsCount(granularity, timeline) {
 	return { intervals: result, totalViews, totalInInterval };
 }
 
-async function getCallsCount(next, acc = {}) {
-	const result = await sendbird.getDirectCalls(next);
+async function getCallsCount(timeline, next, acc = {}) {
+	const lastDate = parseTimeline(timeline);
+
+	let unixTimestamp = 0;
+
+	if (lastDate) {
+		unixTimestamp = lastDate.getTime();
+	}
+
+	const result = await sendbird.getDirectCalls(next, unixTimestamp);
 	if (!acc['video']) {
 		acc['video'] = { total: 0, totalDuration: 0 };
 	}
@@ -234,6 +242,7 @@ async function getCallsCount(next, acc = {}) {
 
 	let new_acc = result.calls
 		.filter((c) => c.started_by.startsWith(process.env.NODE_ENV))
+		.filter((c) => c.started_at >= unixTimestamp)
 		.reduce((a, call) => {
 			a[call.is_video_call ? 'video' : 'voice'].total += 1;
 			a[call.is_video_call ? 'video' : 'voice'].totalDuration += call.duration;
@@ -254,7 +263,7 @@ async function getCallsCount(next, acc = {}) {
 		}, acc);
 
 	if (result.has_next) {
-		return getCallsCount(result.next, new_acc);
+		return getCallsCount(timeline, result.next, new_acc);
 	}
 
 	return new_acc;
