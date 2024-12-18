@@ -46,4 +46,17 @@ router.get('/messages', async (req, res) => {
 	}
 });
 
+router.get('/views', async (req, res) => {
+	try {
+		const result = await stats.getProfileViewsCount(
+			req.query.granularity,
+			req.query.timeline
+		);
+
+		res.status(200).json({ ...result, success: true });
+	} catch (err) {
+		res.status(500).json({ message: err.message, success: false });
+	}
+});
+
 module.exports = router;

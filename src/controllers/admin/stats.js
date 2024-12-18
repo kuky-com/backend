@@ -4,6 +4,7 @@ const User = require('@models/users');
 const Matches = require('../../models/matches');
 const sendbird = require('../sendbird');
 const Messages = require('../../models/messages');
+const ProfileViews = require('../../models/profile_views');
 
 function parseTimeline(timeline) {
 	const now = new Date();
@@ -134,7 +135,7 @@ async function getMatches(timeline) {
 }
 
 /**
- * Generates a dynamic query to count users created based on granularity and timeline.
+ * Generates a dynamic query to count messages created based on granularity and timeline.
  *
  * @param {string} granularity - The granularity ('day', 'week', 'month', 'year').
  * @param {string} timeline - The timeline ('week', 'month', 'year', 'time').
@@ -175,6 +176,50 @@ async function getMessagesCount(granularity, timeline) {
 	const totalInInterval = result.reduce((sum, m) => sum + m.total, 0);
 
 	return { intervals: result, totalMessages, totalInInterval };
+}
+
+/**
+ * Generates a dynamic query to count profile views based on granularity and timeline.
+ *
+ * @param {string} granularity - The granularity ('day', 'week', 'month', 'year').
+ * @param {string} timeline - The timeline ('week', 'month', 'year', 'time').
+ */
+async function getProfileViewsCount(granularity, timeline) {
+	const startDate = parseTimeline(timeline);
+	const groupByFormat = parseGranulairty(granularity);
+
+	// Build the query for grouped data
+	const whereClause = startDate ? { createdAt: { [Op.gte]: startDate } } : {};
+
+	const groupedViews = await ProfileViews.findAll({
+		attributes: [
+			[
+				Messages.sequelize.fn(
+					'to_char',
+					Messages.sequelize.col('createdAt'),
+					groupByFormat
+				),
+				'interval',
+			],
+
+			[Messages.sequelize.fn('COUNT', '*'), 'total'],
+		],
+		where: whereClause,
+		group: ['interval'],
+		order: [[ProfileViews.sequelize.literal('interval'), 'ASC']],
+	});
+
+	const totalViews = await ProfileViews.count();
+
+	const result = groupedViews.map((v) => ({
+		interval: v.get('interval'),
+		year: v.get('year'),
+		total: parseInt(v.get('total'), 10),
+	}));
+
+	const totalInInterval = result.reduce((sum, m) => sum + m.total, 0);
+
+	return { intervals: result, totalViews, totalInInterval };
 }
 
 async function getCallsCount(next, acc = {}) {
@@ -220,4 +265,5 @@ module.exports = {
 	getMatches,
 	getMessagesCount,
 	getCallsCount,
+	getProfileViewsCount,
 };

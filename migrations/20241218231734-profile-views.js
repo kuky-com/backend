@@ -3,30 +3,26 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('messages', {
+		await queryInterface.createTable('profile_views', {
 			id: {
 				allowNull: false,
-				autoIncrement: true,
 				primaryKey: true,
-				type: Sequelize.INTEGER,
+				type: Sequelize.UUID,
+				defaultValue: Sequelize.UUIDV4,
 			},
-			matchId: {
+			viewerId: {
 				type: Sequelize.INTEGER,
 				allowNull: false,
 				references: {
-					model: 'matches',
+					model: 'users',
 					key: 'id',
 				},
 				onUpdate: 'CASCADE',
 				onDelete: 'CASCADE',
 			},
-			text: {
-				type: Sequelize.TEXT,
-				allowNull: true,
-			},
-			senderId: {
+			userId: {
 				type: Sequelize.INTEGER,
-				allowNull: true,
+				allowNull: false,
 				references: {
 					model: 'users',
 					key: 'id',
@@ -48,6 +44,6 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('messages');
+		await queryInterface.dropTable('profile_views');
 	},
 };
