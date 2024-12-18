@@ -26,6 +26,7 @@ const BlockedUsers = require('../models/blocked_users');
 const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
+const Messages = require('../models/messages');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -1148,10 +1149,12 @@ const addMessageToConversation = async (conversationId, fromUser, toUser) => {
 
 async function updateLastMessage({ user_id, conversation_id, last_message }) {
 	try {
+		const last_message_date = new Date();
+		// we don't need these anymore because we're keeping the full messages log
 		const updatedMatch = await Matches.update(
 			{
 				last_message,
-				last_message_date: new Date(),
+				last_message_date,
 				last_message_sender: user_id,
 				// messagesCount: sequelize.literal('messagesCount + 1'),
 			},
@@ -1172,6 +1175,7 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 				},
 			}
 		);
+
 		const existMatch = await Matches.findOne({
 			where: {
 				[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
@@ -1181,6 +1185,13 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 				{ model: Users, as: 'sender' },
 				{ model: Users, as: 'receiver' },
 			],
+		});
+
+		await Messages.create({
+			text: last_message,
+			senderId: user_id,
+			matchId: existMatch.id,
+			createdAt: last_message_date,
 		});
 
 		try {
@@ -1418,6 +1429,64 @@ LEFT JOIN (
 	return matches;
 }
 
+async function syncMessages(page = 0, limit = 100) {
+	console.log(`Sync messages for match page ${page}`);
+
+	const messages = await Messages.findAll({ limit: 1 });
+
+	if (messages.length !== 0 && page === 0) {
+		console.log('Messages already exist in the database...Do not sync.');
+		return;
+	}
+
+	const matches = await Matches.findAll({
+		offset: page * limit,
+		limit,
+	});
+
+	await Promise.all(
+		matches.map(async (m) => {
+			const conversationId = m.conversation_id;
+
+			if (!conversationId) {
+				return;
+			}
+
+			const messages = await db
+				.collection('conversations')
+				.doc(conversationId)
+				.collection('messages')
+				.get();
+
+			const documents = [];
+			messages.forEach((doc) => {
+				documents.push({ id: doc.id, ...doc.data() });
+			});
+
+			return Promise.all(
+				documents.map(async (message) => {
+					return Messages.create({
+						text: message.text,
+						matchId: m.id,
+						senderId: message.user._id,
+						createdAt: new Date(
+							message.createdAt.seconds * 1000 +
+								message.createdAt.nanoseconds /
+									1000000
+						),
+					});
+				})
+			);
+		})
+	);
+
+	if (matches.length !== 0) {
+		return syncMessages(page + 1, limit);
+	}
+
+	console.log('Finished syncing messages.');
+}
+
 module.exports = findBestMatches;
 
 module.exports = {
@@ -1434,4 +1503,5 @@ module.exports = {
 	getSampleProfiles,
 	getMatchById,
 	getSampleExplore,
+	syncMessages,
 };
