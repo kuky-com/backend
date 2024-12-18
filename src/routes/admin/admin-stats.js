@@ -35,7 +35,10 @@ router.get('/calls', async (req, res) => {
 
 router.get('/messages', async (req, res) => {
 	try {
-		const result = await stats.getMessagesCount();
+		const result = await stats.getMessagesCount(
+			req.query.granularity,
+			req.query.timeline
+		);
 
 		res.status(200).json({ ...result, success: true });
 	} catch (err) {
