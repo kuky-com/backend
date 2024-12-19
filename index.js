@@ -11,7 +11,11 @@ const Users = require('./src/models/users');
 const Purposes = require('./src/models/purposes');
 const Interests = require('./src/models/interests');
 const Tags = require('./src/models/tags');
-const { createOnesignalUser } = require('./src/controllers/notifications');
+const {
+	createOnesignalUser,
+	getOnesignalUser,
+	deleteOnesignalUser,
+} = require('./src/controllers/onesignal');
 
 const app = express();
 
@@ -64,6 +68,12 @@ async function syncOnesignal(page = 0, limit = 100) {
 	});
 
 	const promies = users.map(async (u) => {
+		const onesignalUser = await getOnesignalUser(u.id);
+		if (!onesignalUser.errors?.length) {
+			// 'Do not create if already exists'
+			// (await deleteOnesignalUser(u.id));
+			return;
+		}
 		return createOnesignalUser(u);
 	});
 	await Promise.all(promies);
@@ -82,14 +92,14 @@ async function syncDatabase() {
 		await sequelize.sync({ force: false });
 		createDefaultTags();
 		console.log('Database & tables have been created successfully.');
-		// TODO: Remove this after it first runs on both staging and production (but is not urgent)
-		syncOnesignal();
 	} catch (error) {
 		console.log('Error syncing the database:', error);
 	}
 }
 
 syncDatabase();
+// TODO: Remove this after it first runs on both staging and production (but is not urgent)
+syncOnesignal();
 
 app.listen(8000, () => {
 	console.log('Server is running on port 8000');

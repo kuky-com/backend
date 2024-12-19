@@ -13,7 +13,7 @@ const {
 	getOnesignalUser,
 	getUpdatedOnesignalTags,
 	updateOnesignalUser,
-} = require('./notifications');
+} = require('./onesignal');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -371,8 +371,7 @@ async function updateLikes({ user_id, likes }) {
 
 		onesignaluser.properties.tags = tags;
 
-		const updateR = await updateOnesignalUser(onesignaluser, user_id);
-		console.log(updateR);
+		updateOnesignalUser(onesignaluser, user_id);
 		return Promise.resolve({
 			message:
 				newUserLikes.length < likes.length
@@ -519,6 +518,8 @@ async function updateProfileTag({ user_id }) {
 			(tag) => tag.name.toLowerCase() === bestTagName.toLowerCase()
 		);
 
+		const initialUser = await Users.findOne({ where: { id: user_id } });
+
 		const updatedUser = await Users.update(
 			{ profile_tag: bestTag.id },
 			{
@@ -528,7 +529,9 @@ async function updateProfileTag({ user_id }) {
 
 		const userInfo = await getProfile({ user_id });
 
-		await updateOnesignalUserTags(user_id, 'tag', userInfo.profile_tag, 'add');
+		if (initialUser.profile_tag !== bestTag.id) {
+			await updateOnesignalUserTags(user_id, 'tag', bestTag.id, 'add');
+		}
 
 		return Promise.resolve({
 			message: 'User profile tag has been updated!',
@@ -537,6 +540,8 @@ async function updateProfileTag({ user_id }) {
 	} catch (error) {
 		try {
 			console.log('Error user update dislikes:', error);
+			const initialUser = await Users.findOne({ where: { id: user_id } });
+
 			const updatedUser = await Users.update(
 				{ profile_tag: 1 },
 				{
@@ -545,6 +550,10 @@ async function updateProfileTag({ user_id }) {
 			);
 
 			const userInfo = await getProfile({ user_id });
+
+			if (initialUser.profile_tag !== 1) {
+				await updateOnesignalUserTags(user_id, 'tag', 1, 'add');
+			}
 
 			return Promise.resolve({
 				message: 'User profile tag has been updated!',
