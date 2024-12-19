@@ -22,6 +22,7 @@ const ReviewUsers = require('../models/review_users');
 const AppVersions = require('../models/versions');
 const Sequelize = require('../config/database');
 const { isStringInteger } = require('../utils/utils');
+const ProfileViews = require('../models/profile_views');
 
 async function updateProfile({
 	user_id,
@@ -191,6 +192,11 @@ async function getFriendProfile({ user_id, friend_id }) {
 				},
 			});
 		}
+
+		await ProfileViews.create({
+			userId: user.id,
+			viewerId: user_id,
+		});
 
 		const match = await Matches.findOne({
 			where: {

@@ -24,8 +24,7 @@ router.get('/matches', async (req, res) => {
 
 router.get('/calls', async (req, res) => {
 	try {
-		console.log('here');
-		const result = await stats.getCallsCount();
+		const result = await stats.getCallsCount(req.query.timeline);
 
 		res.status(200).json({ ...result, success: true });
 	} catch (err) {
@@ -35,7 +34,23 @@ router.get('/calls', async (req, res) => {
 
 router.get('/messages', async (req, res) => {
 	try {
-		const result = await stats.getMessagesCount();
+		const result = await stats.getMessagesCount(
+			req.query.granularity,
+			req.query.timeline
+		);
+
+		res.status(200).json({ ...result, success: true });
+	} catch (err) {
+		res.status(500).json({ message: err.message, success: false });
+	}
+});
+
+router.get('/views', async (req, res) => {
+	try {
+		const result = await stats.getProfileViewsCount(
+			req.query.granularity,
+			req.query.timeline
+		);
 
 		res.status(200).json({ ...result, success: true });
 	} catch (err) {

@@ -3,6 +3,8 @@ const { subWeeks, subMonths, subYears, format } = require('date-fns');
 const User = require('@models/users');
 const Matches = require('../../models/matches');
 const sendbird = require('../sendbird');
+const Messages = require('../../models/messages');
+const ProfileViews = require('../../models/profile_views');
 
 function parseTimeline(timeline) {
 	const now = new Date();
@@ -49,8 +51,6 @@ function parseGranulairty(granularity) {
 async function getUserGrowth(granularity, timeline) {
 	const startDate = parseTimeline(timeline);
 	const groupByFormat = parseGranulairty(granularity);
-
-	console.log(startDate, groupByFormat, granularity);
 
 	// Build the query for grouped data
 	const whereClause = startDate ? { createdAt: { [Op.gte]: startDate } } : {};
@@ -105,7 +105,7 @@ async function getUserGrowth(granularity, timeline) {
 }
 
 /**
- * Generates a dynamic query to count users matches based on granularity and timeline.
+ * Generates a dynamic query to count users matches based on timeline.
  *
  * @param {string} timeline - The timeline ('week', 'month', 'year', 'time').
  */
@@ -134,23 +134,104 @@ async function getMatches(timeline) {
 	};
 }
 
-async function getMessagesCount() {
-	const totalMessagesCount = await Matches.sum('messagesCount');
-	const totalConversations = await Matches.count({
-		where: {
-			messagesCount: {
-				[Op.gt]: 0,
-			},
-		},
+/**
+ * Generates a dynamic query to count messages created based on granularity and timeline.
+ *
+ * @param {string} granularity - The granularity ('day', 'week', 'month', 'year').
+ * @param {string} timeline - The timeline ('week', 'month', 'year', 'time').
+ */
+async function getMessagesCount(granularity, timeline) {
+	const startDate = parseTimeline(timeline);
+	const groupByFormat = parseGranulairty(granularity);
+
+	// Build the query for grouped data
+	const whereClause = startDate ? { createdAt: { [Op.gte]: startDate } } : {};
+
+	const groupedMessages = await Messages.findAll({
+		attributes: [
+			[
+				Messages.sequelize.fn(
+					'to_char',
+					Messages.sequelize.col('createdAt'),
+					groupByFormat
+				),
+				'interval',
+			],
+
+			[Messages.sequelize.fn('COUNT', '*'), 'total'],
+		],
+		where: whereClause,
+		group: ['interval'],
+		order: [[User.sequelize.literal('interval'), 'ASC']],
 	});
-	return {
-		messages: totalMessagesCount,
-		conversations: totalConversations,
-	};
+
+	const totalMessages = await Messages.count();
+
+	const result = groupedMessages.map((message) => ({
+		interval: message.get('interval'),
+		year: message.get('year'),
+		total: parseInt(message.get('total'), 10),
+	}));
+
+	const totalInInterval = result.reduce((sum, m) => sum + m.total, 0);
+
+	return { intervals: result, totalMessages, totalInInterval };
 }
 
-async function getCallsCount(next, acc = {}) {
-	const result = await sendbird.getDirectCalls(next);
+/**
+ * Generates a dynamic query to count profile views based on granularity and timeline.
+ *
+ * @param {string} granularity - The granularity ('day', 'week', 'month', 'year').
+ * @param {string} timeline - The timeline ('week', 'month', 'year', 'time').
+ */
+async function getProfileViewsCount(granularity, timeline) {
+	const startDate = parseTimeline(timeline);
+	const groupByFormat = parseGranulairty(granularity);
+
+	// Build the query for grouped data
+	const whereClause = startDate ? { createdAt: { [Op.gte]: startDate } } : {};
+
+	const groupedViews = await ProfileViews.findAll({
+		attributes: [
+			[
+				Messages.sequelize.fn(
+					'to_char',
+					Messages.sequelize.col('createdAt'),
+					groupByFormat
+				),
+				'interval',
+			],
+
+			[Messages.sequelize.fn('COUNT', '*'), 'total'],
+		],
+		where: whereClause,
+		group: ['interval'],
+		order: [[ProfileViews.sequelize.literal('interval'), 'ASC']],
+	});
+
+	const totalViews = await ProfileViews.count();
+
+	const result = groupedViews.map((v) => ({
+		interval: v.get('interval'),
+		year: v.get('year'),
+		total: parseInt(v.get('total'), 10),
+	}));
+
+	const totalInInterval = result.reduce((sum, m) => sum + m.total, 0);
+
+	return { intervals: result, totalViews, totalInInterval };
+}
+
+async function getCallsCount(timeline, next, acc = {}) {
+	const lastDate = parseTimeline(timeline);
+
+	let unixTimestamp = 0;
+
+	if (lastDate) {
+		unixTimestamp = lastDate.getTime();
+	}
+
+	const result = await sendbird.getDirectCalls(next, unixTimestamp);
 	if (!acc['video']) {
 		acc['video'] = { total: 0, totalDuration: 0 };
 	}
@@ -161,6 +242,7 @@ async function getCallsCount(next, acc = {}) {
 
 	let new_acc = result.calls
 		.filter((c) => c.started_by.startsWith(process.env.NODE_ENV))
+		.filter((c) => c.started_at >= unixTimestamp)
 		.reduce((a, call) => {
 			a[call.is_video_call ? 'video' : 'voice'].total += 1;
 			a[call.is_video_call ? 'video' : 'voice'].totalDuration += call.duration;
@@ -181,7 +263,7 @@ async function getCallsCount(next, acc = {}) {
 		}, acc);
 
 	if (result.has_next) {
-		return getCallsCount(result.next, new_acc);
+		return getCallsCount(timeline, result.next, new_acc);
 	}
 
 	return new_acc;
@@ -192,4 +274,5 @@ module.exports = {
 	getMatches,
 	getMessagesCount,
 	getCallsCount,
+	getProfileViewsCount,
 };

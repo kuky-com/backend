@@ -571,4 +571,56 @@ router.post(
 	}
 );
 
+router.get(
+	'/:userId/readyForCall',
+	authMiddleware,
+	async (request, response, next) => {
+		try {
+			const APP_ID = process.env.SENDBIRD_APP_ID
+			const API_TOKEN = process.env.SENDBIRD_TOKEN
+			const userId = request.params.userId
+
+			try {
+				const res = await fetch(`https://api-${APP_ID}.sendbird.com/v3/users/${userId}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						'Api-Token': API_TOKEN,
+					},
+				});
+
+				if (res.ok) {
+					const user = await res.json();
+
+					if (user && user.is_active) {
+						return response.json({
+							success: true,
+						});
+					} else {
+						return response.json({
+							success: false,
+						});
+					}
+
+				} else {
+					return response.json({
+						success: false,
+					});
+				}
+			} catch (error) {
+				console.log({ error })
+				return response.json({
+					success: false,
+				});
+			}
+		} catch (err) {
+			console.log({ err })
+			return response.json({
+				success: false,
+				message: `${err}`,
+			});
+		}
+	}
+);
+
 module.exports = router;
