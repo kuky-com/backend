@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const errorHandler = require('errorhandler');
 const { createDefaultTags } = require('./src/seeds/tags');
 const path = require('path');
+const { syncMessages } = require('./src/controllers/matches');
 
 const app = express();
 
@@ -56,6 +57,8 @@ async function syncDatabase() {
 }
 
 syncDatabase();
+// TODO: Remove this after it runs once in production.
+syncMessages();
 
 app.listen(8000, () => {
 	console.log('Server is running on port 8000');
