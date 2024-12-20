@@ -16,6 +16,7 @@ const {
 	getOnesignalUser,
 	deleteOnesignalUser,
 } = require('./src/controllers/onesignal');
+const { syncMessages } = require('./src/controllers/matches');
 
 const app = express();
 
@@ -98,8 +99,8 @@ async function syncDatabase() {
 }
 
 syncDatabase();
-// TODO: Remove this after it first runs on both staging and production (but is not urgent)
 syncOnesignal();
+syncMessages();
 
 app.listen(8000, () => {
 	console.log('Server is running on port 8000');

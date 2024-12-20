@@ -284,7 +284,7 @@ router.post('/conversation', authMiddleware, (request, response, next) => {
         })
 })
 
-router.get('/sample-profiles', authMiddleware, (request, response, next) => {
+router.get('/sample-profiles', (request, response, next) => {
     return matches.getSampleProfiles().then(({ data, message }) => {
         return response.json({
             success: true,

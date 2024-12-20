@@ -89,16 +89,18 @@ async function updateSendbirdUser(userId, payload) {
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
-async function getDirectCalls(next = '', limit = 100) {
+async function getDirectCalls(next = '', unixTimestamp, limit = 100) {
 	let searchParams;
 	if (next) {
 		searchParams = new URLSearchParams({
 			limit,
 			next,
+			start_ts: unixTimestamp,
 		});
 	} else {
 		searchParams = new URLSearchParams({
 			limit,
+			start_ts: unixTimestamp,
 		});
 	}
 	const response = await fetch(`${BASE_URL_V1}/direct_calls?` + searchParams, {
