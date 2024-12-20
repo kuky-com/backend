@@ -9,10 +9,29 @@ function getRandomElements(arr, count) {
 
 function isStringInteger(value) {
     return (Number.isInteger(value) || (typeof value === 'string' && Number.isInteger(Number(value))));
-  }
+}
+
+
+function formatNamesWithType(objects) {
+    if (!Array.isArray(objects) || objects.length === 0) return '';
+
+    const uniqueTags = [...new Set(objects
+        .filter(obj => obj.type === 'like' && obj.tag && obj.tag.length > 0)
+        .map(obj => obj.tag))];
+
+    if (uniqueTags.length === 0) {
+        return ''
+    } else if (uniqueTags.length === 1) {
+        return uniqueTags[0]
+    } else {
+        const last = uniqueTags.pop();
+        return `${uniqueTags.join(', ')} and ${last}`;
+    }
+}
 
 module.exports = {
     findUnique,
     getRandomElements,
-    isStringInteger
+    isStringInteger,
+    formatNamesWithType
 }

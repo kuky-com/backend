@@ -12,6 +12,7 @@
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "errorhandler": "^1.5.1",
     "express": "^4.21.0",
