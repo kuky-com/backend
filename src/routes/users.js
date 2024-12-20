@@ -179,7 +179,7 @@ router.get('/:userId/common-interests', authMiddleware, async (request, response
 	);
 
 	try {
-		// console.log(currentUserLikes, friendLikes, currentUserDislikes, friendDislikes);
+		console.log(currentUserLikes, friendLikes, currentUserDislikes, friendDislikes);
 		const interestList = await interests.checkInterestMatch(
 			{ likes: currentUserLikes, dislikes: currentUserDislikes },
 			{ likes: friendLikes, dislikes: friendDislikes }
