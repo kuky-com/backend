@@ -1,7 +1,6 @@
 const usersController = require('./users');
 
 const BASE_URL = `https://api-${process.env.SENDBIRD_APP_ID}.sendbird.com/v3`;
-const BASE_URL_V1 = `https://api-${process.env.SENDBIRD_APP_ID}.calls.sendbird.com/v1`;
 const headers = {
 	'Content-Type': 'application/json',
 	'Api-Token': process.env.SENDBIRD_TOKEN,
@@ -34,11 +33,14 @@ async function createSendbirdUser(userId) {
 }
 
 async function generateSendbirdToken(userId) {
-	const response = await fetch(`${BASE_URL}/users/${getUserId(userId)}/token`, {
-		method: 'POST',
-		headers,
-		body: JSON.stringify({}),
-	});
+	const response = await fetch(
+		`${BASE_URL}/users/${getUserId(userId)}/token`,
+		{
+			method: 'POST',
+			headers,
+			body: JSON.stringify({}),
+		}
+	);
 
 	if (!response.ok) {
 		const errorData = await response.json();
@@ -86,44 +88,8 @@ async function updateSendbirdUser(userId, payload) {
 	return data.token;
 }
 
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-async function getDirectCalls(next = '', limit = 100) {
-	let searchParams;
-	if (next) {
-		searchParams = new URLSearchParams({
-			limit,
-			next,
-		});
-	} else {
-		searchParams = new URLSearchParams({
-			limit,
-		});
-	}
-	const response = await fetch(`${BASE_URL_V1}/direct_calls?` + searchParams, {
-		method: 'GET',
-		headers,
-	});
-
-	if (!response.ok) {
-		const errorData = await response.json();
-		console.log(errorData);
-
-		if (errorData.code === 429100) {
-			await sleep(6000);
-			return getDirectCalls(next, limit);
-		}
-		throw new Error(errorData);
-	}
-
-	const data = await response.json();
-	return data;
-}
-
 module.exports = {
 	generateSendbirdToken,
 	createSendbirdUser,
 	updateSendbirdUser,
-	getDirectCalls,
 };

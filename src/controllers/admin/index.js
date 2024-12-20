@@ -14,7 +14,6 @@ const { addNewNotification, addNewPushNotification } = require('../notifications
 const AdminUsers = require('../../models/admin_users');
 const AdminSessions = require('../../models/admin_sessions');
 const AppVersions = require('../../models/versions');
-const Tags = require('../../models/tags');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -464,9 +463,6 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 				},
 				{
 					model: Interests,
-				},
-				{
-					model: Tags,
 				},
 			],
 		});

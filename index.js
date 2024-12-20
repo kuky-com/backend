@@ -7,15 +7,6 @@ const bodyParser = require('body-parser');
 const errorHandler = require('errorhandler');
 const { createDefaultTags } = require('./src/seeds/tags');
 const path = require('path');
-const Users = require('./src/models/users');
-const Purposes = require('./src/models/purposes');
-const Interests = require('./src/models/interests');
-const Tags = require('./src/models/tags');
-const {
-	createOnesignalUser,
-	getOnesignalUser,
-	deleteOnesignalUser,
-} = require('./src/controllers/onesignal');
 
 const app = express();
 
@@ -54,39 +45,6 @@ app.use((req, res, next) => {
 
 app.use('/api', router);
 
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function syncOnesignal(page = 0, limit = 100) {
-	console.log('Syncing users page', page);
-
-	const users = await Users.findAll({
-		limit,
-		offset: page * limit,
-		include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
-	});
-
-	const promies = users.map(async (u) => {
-		const onesignalUser = await getOnesignalUser(u.id);
-		if (!onesignalUser.errors?.length) {
-			// 'Do not create if already exists'
-			// (await deleteOnesignalUser(u.id));
-			return;
-		}
-		return createOnesignalUser(u);
-	});
-	await Promise.all(promies);
-
-	await sleep(1000);
-
-	if (users.length === limit) {
-		return syncOnesignal(page + 1, limit);
-	} else {
-		console.log('Done sync with onesignal');
-	}
-}
-
 async function syncDatabase() {
 	try {
 		await sequelize.sync({ force: false });
@@ -98,8 +56,6 @@ async function syncDatabase() {
 }
 
 syncDatabase();
-// TODO: Remove this after it first runs on both staging and production (but is not urgent)
-syncOnesignal();
 
 app.listen(8000, () => {
 	console.log('Server is running on port 8000');
