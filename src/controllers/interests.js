@@ -10,9 +10,8 @@ const { getProfile } = require('./users');
 const { categoryMap } = require('../config/categories');
 const {
 	updateOnesignalUserTags,
-	getOnesignalUser,
-	getUpdatedOnesignalTags,
-	updateOnesignalUser,
+	addBatchNotifications,
+	getProfileTagFilter,
 } = require('./onesignal');
 
 const openai = new OpenAI({
@@ -186,24 +185,6 @@ async function updatePurposes({ user_id, purposes }) {
 
 		const newPurposeIds = purposeRecords.filter((p) => p !== null).map((p) => p.id);
 
-		const deletedPurposes = await UserPurposes.findAll({
-			where: {
-				user_id,
-				purpose_id: { [Op.notIn]: newPurposeIds },
-			},
-		});
-
-		await Promise.all(
-			deletedPurposes.map(async (purpose) => {
-				return updateOnesignalUserTags(
-					user_id,
-					'purpose',
-					purpose.normalized_purpose_id,
-					'delete'
-				);
-			})
-		);
-
 		await UserPurposes.destroy({
 			where: {
 				user_id,
@@ -234,17 +215,6 @@ async function updatePurposes({ user_id, purposes }) {
 				},
 			],
 		});
-
-		await Promise.all(
-			newUserPurposes.map(async (purpose) => {
-				return updateOnesignalUserTags(
-					user_id,
-					'purpose',
-					purpose.normalized_purpose_id,
-					'add'
-				);
-			})
-		);
 
 		return Promise.resolve({
 			message:
@@ -292,29 +262,28 @@ async function updateLikes({ user_id, likes }) {
 
 		const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
 
-		const deletedInterests = await UserInterests.findAll({
-			where: {
-				user_id,
-				interest_type: 'like',
-				interest_id: { [Op.notIn]: newInterestIds },
-			},
-			include: [{ model: Interests }],
-		});
+		// foramt onesignal tags with the deleted user interests
 
-		const onesignaluser = await getOnesignalUser(user_id);
-		let tags = onesignaluser.properties.tags;
+		// const deletedInterests = await UserInterests.findAll({
+		// 	where: {
+		// 		user_id,
+		// 		interest_type: 'like',
+		// 		interest_id: { [Op.notIn]: newInterestIds },
+		// 	},
+		// 	include: [{ model: Interests }],
+		// });
 
-		for (const i of deletedInterests) {
-			console.log('delete ', i.interest.name, i.interest.normalized_interest_id);
+		// const onesignaluser = await getOnesignalUser(user_id);
+		// let tags = onesignaluser.properties.tags;
 
-			tags = await getUpdatedOnesignalTags(
-				tags,
-				'like',
-				i.interest.normalized_interest_id,
-				'delete'
-			);
-			console.log('nre tags', tags);
-		}
+		// for (const i of deletedInterests) {
+		// 	tags = await formatOnesignalTags(
+		// 		tags,
+		// 		'like',
+		// 		i.interest.normalized_interest_id,
+		// 		'delete'
+		// 	);
+		// }
 
 		await UserInterests.destroy({
 			where: {
@@ -352,26 +321,21 @@ async function updateLikes({ user_id, likes }) {
 			],
 		});
 
-		for (const like of newUserLikes) {
-			if (!currentLikesIds.includes(like.interest_id)) {
-				console.log(
-					'create ',
-					like.interest.name,
-					like.interest.normalized_interest_id
-				);
-				tags = getUpdatedOnesignalTags(
-					tags,
-					'like',
-					like.interest.normalized_interest_id,
-					'add'
-				);
-				console.log('new tags', tags);
-			}
-		}
+		// format onesignal like tags for new user
+		// for (const like of newUserLikes) {
+		// 	if (!currentLikesIds.includes(like.interest_id)) {
+		// 		tags = formatOnesignalTags(
+		// 			tags,
+		// 			'like',
+		// 			like.interest.normalized_interest_id,
+		// 			'add'
+		// 		);
+		// 	}
+		// }
 
-		onesignaluser.properties.tags = tags;
-
-		updateOnesignalUser(onesignaluser, user_id);
+		// sonesignaluser.properties.tags = tags;
+		// update the onesignal tags
+		// updateOnesignalUser(onesignaluser, user_id);
 		return Promise.resolve({
 			message:
 				newUserLikes.length < likes.length
@@ -530,6 +494,13 @@ async function updateProfileTag({ user_id }) {
 		const userInfo = await getProfile({ user_id });
 
 		if (initialUser.profile_tag !== bestTag.id) {
+			console.log('should send PN ');
+			await addBatchNotifications(
+				'New possible connections!',
+				'There are new users that you might be interested in! 👀',
+				[getProfileTagFilter(bestTag.id)]
+			);
+
 			await updateOnesignalUserTags(user_id, 'tag', bestTag.id, 'add');
 		}
 
@@ -552,6 +523,11 @@ async function updateProfileTag({ user_id }) {
 			const userInfo = await getProfile({ user_id });
 
 			if (initialUser.profile_tag !== 1) {
+				await addBatchNotifications(
+					'New possible connections!',
+					'There are new users that you might be interested in! 👀',
+					getProfileTagFilter(1)
+				);
 				await updateOnesignalUserTags(user_id, 'tag', 1, 'add');
 			}
 
@@ -843,8 +819,6 @@ async function createUserPurpose({ userId, purposeName }) {
 		})
 	).toJSON();
 
-	await updateOnesignalUserTags(userId, 'purpose', purpose.normalized_purpose_id, 'add');
-
 	return {
 		...user_purposes.purpose,
 		user_purposes,
@@ -863,13 +837,6 @@ async function deletePurpose({ userId, userPurposeId }) {
 	if (!userPurpose) {
 		throw new Error(`Purpose doesn't exist`);
 	}
-
-	await updateOnesignalUserTags(
-		userId,
-		'purpose',
-		userPurpose.purpose.normalized_purpose_id,
-		'delete'
-	);
 
 	await UserPurposes.destroy({
 		where: { user_id: userId, id: userPurposeId },
@@ -907,14 +874,14 @@ async function createUserInterest({ userId, interestName, interestType }) {
 		})
 	).toJSON();
 
-	if (user_interests.interest_type === 'like') {
-		await updateOnesignalUserTags(
-			userId,
-			'like',
-			user_interests.interest.normalized_interest_id,
-			'add'
-		);
-	}
+	// if (user_interests.interest_type === 'like') {
+	// 	await updateOnesignalUserTags(
+	// 		userId,
+	// 		'like',
+	// 		user_interests.interest.normalized_interest_id,
+	// 		'add'
+	// 	);
+	// }
 
 	return {
 		...user_interests.interest,
@@ -939,14 +906,14 @@ async function deleteInterest({ userId, userInterestId }) {
 		where: { user_id: userId, id: userInterestId },
 	});
 
-	if (userInterest.interest_type === 'like') {
-		await updateOnesignalUserTags(
-			userId,
-			'like',
-			userInterest.interest.normalized_interest_id,
-			'delete'
-		);
-	}
+	// if (userInterest.interest_type === 'like') {
+	// 	await updateOnesignalUserTags(
+	// 		userId,
+	// 		'like',
+	// 		userInterest.interest.normalized_interest_id,
+	// 		'delete'
+	// 	);
+	// }
 
 	// find all users that have the exact same purpose id
 	const allInterests = await UserInterests.findAll({

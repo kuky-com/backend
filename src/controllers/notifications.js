@@ -2,6 +2,11 @@ const Users = require('@/models/users');
 const Matches = require('../models/matches');
 const Notifications = require('../models/notifications');
 const { addOnesignalNotification } = require('@controllers/onesignal');
+const { Op } = require('sequelize');
+const Sequelize = require('../config/database');
+var admin = require('firebase-admin');
+const Sessions = require('../models/sessions');
+
 async function getNotificationList({ user_id }) {
 	try {
 		const notifications = await Notifications.findAll({
@@ -105,36 +110,41 @@ async function addNewNotification(
 
 async function addNewPushNotification(user_id, match = null, suggest = null, type, title, content) {
 	try {
-		// const sessions = await Sessions.findAll({
-		// 	where: {
-		// 		user_id: user_id,
-		// 		logout_date: {
-		// 			[Op.eq]: null,
-		// 		},
-		// 		session_token: {
-		// 			[Op.ne]: null,
-		// 		},
-		// 	},
-		// 	attributes: [
-		// 		[
-		// 			Sequelize.fn('DISTINCT', Sequelize.col('session_token')),
-		// 			'session_token',
-		// 		],
-		// 	],
-		// 	raw: true,
-		// });
-		// const sessionTokens = sessions.map((item) => item.session_token);
-		// if (sessionTokens.length > 0) {
+		const sessions = await Sessions.findAll({
+			where: {
+				user_id: user_id,
+				logout_date: {
+					[Op.eq]: null,
+				},
+				session_token: {
+					[Op.ne]: null,
+				},
+			},
+			attributes: [
+				[
+					Sequelize.fn('DISTINCT', Sequelize.col('session_token')),
+					'session_token',
+				],
+			],
+			raw: true,
+		});
+		const sessionTokens = sessions.map((item) => item.session_token);
+		if (sessionTokens.length > 0) {
+			const notiData = JSON.stringify({
+				type,
+				match,
+				suggest,
+			});
 
-		// 	// const res = await admin.messaging().sendEachForMulticast({
-		// 	// 	notification: {
-		// 	// 		title: title,
-		// 	// 		body: content,
-		// 	// 	},
-		// 	// 	data: { data: notiData },
-		// 	// 	tokens: sessionTokens,
-		// 	// });
-		// }
+			const res = await admin.messaging().sendEachForMulticast({
+				notification: {
+					title: title,
+					body: content,
+				},
+				data: { data: notiData },
+				tokens: sessionTokens,
+			});
+		}
 
 		await addOnesignalNotification(
 			title,

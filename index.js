@@ -59,8 +59,8 @@ function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function syncOnesignal(page = 0, limit = 100) {
-	console.log('Syncing users page', page);
+async function syncOnesignalUsers(page = 0, limit = 100) {
+	console.log(`Syncing database users page ${page} with onesignal...`);
 
 	const users = await Users.findAll({
 		limit,
@@ -82,25 +82,30 @@ async function syncOnesignal(page = 0, limit = 100) {
 	await sleep(1000);
 
 	if (users.length === limit) {
-		return syncOnesignal(page + 1, limit);
+		return syncOnesignalUsers(page + 1, limit);
 	} else {
-		console.log('Done sync with onesignal');
+		console.log('Onesignal user sync finished!');
 	}
 }
 
 async function syncDatabase() {
 	try {
 		await sequelize.sync({ force: false });
-		createDefaultTags();
+		await createDefaultTags();
 		console.log('Database & tables have been created successfully.');
 	} catch (error) {
 		console.log('Error syncing the database:', error);
 	}
 }
 
-syncDatabase();
-syncOnesignal();
-syncMessages();
+async function initialize() {
+	await syncDatabase();
+	await syncMessages();
+	// TODO: Remove this after it first runs on both staging and production (but is not urgent)
+	await syncOnesignalUsers();
+}
+
+initialize();
 
 app.listen(8000, () => {
 	console.log('Server is running on port 8000');
