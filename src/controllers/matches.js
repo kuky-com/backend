@@ -683,6 +683,24 @@ async function getExploreList({ user_id }) {
 		// 	order: [['id', 'desc']],
 		// 	raw: true,
 		// });
+		console.log(avoidUserIds.length);
+
+		const allUserIds = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				profile_tag: {
+					[Op.ne]: null,
+				},
+				id: {
+					[Op.notIn]: [user_id, ...avoidUserIds],
+				},
+			},
+			attributes: ['id'],
+			order: [['id', 'desc']],
+			raw: true,
+		});
 
 		// let matchResult = [];
 		// let idSuggestions = [];
