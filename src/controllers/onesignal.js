@@ -167,7 +167,9 @@ async function updateOnesignalUser(newOnesignalUser, userId) {
 		}
 	);
 
-	return updateResponse.json();
+	const r = await updateResponse.json();
+
+	return r;
 }
 
 async function addOnesignalNotification(title, content, data, userId) {
@@ -273,6 +275,41 @@ async function addBatchNotifications(title, content, filters) {
 	return result;
 }
 
+function dateToUnixTimestamp(dateString) {
+	const date = new Date(dateString);
+
+	if (isNaN(date.getTime())) {
+		throw new Error('Invalid date string');
+	}
+
+	return Math.floor(date.getTime() / 1000);
+}
+const ONE_DAY_SECONDS = 86400;
+
+async function addMatchTagOnesignal(userId, match) {
+	const user = await getOnesignalUser(userId);
+	const matchTagKey = `${process.env.NODE_ENV}_match_request_date`;
+
+	if (!user.properties.tags?.[matchTagKey]) {
+		user.properties.tags[matchTagKey] = match?.sent_date
+			? dateToUnixTimestamp(match.sent_date)
+			: '';
+	} else {
+		const now = dateToUnixTimestamp(new Date());
+		if (now - parseInt(user.properties.tags[matchTagKey]) >= 2.5 * ONE_DAY_SECONDS) {
+			user.properties.tags[matchTagKey] = match?.sent_date
+				? dateToUnixTimestamp(match.sent_date)
+				: '';
+		}
+
+		if (!match?.sent_date) {
+			user.properties.tags[matchTagKey] = '';
+		}
+	}
+
+	return updateOnesignalUser(user, userId);
+}
+
 module.exports = {
 	createOnesignalUser,
 	updateOnesignalUserTags,
@@ -284,4 +321,5 @@ module.exports = {
 	createSegment,
 	addBatchNotifications,
 	getProfileTagFilter,
+	addMatchTagOnesignal,
 };

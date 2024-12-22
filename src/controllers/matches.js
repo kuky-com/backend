@@ -27,6 +27,7 @@ const { findUnique, getRandomElements, formatNamesWithType } = require('../utils
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 const Messages = require('../models/messages');
+const { addMatchTagOnesignal } = require('./onesignal');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -806,6 +807,12 @@ async function rejectSuggestion({ user_id, friend_id }) {
 			}
 		);
 
+		// user answered the match. Update the user's onesignal tag with the next unanswered match.
+		const nextNotificationMatch = await getLastRecentUnansweredMatch(
+			existMatch.receiver_id
+		);
+		addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
+
 		return Promise.resolve({
 			message: 'Suggestion rejected',
 			data: existMatch,
@@ -886,6 +893,9 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					conversation_id,
 					last_message_date: new Date(),
 				});
+				const m = await existMatch.toJSON();
+
+				addMatchTagOnesignal(friend_id, m);
 
 				if (requestUser) {
 					addNewNotification(
@@ -1013,6 +1023,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 						},
 					}
 				);
+				// user answered the match. Update the user's onesignal tag with the next unanswered match.
+				const nextNotificationMatch = await getLastRecentUnansweredMatch(
+					existMatch.receiver_id
+				);
+
+				addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
 
 				existMatch = await Matches.findOne({
 					where: {
@@ -1503,6 +1519,28 @@ async function syncMessages(page = 0, limit = 100) {
 	}
 
 	console.log('Finished syncing messages.');
+}
+
+async function getLastRecentUnansweredMatch(userId) {
+	const twoDaysAgo = new Date();
+	twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+	const result = await Matches.findAll({
+		where: {
+			status: 'sent',
+			receiver_id: userId,
+			sent_date: {
+				[Op.gte]: twoDaysAgo,
+			},
+		},
+		order: [['sent_date', 'DESC']],
+		limt: 1,
+	});
+
+	if (!result.length) {
+		return;
+	}
+
+	return result[0];
 }
 
 module.exports = findBestMatches;
