@@ -1,3 +1,5 @@
+const Tags = require('../models/tags');
+
 const ONESIGNAL_URL = 'https://onesignal.com/api/v1/notifications';
 const ONESISGNAL_APP_ID = 'c3fb597e-e318-4eab-9d90-cd43b9491bc1';
 
@@ -26,7 +28,10 @@ async function getOnesignalUser(userId) {
 async function createOnesignalUser(user) {
 	const tags = {};
 
-	// TODO: uncommnet when we get more likes/purposes
+	/**
+	 * TODO: uncommnet when we get more tags for likes/purposes.
+	 *  At the moment, we are limited to 2 tags/use by the onesignal plan
+	 *  */
 	// for (let i of user.interests) {
 	// 	// console.log(i);
 	// 	if (i.user_interests.interest_type === 'like' && i.normalized_interest_id) {
@@ -87,8 +92,17 @@ async function deleteOnesignalUser(userId) {
 	return response.json();
 }
 
-function getUpdatedOnesignalTags(tags, type, normalizedId, operation) {
-	console.log(tags, type, normalizedId);
+/**
+ * Function that gets the current tags object (can be empty) and updates it
+ * with the new tag
+ * ! This function doesn't perform any update in onesignal.
+ * @param {*} tags current onesignal user user tags. Can be empty.
+ * @param {*} type tag type - like/purpose/tag. These are the types of ta
+ * @param {*} normalizedId // normalized id of the like/purpose/tag
+ * @param {*} operation // add or delete. Keep the count for each tag id
+ * @returns  formatted tags
+ */
+function formatOnesignalTags(tags, type, normalizedId, operation) {
 	if (type === 'tag') {
 		let tagId = process.env.NODE_ENV + '_profile_tag';
 		tags[tagId] = normalizedId;
@@ -112,7 +126,14 @@ function getUpdatedOnesignalTags(tags, type, normalizedId, operation) {
 
 	// return tags;
 }
-
+/**
+ * Updates the tag in onesingal.
+ * @param {*} userId database user id
+ * @param {*} type tag type - like/purpose/tag. These are the types of ta
+ * @param {*} normalizedId // normalized id of the like/purpose/tag
+ * @param {*} operation // add or delete. Keep the count for each tag id
+ * @returns
+ */
 async function updateOnesignalUserTags(userId, type, normalizedId, operation) {
 	if (!normalizedId) {
 		return;
@@ -120,13 +141,12 @@ async function updateOnesignalUserTags(userId, type, normalizedId, operation) {
 
 	const user = await getOnesignalUser(userId);
 
-	user.properties.tags = getUpdatedOnesignalTags(
+	user.properties.tags = formatOnesignalTags(
 		user.properties.tags,
 		type,
 		normalizedId,
 		operation
 	);
-	console.log('user tags', user.properties.tags, type, normalizedId);
 
 	return updateOnesignalUser(user, userId);
 }
@@ -178,12 +198,90 @@ async function addOnesignalNotification(title, content, data, userId) {
 	return r;
 }
 
+/**
+ * Creates a segment
+ * @param {*} segmentName
+ * @param {*} filters
+ * @returns
+ */
+async function createSegment(segmentName, filters) {
+	const url = `https://api.onesignal.com/apps/${ONESISGNAL_APP_ID}/segments`;
+	const body = {
+		name: segmentName,
+		filters,
+	};
+	const options = {
+		method: 'POST',
+		headers: {
+			accept: 'application/json',
+			Authorization: `Key ${process.env.ONESIGNAL_API_KEY}`,
+			'Content-Type': 'application/json; charset=utf-8',
+		},
+		body: JSON.stringify(body),
+	};
+
+	const result = await (await fetch(url, options)).json();
+	if (result.errors) {
+		console.log('Segment creation errors ', result.errors);
+		return result.errors;
+	}
+}
+
+/**
+ *  Format an onesignal filter that will include only users with a specific tagId.
+ * @param {*} profileTagId Id from database
+ */
+function getProfileTagFilter(profileTagId) {
+	return {
+		field: 'tag',
+		key: `${process.env.NODE_ENV}_profile_tag`,
+		relation: '=',
+		value: profileTagId,
+	};
+}
+
+/**
+ * Send batch notification to users that match a specific filter
+ */
+async function addBatchNotifications(title, content, filters) {
+	const url = 'https://api.onesignal.com/notifications?c=push';
+	const options = {
+		method: 'POST',
+		headers: {
+			accept: 'application/json',
+			Authorization: `Key ${process.env.ONESIGNAL_API_KEY}`,
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({
+			app_id: ONESISGNAL_APP_ID,
+			headings: {
+				en: title,
+			},
+			contents: {
+				en: content,
+			},
+
+			filters,
+		}),
+	};
+
+	const result = await (await fetch(url, options)).json();
+	if (result.errors?.length) {
+		console.log('Onesignal errors while sending push notifications: ', result.errors);
+		return result.errors;
+	}
+	return result;
+}
+
 module.exports = {
 	createOnesignalUser,
 	updateOnesignalUserTags,
 	getOnesignalUser,
-	getUpdatedOnesignalTags,
+	formatOnesignalTags,
 	updateOnesignalUser,
 	deleteOnesignalUser,
 	addOnesignalNotification,
+	createSegment,
+	addBatchNotifications,
+	getProfileTagFilter,
 };
