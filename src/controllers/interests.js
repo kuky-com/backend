@@ -8,6 +8,11 @@ const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
 const { getProfile } = require('./users');
 const { categoryMap } = require('../config/categories');
+const {
+	updateOnesignalUserTags,
+	addBatchNotifications,
+	getProfileTagFilter,
+} = require('./onesignal');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -192,7 +197,7 @@ async function updatePurposes({ user_id, purposes }) {
 				if (!currentPurposeIds.includes(purpose_id)) {
 					try {
 						await UserPurposes.create({ user_id, purpose_id });
-					} catch (error) { }
+					} catch (error) {}
 				}
 			})
 		);
@@ -257,6 +262,29 @@ async function updateLikes({ user_id, likes }) {
 
 		const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
 
+		// foramt onesignal tags with the deleted user interests
+
+		// const deletedInterests = await UserInterests.findAll({
+		// 	where: {
+		// 		user_id,
+		// 		interest_type: 'like',
+		// 		interest_id: { [Op.notIn]: newInterestIds },
+		// 	},
+		// 	include: [{ model: Interests }],
+		// });
+
+		// const onesignaluser = await getOnesignalUser(user_id);
+		// let tags = onesignaluser.properties.tags;
+
+		// for (const i of deletedInterests) {
+		// 	tags = await formatOnesignalTags(
+		// 		tags,
+		// 		'like',
+		// 		i.interest.normalized_interest_id,
+		// 		'delete'
+		// 	);
+		// }
+
 		await UserInterests.destroy({
 			where: {
 				user_id,
@@ -274,7 +302,7 @@ async function updateLikes({ user_id, likes }) {
 							interest_type: 'like',
 							interest_id,
 						});
-					} catch (error) { }
+					} catch (error) {}
 				}
 			})
 		);
@@ -293,6 +321,21 @@ async function updateLikes({ user_id, likes }) {
 			],
 		});
 
+		// format onesignal like tags for new user
+		// for (const like of newUserLikes) {
+		// 	if (!currentLikesIds.includes(like.interest_id)) {
+		// 		tags = formatOnesignalTags(
+		// 			tags,
+		// 			'like',
+		// 			like.interest.normalized_interest_id,
+		// 			'add'
+		// 		);
+		// 	}
+		// }
+
+		// sonesignaluser.properties.tags = tags;
+		// update the onesignal tags
+		// updateOnesignalUser(onesignaluser, user_id);
 		return Promise.resolve({
 			message:
 				newUserLikes.length < likes.length
@@ -354,7 +397,7 @@ async function updateDislikes({ user_id, dislikes }) {
 							interest_type: 'dislike',
 							interest_id,
 						});
-					} catch (error) { }
+					} catch (error) {}
 				}
 			})
 		);
@@ -439,6 +482,8 @@ async function updateProfileTag({ user_id }) {
 			(tag) => tag.name.toLowerCase() === bestTagName.toLowerCase()
 		);
 
+		const initialUser = await Users.findOne({ where: { id: user_id } });
+
 		const updatedUser = await Users.update(
 			{ profile_tag: bestTag.id },
 			{
@@ -448,6 +493,17 @@ async function updateProfileTag({ user_id }) {
 
 		const userInfo = await getProfile({ user_id });
 
+		if (initialUser.profile_tag !== bestTag.id) {
+			console.log('should send PN ');
+			await addBatchNotifications(
+				'New possible connections!',
+				'There are new users that you might be interested in! 👀',
+				[getProfileTagFilter(bestTag.id)]
+			);
+
+			await updateOnesignalUserTags(user_id, 'tag', bestTag.id, 'add');
+		}
+
 		return Promise.resolve({
 			message: 'User profile tag has been updated!',
 			data: userInfo.data,
@@ -455,6 +511,8 @@ async function updateProfileTag({ user_id }) {
 	} catch (error) {
 		try {
 			console.log('Error user update dislikes:', error);
+			const initialUser = await Users.findOne({ where: { id: user_id } });
+
 			const updatedUser = await Users.update(
 				{ profile_tag: 1 },
 				{
@@ -464,12 +522,21 @@ async function updateProfileTag({ user_id }) {
 
 			const userInfo = await getProfile({ user_id });
 
+			if (initialUser.profile_tag !== 1) {
+				await addBatchNotifications(
+					'New possible connections!',
+					'There are new users that you might be interested in! 👀',
+					getProfileTagFilter(1)
+				);
+				await updateOnesignalUserTags(user_id, 'tag', 1, 'add');
+			}
+
 			return Promise.resolve({
 				message: 'User profile tag has been updated!',
 				data: userInfo.data,
 			});
 		} catch (error) {
-			console.log({ error })
+			console.log({ error });
 		}
 	}
 }
@@ -498,8 +565,9 @@ async function normalizePurposes(purposeId) {
 		for (let purpose of purposes) {
 			const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${purpose.name
-				}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${
+				purpose.name
+			}\nCategory:`;
 
 			// console.log({prompt})
 			const response = await openai.completions.create({
@@ -585,8 +653,9 @@ async function normalizeInterests(interestId) {
 		for (let interest of interests) {
 			const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${interest.name
-				}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${
+				interest.name
+			}\nCategory:`;
 
 			const response = await openai.completions.create({
 				model: 'gpt-3.5-turbo-instruct',
@@ -762,6 +831,7 @@ async function deletePurpose({ userId, userPurposeId }) {
 			id: userPurposeId,
 			user_id: userId,
 		},
+		include: [{ model: Purposes }],
 	});
 
 	if (!userPurpose) {
@@ -804,6 +874,15 @@ async function createUserInterest({ userId, interestName, interestType }) {
 		})
 	).toJSON();
 
+	// if (user_interests.interest_type === 'like') {
+	// 	await updateOnesignalUserTags(
+	// 		userId,
+	// 		'like',
+	// 		user_interests.interest.normalized_interest_id,
+	// 		'add'
+	// 	);
+	// }
+
 	return {
 		...user_interests.interest,
 		user_interests,
@@ -816,6 +895,7 @@ async function deleteInterest({ userId, userInterestId }) {
 			id: userInterestId,
 			user_id: userId,
 		},
+		include: [{ model: Interests }],
 	});
 
 	if (!userInterest) {
@@ -825,6 +905,15 @@ async function deleteInterest({ userId, userInterestId }) {
 	await UserInterests.destroy({
 		where: { user_id: userId, id: userInterestId },
 	});
+
+	// if (userInterest.interest_type === 'like') {
+	// 	await updateOnesignalUserTags(
+	// 		userId,
+	// 		'like',
+	// 		userInterest.interest.normalized_interest_id,
+	// 		'delete'
+	// 	);
+	// }
 
 	// find all users that have the exact same purpose id
 	const allInterests = await UserInterests.findAll({
@@ -1044,9 +1133,14 @@ async function checkInterestMatch(user1, user2) {
 	});
 	const result = JSON.parse(response.choices[0].message.content.trim());
 
-	return result.sort((a, b) => b.match - a.match).filter((m) => m.match > 0).filter((item, index, self) =>
-		index === self.findIndex((t) => t.type === item.type && t.tag === item.tag)
-	)
+	return result
+		.sort((a, b) => b.match - a.match)
+		.filter((m) => m.match > 0)
+		.filter(
+			(item, index, self) =>
+				index ===
+				self.findIndex((t) => t.type === item.type && t.tag === item.tag)
+		);
 }
 
 async function forceUpdateProfileTags() {
@@ -1054,17 +1148,17 @@ async function forceUpdateProfileTags() {
 		where: {
 			profile_tag: {
 				[Op.eq]: null,
-			}
+			},
 		},
 		attributes: ['id', 'profile_tag'],
 		orderBy: [['id', 'DESC']],
 		raw: true,
-	})
+	});
 	for (var user of missingUsers) {
 		try {
-			await updateProfileTag({ user_id: user.id })
+			await updateProfileTag({ user_id: user.id });
 		} catch (error) {
-			console.log({error})
+			console.log({ error });
 		}
 	}
 
@@ -1091,5 +1185,5 @@ module.exports = {
 	deleteInterest,
 	checkPurposeMatch,
 	checkInterestMatch,
-	forceUpdateProfileTags
+	forceUpdateProfileTags,
 };
