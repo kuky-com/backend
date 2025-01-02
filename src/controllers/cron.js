@@ -21,7 +21,7 @@ cron.schedule('0 * * * *', async () => {
             where: {
                 status: 'accepted',
                 last_message_date: {
-                    [Op.lt]: new Date(new Date() - 24 * 60 * 1000),
+                    [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
                 },
                 bot_messages_count: {
                     [Op.lt]: 3,
