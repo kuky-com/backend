@@ -438,6 +438,28 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
 	}
 }
 
+async function updateLastActive({ user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: { id: user_id }
+		});
+
+		if (!user) {
+			return Promise.reject('User not found');
+		}
+
+		user.last_active_time = new Date();
+		user.save()
+
+		return Promise.resolve({
+			message: 'Last active time updated',
+		});
+	} catch (error) {
+		console.log('Error updateLastActive:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function getLatestVersion() {
 	try {
 		const version = await AppVersions.findOne({
@@ -642,4 +664,5 @@ module.exports = {
 	getShareLink,
 	reapplyProfileReview,
 	updateUserNote,
+	updateLastActive
 };
