@@ -63,6 +63,10 @@ const Matches = sequelize.define('matches', {
 		type: DataTypes.INTEGER,
 		defaultValue: 0,
 	},
+	bot_messages_count: {
+		type: DataTypes.INTEGER,
+		defaultValue: 0,
+	},
 });
 
 Matches.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });

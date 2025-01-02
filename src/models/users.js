@@ -142,6 +142,10 @@ const Users = sequelize.define('users', {
 		},
 		onDelete: 'NO ACTION',
 	},
+	last_active_time: {
+		type: DataTypes.DATE,
+		allowNull: true,
+	},
 	note: {
 		type: DataTypes.STRING,
 		allowNull: true,

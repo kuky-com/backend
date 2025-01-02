@@ -623,4 +623,24 @@ router.get(
 	}
 );
 
+router.get('/update-last-active', authMiddleware, (request, response, next) => {
+	const { user_id } = request;
+
+	return users
+		.updateLastActive({ user_id })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 module.exports = router;

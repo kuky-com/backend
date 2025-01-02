@@ -17,6 +17,7 @@ const {
 	deleteOnesignalUser,
 } = require('./src/controllers/onesignal');
 const { syncMessages } = require('./src/controllers/matches');
+require('./src/controllers/cron')
 
 const app = express();
 
