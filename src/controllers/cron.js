@@ -53,16 +53,16 @@ cron.schedule('0 * * * *', async () => {
             ).data.map((d) => d.dataValues);
 
             if ((currentUserLikes.length > 0 || currentUserDislikes.length > 0) && (friendLikes.length > 0 || friendDislikes.length > 0)) {
-                try {
-                    const bot_message = await generateBotMessage(
-                        { likes: currentUserLikes, dislikes: currentUserDislikes },
-                        { likes: friendLikes, dislikes: friendDislikes }
-                    );
+                // try {
+                //     const bot_message = await generateBotMessage(
+                //         { likes: currentUserLikes, dislikes: currentUserDislikes },
+                //         { likes: friendLikes, dislikes: friendDislikes }
+                //     );
 
-                    if(bot_message.length > 0) {
-                        await botSendMessage({ conversation_id, last_message: bot_message });
-                    }
-                } catch (err) { }
+                //     if(bot_message.length > 0) {
+                //         await botSendMessage({ conversation_id, last_message: bot_message });
+                //     }
+                // } catch (err) { }
             }
 
 
