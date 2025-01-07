@@ -1560,4 +1560,5 @@ module.exports = {
 	getMatchById,
 	getSampleExplore,
 	syncMessages,
+	db
 };

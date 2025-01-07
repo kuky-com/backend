@@ -988,7 +988,8 @@ If there's no common purpose, maybe there is a common like. Or one user as a pur
 
 */
 async function checkPurposeMatch(user1, user2) {
-	const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+	try {
+		const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
 
 		When two users are matched, we want to show them a reason for their match, a reason to start a conversation. 
 		For example, if one user purpose is 'learning guitar' and another user purpose is 'learning to play drums' we 
@@ -1041,20 +1042,26 @@ async function checkPurposeMatch(user1, user2) {
 	}
 
 	const response = await openai.chat.completions.create({
-		model: 'gpt-3.5-turbo',
+		model: 'gpt-4o',
 
 		messages: [
 			{ content: context, role: 'system' },
 			{ content: messages.join(), role: 'user' },
 		],
 	});
-	const result = JSON.parse(response.choices[0].message.content.trim());
+
+	const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
+
 
 	return result.filter((r) => r.match > 0).sort((a, b) => b.match - a.match);
+	} catch (error) {
+		return []
+	}
 }
 
 async function checkInterestMatch(user1, user2) {
-	const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+	try {
+		const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
 
 		When two users are matched, we want to show them a reason for their match, a reason to start a conversation. 
 		For example, if one user likes dogs and another user likes 'cats'' we 
@@ -1063,7 +1070,7 @@ async function checkInterestMatch(user1, user2) {
 
 
 		I'll give you a list of two items to match with the following format:
-		Type: type of match
+		Tag: type of match
 		Item1: user 1 purpose
 		Item2:  user2 2 purpose 
 		
@@ -1124,14 +1131,15 @@ async function checkInterestMatch(user1, user2) {
 		return [];
 	}
 	const response = await openai.chat.completions.create({
-		model: 'gpt-3.5-turbo',
+		model: 'gpt-4o',
 
 		messages: [
 			{ content: context, role: 'system' },
 			{ content: messages.join(), role: 'user' },
 		],
 	});
-	const result = JSON.parse(response.choices[0].message.content.trim());
+
+	const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
 
 	return result
 		.sort((a, b) => b.match - a.match)
@@ -1141,6 +1149,9 @@ async function checkInterestMatch(user1, user2) {
 				index ===
 				self.findIndex((t) => t.type === item.type && t.tag === item.tag)
 		);
+	} catch (error) {
+		return []
+	}
 }
 
 async function forceUpdateProfileTags() {
