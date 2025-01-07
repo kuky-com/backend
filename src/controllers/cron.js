@@ -8,31 +8,28 @@ const interestsController = require('./interests');
 const { OpenAI } = require('openai');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('./matches');
+const { id } = require('date-fns/locale');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-cron.schedule('0 * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
     try {
-        console.log('Task running every hours:', new Date().toLocaleString());
+        console.log('Task running every 10 minutes:', new Date().toLocaleString());
 
         const validMatches = await Matches.findAll({
             where: {
                 status: 'accepted',
-                last_message_date: {
-                    [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
-                },
-                bot_messages_count: {
-                    [Op.lt]: 3,
-                },
+                id: {
+                    [Op.in]: [3, 4, 5]
+                }
             },
             include: [
                 { model: Users, as: 'sender' },
                 { model: Users, as: 'receiver' },
             ],
         })
-
 
         for (let i = 0; i < validMatches.length; i++) {
             const match = validMatches[i];
@@ -52,86 +49,122 @@ cron.schedule('0 * * * *', async () => {
                 await interestsController.getDislikes({ user_id: receiver.id })
             ).data.map((d) => d.dataValues);
 
+            const currentUserPurposes = (
+                await interestsController.getPurposes({ user_id: sender.id })
+            ).data.map((d) => d.dataValues);
+            const friendPurposes = (
+                await interestsController.getPurposes({ user_id: receiver.id })
+            ).data.map((d) => d.dataValues);
+
             if ((currentUserLikes.length > 0 || currentUserDislikes.length > 0) && (friendLikes.length > 0 || friendDislikes.length > 0)) {
-                // try {
-                //     const bot_message = await generateBotMessage(
-                //         { likes: currentUserLikes, dislikes: currentUserDislikes },
-                //         { likes: friendLikes, dislikes: friendDislikes }
-                //     );
+                console.log({ conversation_id })
+                try {
+                    const bot_message = await generateBotMessage(
+                        conversation_id,
+                        { likes: currentUserLikes, dislikes: currentUserDislikes, purposes: currentUserPurposes },
+                        { likes: friendLikes, dislikes: friendDislikes, purposes: friendPurposes }
+                    );
 
-                //     if(bot_message.length > 0) {
-                //         await botSendMessage({ conversation_id, last_message: bot_message });
-                //     }
-                // } catch (err) { }
+                    console.log({ bot_message })
+
+                    if (bot_message && bot_message.trim().length > 10) {
+                        await botSendMessage({ conversation_id, last_message: bot_message });
+                    }
+                } catch (err) {
+                    console.log({ err })
+                }
             }
-
-
-            // await botSendMessage({ conversation_id, last_message });
         }
     } catch (error) {
         console.log({ error })
     }
 });
 
-async function generateBotMessage(user1, user2) {
+async function generateBotMessage(conversation_id, user1, user2) {
     try {
-        const context = `Hey! I'm building an app that matches users based on common purposes, likes and dislikes. 
+        const messageRef = await db
+            .collection('conversations')
+            .doc(conversation_id)
+            .collection('messages')
+            .orderBy("createdAt", "asc")
+            .get()
+        const messages = messageRef.docs.map(doc => doc.data());
 
-        When two users are matched, but for sometime they not star their conversation or not send any message for a day. We want to create
-        a bot that will join the conversation and encourage users to talk based on their common likes and dislikes. The bot will need to talk
-        based on likes and dislikes of the users base on any latest news or trends. The message need to be not too long, less than 80 characters, but enough to encourage
-        the users to talk.
+        const botMessages = messages
+            .filter(msg => msg.user && msg.user._id === 0 && (!msg.type || msg.type === 'text'))
+            .map(msg => {
+                const timestamp = msg.createdAt?.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt);
+                return `Bot: ${msg.text} [${timestamp.toISOString()}]`;
+            })
+            .join('\n');
 
+        const userMessages = messages
+            .filter(msg => msg.user && msg.user._id !== 0 && (!msg.type || msg.type === 'text'))
+            .map(msg => {
+                const timestamp = msg.createdAt?.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt);
+                return `User${msg.user._id}: ${msg.text} [${timestamp.toISOString()}]`;
+            })
+            .join('\n');
 
-        I'll give you a list of two items to match with the following format:
-        Type: type of match
-        Item1: user 1 purpose
-        Item2:  user2 2 purpose 
+        const lastMessage = messages[messages.length - 1];
+        const lastMessageTime = lastMessage?.createdAt?.toDate
+            ? lastMessage.createdAt.toDate()
+            : new Date(lastMessage?.createdAt || 0);
 
-        The bot name is Kuky bot, but not return something like 'Kuky bot: "'.
-        Just return the message content only. If cannot find a common subject, return empty string.
-        `;
+        const user1Likes = (user1.likes || []).map(item => item.name);
+        const user2Likes = (user2.likes || []).map(item => item.name);
+        const user1Dislikes = (user1.dislikes || []).map(item => item.name);
+        const user2Dislikes = (user2.dislikes || []).map(item => item.name);
+        const user1Purposes = (user1.purposes || []).map(item => item.name);
+        const user2Purposes = (user2.purposes || []).map(item => item.name);
 
-        const messages = [];
+        const prompt = `
+    You are an AI chatbot managing a conversation between two users and analyzing previous bot messages.
 
-        for (let like of user1.likes) {
-            for (let like2 of user2.likes) {
-                messages.push(`
-                 Tag: "like"
-                 Item1 : ${like.name}
-                 Item2: ${like2.name}
-                 
-                 ------
-                 `);
-            }
+    ### User Details:
+    - User 1 Likes: ${user1Likes.join(', ') || 'None'}
+    - User 2 Likes: ${user2Likes.join(', ') || 'None'}
+    - User 1 Dislikes: ${user1Dislikes.join(', ') || 'None'}
+    - User 2 Dislikes: ${user2Dislikes.join(', ') || 'None'}
+    - User 1 Purposes: ${user1Purposes.join(', ') || 'None'}
+    - User 2 Purposes: ${user2Purposes.join(', ') || 'None'}
+
+    ### Conversation History:
+    ${userMessages}
+
+    ### Previous Bot Messages:
+    ${botMessages}
+
+    ### Last Message Details:
+    - Sent at: ${lastMessageTime.toISOString()}
+    - Hours since last message: ${((new Date() - lastMessageTime) / (1000 * 60 * 60)).toFixed(2)}
+
+    ### Instructions:
+    1. Analyze the conversation history and previous bot messages.
+    2. Decide if it's the right time to send a message may be after sometime if no message or if user ask bot for something.
+    3. If it's **NOT** time, respond with an **EMPTY STRING** (\`""\`). No explanations, no reasoning, no context.
+    4. If it **IS** time, respond with **only the chatbot's message content**.
+    5. Ensure your response is strictly either an **empty string** or a **clean chatbot message** with no introductions, explanations, or metadata.
+    6. If bot already have sent 5 messages in row but there is no response from users, stop sending messages.
+    7. Dont send something like "Kuky bot: " in the message content.
+    8. Dont send something like "It's time to send a message" in the message content, we need meaningful message.
+    9. We may need to base on recent news or trends to encourage users to talk eg. if bot like football, it can talk about recent football match. Or if both purpose is loss weight, it can talk about recent weight loss trend or what activity they can do to loss weight.
+    10. If users ask for something, bot should response to it.
+
+    Ensure your response follows these rules.
+    `;
+
+        try {
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [{ role: 'system', content: prompt }],
+            });
+
+            return response.choices[0]?.message?.content?.trim() || '';
+        } catch (error) {
+            console.log('Error generating AI message:', error.message);
+            return '';
         }
-
-        for (let dislike of user1.dislikes) {
-            for (let dislike2 of user2.dislikes) {
-                messages.push(`
-                 Tag: "dislike"
-                 Item1 : ${dislike.name}
-                 Item2: ${dislike2.name}
-                 
-                 ------
-                 `);
-            }
-        }
-
-        if (messages.length === 0) {
-            return ''
-        }
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-
-            messages: [
-                { content: context, role: 'system' },
-                { content: messages.join(), role: 'user' },
-            ],
-        });
-        const result = response.choices[0].message.content.trim()
-
-        return result
     } catch (error) {
         console.log({ error })
         return ''
@@ -146,7 +179,8 @@ async function botSendMessage({ conversation_id, last_message }) {
             {
                 last_message,
                 last_message_date,
-                // last_message_sender: 0,
+                last_message_sender: 0,
+                send_date: last_message_date,
             },
             {
                 where: {
@@ -157,20 +191,20 @@ async function botSendMessage({ conversation_id, last_message }) {
 
         const messageId = uuidv4();
         db
-			.collection('conversations')
-			.doc(conversation_id)
-			.collection('messages')
-			.add({
-				_id: messageId,
-				text: last_message,
-				createdAt: new Date(),
-				user: {
-					_id: 0,
-					name: 'Kuky Bot',
-				},
-				readBy: [0],
-				type: 'text',
-			});
+            .collection('conversations')
+            .doc(conversation_id)
+            .collection('messages')
+            .add({
+                _id: messageId,
+                text: last_message,
+                createdAt: new Date(),
+                user: {
+                    _id: 0,
+                    name: 'Kuky Bot',
+                },
+                readBy: [0],
+                type: 'text',
+            });
 
         await Matches.increment(
             { messagesCount: 1 },
@@ -199,12 +233,12 @@ async function botSendMessage({ conversation_id, last_message }) {
             ],
         });
 
-        // await Messages.create({
-        //     text: last_message,
-        //     senderId: 0,
-        //     matchId: existMatch.id,
-        //     createdAt: last_message_date,
-        // });
+        await Messages.create({
+            text: last_message,
+            senderId: 0,
+            matchId: existMatch.id,
+            createdAt: last_message_date,
+        });
 
         try {
             addNewPushNotification(
