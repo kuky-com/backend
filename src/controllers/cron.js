@@ -22,7 +22,7 @@ cron.schedule('*/5 * * * *', async () => {
             where: {
                 status: 'accepted',
                 id: {
-                    [Op.in]: [3, 4, 5]
+                    [Op.in]: [3, 4, 5, 732]
                 }
             },
             include: [
