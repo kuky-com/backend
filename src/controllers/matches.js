@@ -27,7 +27,7 @@ const { findUnique, getRandomElements, formatNamesWithType } = require('../utils
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 const Messages = require('../models/messages');
-const { addMatchTagOnesignal } = require('./onesignal');
+const { addMatchTagOnesignal, updateMatchDateTag } = require('./onesignal');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -808,10 +808,13 @@ async function rejectSuggestion({ user_id, friend_id }) {
 		);
 
 		// user answered the match. Update the user's onesignal tag with the next unanswered match.
-		const nextNotificationMatch = await getLastRecentUnansweredMatch(
-			existMatch.receiver_id
-		);
-		addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
+		// const nextNotificationMatch = await getLastRecentUnansweredMatch(
+		// 	existMatch.receiver_id
+		// );
+		// addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
+
+		const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
+		updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
 
 		return Promise.resolve({
 			message: 'Suggestion rejected',
@@ -896,6 +899,9 @@ async function acceptSuggestion({ user_id, friend_id }) {
 				const m = await existMatch.toJSON();
 
 				addMatchTagOnesignal(friend_id, m);
+
+				const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
+				updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
 
 				if (requestUser) {
 					addNewNotification(
@@ -1024,11 +1030,14 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					}
 				);
 				// user answered the match. Update the user's onesignal tag with the next unanswered match.
-				const nextNotificationMatch = await getLastRecentUnansweredMatch(
-					existMatch.receiver_id
-				);
+				// const nextNotificationMatch = await getLastRecentUnansweredMatch(
+				// 	existMatch.receiver_id
+				// );
 
-				addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
+				// addMatchTagOnesignal(existMatch.receiver_id, nextNotificationMatch);
+
+				const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
+				updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
 
 				existMatch = await Matches.findOne({
 					where: {
@@ -1541,6 +1550,23 @@ async function getLastRecentUnansweredMatch(userId) {
 	}
 
 	return result[0];
+}
+
+async function getLastestUnanswerMatch(userId) {
+	const result = await Matches.findAll({
+		where: {
+			status: 'sent',
+			receiver_id: userId,
+		},
+		order: [['sent_date', 'DESC']],
+		limt: 1,
+	});
+
+	if (!result.length) {
+		return '';
+	}
+
+	return result[0].sent_date;
 }
 
 module.exports = findBestMatches;

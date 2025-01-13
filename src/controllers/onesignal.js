@@ -276,14 +276,26 @@ async function addBatchNotifications(title, content, filters) {
 }
 
 function dateToUnixTimestamp(dateString) {
-	const date = new Date(dateString);
+	if (dateString) {
+		const date = new Date(dateString);
 
-	if (isNaN(date.getTime())) {
-		throw new Error('Invalid date string');
+		if (isNaN(date.getTime())) {
+			throw new Error('Invalid date string');
+		}
+
+		return Math.floor(date.getTime() / 1000);
+	} else {
+		const date = new Date();
+
+		if (isNaN(date.getTime())) {
+			throw new Error('Invalid date string');
+		}
+
+		return Math.floor(date.getTime() / 1000);
 	}
 
-	return Math.floor(date.getTime() / 1000);
 }
+
 const ONE_DAY_SECONDS = 86400;
 
 async function addMatchTagOnesignal(userId, match) {
@@ -310,6 +322,29 @@ async function addMatchTagOnesignal(userId, match) {
 	return updateOnesignalUser(user, userId);
 }
 
+async function updateMatchDateTag(userId, last_date) {
+	const user = await getOnesignalUser(userId);
+	const tagKey = `${process.env.NODE_ENV}_last_match_request_date`;
+
+	user.properties.tags[tagKey] = last_date ? dateToUnixTimestamp(last_date) : ''
+
+	return updateOnesignalUser(user, userId);
+}
+
+
+async function updateRejectedDateTag(userId, status) {
+	const user = await getOnesignalUser(userId);
+	const tagKey = `${process.env.NODE_ENV}_last_rejected_date`;
+
+	if (status === 'rejected') {
+		user.properties.tags[tagKey] = dateToUnixTimestamp()
+	} else {
+		user.properties.tags[tagKey] = '';
+	}
+
+	return updateOnesignalUser(user, userId);
+}
+
 module.exports = {
 	createOnesignalUser,
 	updateOnesignalUserTags,
@@ -322,4 +357,6 @@ module.exports = {
 	addBatchNotifications,
 	getProfileTagFilter,
 	addMatchTagOnesignal,
+	updateRejectedDateTag,
+	updateMatchDateTag
 };

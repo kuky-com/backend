@@ -23,6 +23,7 @@ const AppVersions = require('../models/versions');
 const Sequelize = require('../config/database');
 const { isStringInteger } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
+const { updateRejectedDateTag } = require('./onesignal');
 
 async function updateProfile({
 	user_id,
@@ -563,6 +564,12 @@ async function reapplyProfileReview({ userId }) {
 		);
 
 		const userInfo = await getUser(userId);
+
+		try {
+			updateRejectedDateTag(userId, 'resubmitted')
+		} catch (error) {
+			console.log({ error })
+		}
 
 		return Promise.resolve({
 			data: userInfo,
