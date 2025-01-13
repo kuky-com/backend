@@ -103,6 +103,11 @@ const Users = sequelize.define('users', {
 		allowNull: false,
 		defaultValue: 'pending',
 	},
+	online_status: {
+		type: DataTypes.ENUM('active', 'away', 'offline'),
+		allowNull: false,
+		defaultValue: 'active',
+	},
 	profile_rejected_reason: {
 		type: DataTypes.TEXT,
 		allowNull: true,
