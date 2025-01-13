@@ -6,7 +6,7 @@ const Interests = require('../../models/interests');
 const Matches = require('../../models/matches');
 const { Op, Sequelize } = require('sequelize');
 const LeadUsers = require('../../models/lead_users');
-const { normalizePurposes } = require('../interests');
+const { normalizePurposes, getPurposes } = require('../interests');
 const UserPurposes = require('../../models/user_purposes');
 const Suggestions = require('../../models/suggestions');
 const emailService = require('../email');
@@ -15,6 +15,7 @@ const AdminUsers = require('../../models/admin_users');
 const AdminSessions = require('../../models/admin_sessions');
 const AppVersions = require('../../models/versions');
 const Tags = require('../../models/tags');
+const { updateRejectedDateTag } = require('../onesignal');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -450,10 +451,10 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 				].concat(
 					isNumericQuery
 						? [
-								{
-									id: Number.parseInt(query),
-								},
-						  ]
+							{
+								id: Number.parseInt(query),
+							},
+						]
 						: []
 				),
 			},
@@ -503,20 +504,26 @@ async function profileAction({ status, reason, user_id }) {
 		await Users.update(
 			status === 'rejected'
 				? {
-						profile_approved: 'rejected',
-						profile_rejected_reason: reason,
-						profile_action_date: new Date(),
-				  }
+					profile_approved: 'rejected',
+					profile_rejected_reason: reason,
+					profile_action_date: new Date(),
+				}
 				: {
-						profile_approved: status,
-						profile_action_date: new Date(),
-				  },
+					profile_approved: status,
+					profile_action_date: new Date(),
+				},
 			{
 				where: {
 					id: user_id,
 				},
 			}
 		);
+
+		try {
+			updateRejectedDateTag(user_id, status)
+		} catch (error) {
+			console.log({ error })
+		}
 
 		if (status === 'approved') {
 			addNewNotification(
@@ -536,6 +543,44 @@ async function profileAction({ status, reason, user_id }) {
 				'Your profile has been approved',
 				`Your account has been approved, and you’re all set to start connecting on Kuky.`
 			);
+
+			//send notification to all users have same journey with approved user
+			try {
+				const purposes = await UserPurposes.findAll({
+					where: {
+						user_id: user_id,
+					},
+					include: [
+						{
+							model: Purposes,
+							where: {
+								normalized_purpose_id: {
+									[Op.ne]: null,
+								},
+							},
+						},
+					],
+				});
+				
+				for (const purpose of purposes) {
+					const userPs = await UserPurposes.findAll({
+						include: [
+							{
+								model: Purposes,
+								where: {
+									normalized_purpose_id: purpose.purpose.normalized_purpose_id
+								},
+							},
+						],
+					});
+
+					for (const userP of userPs) {
+						await addNewPushNotification(userP.user_id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${purpose.purpose.name}. Tap to view their request and support each other!`);
+					}
+				}
+			} catch (error) {
+				console.log({ error })
+			}
 		} else {
 			addNewNotification(
 				user.id,
