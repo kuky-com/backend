@@ -568,7 +568,8 @@ async function profileAction({ status, reason, user_id }) {
 							{
 								model: Purposes,
 								where: {
-									normalized_purpose_id: purpose.purpose.normalized_purpose_id
+									// normalized_purpose_id: purpose.purpose.normalized_purpose_id
+									id: purpose.purpose.id
 								},
 							},
 						],
