@@ -28,6 +28,7 @@ const { addNewNotification, addNewPushNotification } = require('./notifications'
 const { sendRequestEmail } = require('./email');
 const Messages = require('../models/messages');
 const { addMatchTagOnesignal, updateMatchDateTag } = require('./onesignal');
+const dayjs = require('dayjs');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -92,13 +93,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	let prompt = `I have target person with information about likes, dislikes, and purposes.
   
     Target person Likes: ${targetUser.interests
-		.filter((i) => i.type === 'like')
-		.map((i) => i.name)
-		.join(', ')}
+			.filter((i) => i.type === 'like')
+			.map((i) => i.name)
+			.join(', ')}
     Target person Dislikes: ${targetUser.interests
-		.filter((i) => i.type === 'dislike')
-		.map((i) => i.name)
-		.join(', ')}
+			.filter((i) => i.type === 'dislike')
+			.map((i) => i.name)
+			.join(', ')}
     Target person Purposes: ${targetUser.purposes.join(', ')}
 
     Then I have list of several people with their likes, dislikes, and purposes. I want to get order of people that best match with
@@ -114,13 +115,13 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 	for (const user of compareUsers) {
 		prompt += `
             Person with ID=${user.id} Likes: ${user.interests
-			.filter((i) => i.type === 'like')
-			.map((i) => i.name)
-			.join(', ')}
+				.filter((i) => i.type === 'like')
+				.map((i) => i.name)
+				.join(', ')}
             Person with ID=${user.id} Dislikes: ${user.interests
-			.filter((i) => i.type === 'dislike')
-			.map((i) => i.name)
-			.join(', ')}
+				.filter((i) => i.type === 'dislike')
+				.map((i) => i.name)
+				.join(', ')}
             Person with ID=${user.id} Purposes: ${user.purposes.join(', ')}
 
         `;
@@ -563,6 +564,11 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 				let score = 0;
 
 				if (user.profile_tag === currentUserProfileTag) score += 10;
+				if (user.last_active_time && dayjs().diff(dayjs(user.last_active_time), 'minute') < 60) {
+					score += 10
+				} else if (user.last_active_time && dayjs().diff(dayjs(user.last_active_time), 'minute') < 120) {
+					score += 5
+				}
 
 				score += matchingInterestGroupIds.length * 2;
 
@@ -887,7 +893,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 			const conversation_id = await createConversation(user_id, friend_id);
 			try {
 				addMessageToConversation(conversation_id, requestUser, receiveUser);
-			} catch (error) {}
+			} catch (error) { }
 			if (conversation_id) {
 				existMatch = await Matches.create({
 					sender_id: user_id,
@@ -943,10 +949,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 									],
 									where: {
 										normalized_purpose_id:
-											{
-												[Op.ne]:
-													null,
-											},
+										{
+											[Op.ne]:
+												null,
+										},
 									},
 								},
 							],
@@ -981,10 +987,10 @@ async function acceptSuggestion({ user_id, friend_id }) {
 										],
 										where: {
 											normalized_purpose_id:
-												{
-													[Op.ne]:
-														null,
-												},
+											{
+												[Op.ne]:
+													null,
+											},
 										},
 									},
 								],
@@ -1004,7 +1010,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							sender_purposes: sender_purposes,
 							conversation_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			}
 		} else {
@@ -1157,15 +1163,14 @@ const addMessageToConversation = async (conversationId, fromUser, toUser) => {
 				{ likes: currentUserLikes, dislikes: currentUserDislikes },
 				{ likes: friendLikes, dislikes: friendDislikes }
 			);
-		} catch (err) {}
+		} catch (err) { }
 
 		const sameInterests = formatNamesWithType(interestList);
 
 		const messageId = uuidv4();
 		const message =
 			`Hi ${toUser.full_name},\n` +
-			`I’d love to connect with you as we share the same interests ${
-				sameInterests.length > 0 ? `in ${sameInterests}` : ''
+			`I’d love to connect with you as we share the same interests ${sameInterests.length > 0 ? `in ${sameInterests}` : ''
 			}. 😊\n\n` +
 			`Looking forward to connecting!`;
 
@@ -1514,8 +1519,8 @@ async function syncMessages(page = 0, limit = 100) {
 						senderId: message.user._id,
 						createdAt: new Date(
 							message.createdAt.seconds * 1000 +
-								message.createdAt.nanoseconds /
-									1000000
+							message.createdAt.nanoseconds /
+							1000000
 						),
 					});
 				})
