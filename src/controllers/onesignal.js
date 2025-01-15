@@ -302,21 +302,32 @@ async function addMatchTagOnesignal(userId, match) {
 	const user = await getOnesignalUser(userId);
 	const matchTagKey = `${process.env.NODE_ENV}_match_request_date`;
 
-	if (!user.properties.tags?.[matchTagKey]) {
-		user.properties.tags[matchTagKey] = match?.sent_date
-			? dateToUnixTimestamp(match.sent_date)
-			: '';
-	} else {
-		const now = dateToUnixTimestamp(new Date());
-		if (now - parseInt(user.properties.tags[matchTagKey]) >= 2.5 * ONE_DAY_SECONDS) {
-			user.properties.tags[matchTagKey] = match?.sent_date
-				? dateToUnixTimestamp(match.sent_date)
-				: '';
+	try {
+		let tags = user.properties.tags
+		if (!tags) {
+			tags = {}
 		}
 
-		if (!match?.sent_date) {
-			user.properties.tags[matchTagKey] = '';
+		if (!tags[matchTagKey]) {
+			tags[matchTagKey] = match?.sent_date
+				? dateToUnixTimestamp(match.sent_date)
+				: '';
+		} else {
+			const now = dateToUnixTimestamp(new Date());
+			if (now - parseInt(tags[matchTagKey]) >= 2.5 * ONE_DAY_SECONDS) {
+				tags[matchTagKey] = match?.sent_date
+					? dateToUnixTimestamp(match.sent_date)
+					: '';
+			}
+
+			if (!match?.sent_date) {
+				tags[matchTagKey] = '';
+			}
 		}
+
+		user.properties.tags = tags
+	} catch (error) {
+		console.log({ error })
 	}
 
 	return updateOnesignalUser(user, userId);
@@ -326,7 +337,17 @@ async function updateMatchDateTag(userId, last_date) {
 	const user = await getOnesignalUser(userId);
 	const tagKey = `${process.env.NODE_ENV}_last_match_request_date`;
 
-	user.properties.tags[tagKey] = last_date ? dateToUnixTimestamp(last_date) : ''
+	try {
+		let tags = user.properties.tags
+		if (!tags) {
+			tags = {}
+		}
+		tags[tagKey] = last_date ? dateToUnixTimestamp(last_date) : ''
+		user.properties.tags = tags
+		
+	} catch (error) {
+		console.log({ error })
+	}
 
 	return updateOnesignalUser(user, userId);
 }
@@ -336,10 +357,23 @@ async function updateRejectedDateTag(userId, status) {
 	const user = await getOnesignalUser(userId);
 	const tagKey = `${process.env.NODE_ENV}_last_rejected_date`;
 
-	if (status === 'rejected') {
-		user.properties.tags[tagKey] = dateToUnixTimestamp()
-	} else {
-		user.properties.tags[tagKey] = '';
+	console.log({ user })
+
+	try {
+		let tags = user.properties.tags
+		if (!tags) {
+			tags = {}
+		}
+
+		if (status === 'rejected') {
+			tags[tagKey] = dateToUnixTimestamp()
+		} else {
+			tags[tagKey] = '';
+		}
+
+		user.properties.tags = tags
+	} catch (error) {
+		console.log({ error })
 	}
 
 	return updateOnesignalUser(user, userId);
