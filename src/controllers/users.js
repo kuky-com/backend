@@ -19,9 +19,10 @@ const Matches = require('../models/matches');
 const { Op } = require('sequelize');
 const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
+const ReferralUsers = require('../models/referral_users');
 const AppVersions = require('../models/versions');
 const Sequelize = require('../config/database');
-const { isStringInteger } = require('../utils/utils');
+const { isStringInteger, generateReferralCode } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
 const { updateRejectedDateTag } = require('./onesignal');
 
@@ -439,6 +440,71 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
 	}
 }
 
+async function useReferral({ user_id, referral_code }) {
+	try {
+		console.log(user_id, referral_code);
+		const user = await Users.findOne({
+			where: { referral_id: referral_code },
+			attributes: { exclude: ['password'] },
+		});
+
+		if (!user) {
+			return Promise.reject('User not found');
+		}
+
+		await ReferralUsers.create({
+			user_id,
+			referral_code,
+			referral_id: user.id
+		});
+
+		return Promise.resolve({
+			message: 'Referral has been added',
+		});
+	} catch (error) {
+		console.log('Error use referral code:', error);
+		return Promise.reject(error);
+	}
+}
+
+
+async function getIapProducts({ user_id, platform }) {
+	try {
+
+		const existReferral = await ReferralUsers.findOne({
+			where: {
+				[Op.or]: [
+					{ user_id: user_id },
+					{ referral_id: user_id, }
+				]
+			},
+		})
+
+		if (existReferral) {
+			const products = platform === 'ios' ? ["com.kuky.ios.1month_pro", "com.kuky.ios.6month_pro", "com.kuky.ios.12month_pro"] : ["com.kuky.android.1month_pro", "com.kuky.android.6month_pro", "com.kuky.android.12month_pro"];
+			return Promise.resolve({
+				message: 'IAP products',
+				data: {
+					products,
+					title: 'Includes 3 Months free trial',
+				},
+			});
+		} else {
+			const products = platform === 'ios' ? ["com.kuky.ios.1month", "com.kuky.ios.6month", "com.kuky.ios.12month"] : ["com.kuky.android.1month", "com.kuky.android.6month", "com.kuky.android.12month"];
+			return Promise.resolve({
+				message: 'IAP products',
+				data: {
+					products,
+					title: 'Includes 1 Month free trial',
+				}
+			});
+		}
+	} catch (error) {
+		console.log('Error use referral code:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function updateLastActive({ user_id }) {
 	try {
 		const user = await Users.findOne({
@@ -651,6 +717,21 @@ async function checkMatchingUsers(user1, user2) {
 	`;
 }
 
+async function updateExistingUsersReferral() {
+	try {
+		const users = await Users.findAll();
+
+		for (const user of users) {
+			const referralCode = await generateReferralCode(user.full_name);
+			user.referral_id = referralCode;
+			await user.save();
+			console.log(`Updated: ${user.full_name} -> ${referralCode}`);
+		}
+	} catch (error) {
+		console.error('Error updating users:', error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -671,5 +752,8 @@ module.exports = {
 	getShareLink,
 	reapplyProfileReview,
 	updateUserNote,
-	updateLastActive
+	updateLastActive,
+	useReferral,
+	getIapProducts,
+	updateExistingUsersReferral
 };

@@ -9,6 +9,7 @@ const path = require('path');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const matches = require('@controllers/matches');
+const users = require('@controllers/users');
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 const upload = multer({ dest: uploadDir });
@@ -263,6 +264,16 @@ router.post('/add-version', authAdminMiddleware, (request, response, next) => {
 router.get('/matches', authAdminMiddleware, async (request, response, next) => {
 	try {
 		const matches = await admin.getMatches(request.query);
+		return response.json({ ...matches, success: true });
+	} catch (err) {
+		console.log(err);
+		return response.status(500).send(`Error while fetching matches: ${err}`);
+	}
+});
+
+router.get('/update-all-referral-code', authAdminMiddleware, async (request, response, next) => {
+	try {
+		const matches = await users.updateExistingUsersReferral()
 		return response.json({ ...matches, success: true });
 	} catch (err) {
 		console.log(err);
