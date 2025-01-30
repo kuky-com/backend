@@ -14,6 +14,8 @@ const LeadUsers = require('../models/lead_users');
 const { updatePurposes } = require('./interests');
 const { sendWelcomeEmail, sendVerificationEmail } = require('./email');
 const sendbird = require('./sendbird');
+const { Op } = require('sequelize');
+const { generateReferralCode } = require('../utils/utils');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION });
 function generateToken(session_id, user_id) {
@@ -87,12 +89,15 @@ async function signUp({ full_name, email, password }) {
 				}
 			);
 		} else {
+			const referral_code = await generateReferralCode(full_name);
+
 			const user = await Users.create({
 				full_name,
 				email,
 				password: hashedPassword,
 				email_verified: false,
 				login_type: 'email',
+				referral_id: referral_code
 			});
 
 			await updateUserFromLead(email);
@@ -328,11 +333,14 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 		let user = await Users.findOne({ where: { email } });
 
 		if (!user) {
+			const referral_code = await generateReferralCode(full_name);
+
 			user = await Users.create({
 				email,
 				login_type: 'google',
 				email_verified: true,
 				full_name,
+				referral_id: referral_code
 			});
 
 			await updateUserFromLead(email);
@@ -396,11 +404,13 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 
 			if (!user) {
 				if (full_name) {
+					const referral_code = await generateReferralCode(full_name);
 					user = await Users.create({
 						email,
 						login_type: 'apple',
 						email_verified: true,
 						full_name,
+						referral_id: referral_code
 					});
 				} else {
 					return Promise.resolve({

@@ -1,3 +1,5 @@
+const Users = require("../models/users");
+
 function findUnique(arr1, arr2) {
     return [...new Set([...arr1, ...arr2])];
 }
@@ -29,9 +31,29 @@ function formatNamesWithType(objects) {
     }
 }
 
+async function generateReferralCode(fullName) {
+    let normalized = fullName
+        .toLowerCase()
+        // .replace(/[^a-z0-9 ]/g, '')
+        .replace(/\s+/g, '_');
+
+    let baseCode = `${normalized}`;
+    let referralCode = baseCode;
+    let count = 1;
+
+    while (await Users.findOne({ where: { referral_id: referralCode } })) {
+        referralCode = `${baseCode}_${count}`;
+        count++;
+    }
+
+    return referralCode;
+}
+
+
 module.exports = {
     findUnique,
     getRandomElements,
     isStringInteger,
-    formatNamesWithType
+    formatNamesWithType,
+    generateReferralCode
 }
