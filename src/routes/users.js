@@ -643,4 +643,74 @@ router.get('/update-last-active', authMiddleware, (request, response, next) => {
 		});
 });
 
+router.post(
+	'/use-referral',
+	[authMiddleware],
+	(request, response, next) => {
+		const { user_id } = request;
+		const { referral_code } = request.body;
+		
+		if (!user_id || !referral_code) {
+			return response.json({
+				success: false,
+				message: 'Missing required params: user_id, referral_code',
+			});
+		}
+
+		return users
+			.useReferral({
+				user_id,
+				referral_code: referral_code.toLowerCase()
+			})
+			.then(({ data, message }) => {
+				return response.json({
+					success: true,
+					data: data,
+					message: message,
+				});
+			})
+			.catch((error) => {
+				return response.json({
+					success: false,
+					message: `${error}`,
+				});
+			});
+	}
+);
+
+router.post(
+	'/iapProducts',
+	[authMiddleware],
+	(request, response, next) => {
+		const { user_id } = request;
+		const { platform } = request.body;
+		
+		if (!user_id || !platform) {
+			return response.json({
+				success: false,
+				message: 'Missing required params: user_id, platform',
+			});
+		}
+
+		return users
+			.getIapProducts({
+				user_id,
+				platform
+			})
+			.then(({ data, message }) => {
+				return response.json({
+					success: true,
+					data: data,
+					message: message,
+				});
+			})
+			.catch((error) => {
+				return response.json({
+					success: false,
+					message: `${error}`,
+				});
+			});
+	}
+);
+
 module.exports = router;
