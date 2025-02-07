@@ -169,46 +169,53 @@ async function getFriendProfile({ user_id, friend_id }) {
 			return Promise.reject('User not found');
 		}
 
-		const blocked = await BlockedUsers.findOne({
-			where: {
-				[Op.or]: [
-					{
-						user_id: user_id,
-						blocked_id: user.id,
-					},
-					{
-						user_id: user.id,
-						blocked_id: user_id,
-					},
-				],
-			},
-		});
-
-		if (blocked) {
-			return Promise.resolve({
-				message: 'User info retrieved successfully',
-				data: {
-					blocked: true,
-					user: {},
-					match: null,
+		if(user_id) {
+			const blocked = await BlockedUsers.findOne({
+				where: {
+					[Op.or]: [
+						{
+							user_id: user_id,
+							blocked_id: user.id,
+						},
+						{
+							user_id: user.id,
+							blocked_id: user_id,
+						},
+					],
 				},
 			});
+	
+			if (blocked) {
+				return Promise.resolve({
+					message: 'User info retrieved successfully',
+					data: {
+						blocked: true,
+						user: {},
+						match: null,
+					},
+				});
+			}
 		}
+		
 
 		await ProfileViews.create({
 			userId: user.id,
 			viewerId: user_id,
 		});
 
-		const match = await Matches.findOne({
-			where: {
-				[Op.or]: [
-					{ sender_id: user_id, receiver_id: user.id },
-					{ sender_id: user.id, receiver_id: user_id },
-				],
-			},
-			order: [['id', 'desc']],
-		});
+		let match = null
+		
+		if(user_id) {
+			match = await Matches.findOne({
+				where: {
+					[Op.or]: [
+						{ sender_id: user_id, receiver_id: user.id },
+						{ sender_id: user.id, receiver_id: user_id },
+					],
+				},
+				order: [['id', 'desc']],
+			});
+		}
 
 		const reviewsData = await getReviewStats(user.id);
 
