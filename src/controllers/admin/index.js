@@ -16,6 +16,10 @@ const AdminSessions = require('../../models/admin_sessions');
 const AppVersions = require('../../models/versions');
 const Tags = require('../../models/tags');
 const { updateRejectedDateTag } = require('../onesignal');
+const ReferralUsers = require('../../models/referral_users');
+const Messages = require('../../models/messages');
+const { db } = require('../matches');
+const { v4: uuidv4 } = require('uuid');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -561,7 +565,7 @@ async function profileAction({ status, reason, user_id }) {
 						},
 					],
 				});
-				
+
 				for (const purpose of purposes) {
 					const userPs = await UserPurposes.findAll({
 						include: [
@@ -723,6 +727,132 @@ async function getMatches({ page = 1, limit = 20, query = '', status = '' }) {
 	return { rows, count };
 }
 
+async function getReferrals({ page = 1, limit = 20 }) {
+	const offset = (page - 1) * limit;
+	const { rows, count } = await ReferralUsers.findAndCountAll({
+		include: [
+			{
+				model: Users,
+				as: 'referral_user',
+				attributes: ['id', 'full_name', 'email', 'avatar'],
+			},
+			{
+				model: Users,
+				as: 'user',
+				attributes: ['id', 'full_name', 'email', 'avatar'],
+			},
+		],
+		limit: limit,
+		offset: offset,
+		order: [
+			['id', 'DESC'],
+		]
+	});
+
+	return { rows, count }
+}
+
+async function botSendMessage({ conversation_id, last_message }) {
+    try {
+		console.log({conversation_id, last_message})
+        const last_message_date = new Date();
+        // we don't need these anymore because we're keeping the full messages log
+        const updatedMatch = await Matches.update(
+            {
+                last_message,
+                last_message_date,
+                last_message_sender: 0,
+                send_date: last_message_date,
+            },
+            {
+                where: {
+                    conversation_id: conversation_id,
+                },
+            }
+        );
+
+        const messageId = uuidv4();
+        db
+            .collection('conversations')
+            .doc(conversation_id)
+            .collection('messages')
+            .add({
+                _id: messageId,
+                text: last_message,
+                createdAt: new Date(),
+                user: {
+                    _id: 0,
+                    name: 'Kuky Bot',
+                },
+                readBy: [0],
+                type: 'text',
+            });
+
+        await Matches.increment(
+            { messagesCount: 1 },
+            {
+                where: {
+                    conversation_id: conversation_id,
+                },
+            }
+        );
+        await Matches.increment(
+            { bot_messages_count: 1 },
+            {
+                where: {
+                    conversation_id: conversation_id,
+                },
+            }
+        );
+
+        const existMatch = await Matches.findOne({
+            where: {
+                conversation_id: conversation_id,
+            },
+            include: [
+                { model: Users, as: 'sender' },
+                { model: Users, as: 'receiver' },
+            ],
+        });
+
+        await Messages.create({
+            text: last_message,
+            senderId: 0,
+            matchId: existMatch.id,
+            createdAt: last_message_date,
+        });
+
+        try {
+            addNewPushNotification(
+                existMatch.receiver_id,
+                existMatch.toJSON(),
+                null,
+                'message',
+                'Kuky Bot',
+                last_message
+            );
+            addNewPushNotification(
+                existMatch.sender_id,
+                existMatch.toJSON(),
+                null,
+                'message',
+                'Kuky Bot',
+                last_message
+            );
+        } catch (error) {
+            console.log({ error });
+        }
+
+        return Promise.resolve({
+            data: existMatch,
+        });
+    } catch (error) {
+        console.log({ error });
+        return Promise.reject(error);
+    }
+}
+
+
 module.exports = {
 	createLeadUsers,
 	checkSuggestion,
@@ -733,4 +863,6 @@ module.exports = {
 	profileAction,
 	addVersion,
 	getMatches,
+	getReferrals,
+	botSendMessage
 };

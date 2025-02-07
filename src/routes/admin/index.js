@@ -19,6 +19,7 @@ const adminReviews = require('./admin-reviews');
 const adminStats = require('./admin-stats');
 
 const interests = require('@controllers/interests');
+const { botSendMessage } = require('../../controllers/admin');
 
 router.use('/users', authAdminMiddleware, adminUsers);
 router.use('/reviews', authAdminMiddleware, adminReviews);
@@ -206,6 +207,24 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
 		});
 });
 
+router.get('/referrals', authAdminMiddleware, (request, response, next) => {
+	return admin
+		.getReferrals({ ...request.query })
+		.then((data) => {
+			return response.json({
+				success: true,
+				...data,
+			});
+		})
+		.catch((error) => {
+			console.log(error);
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.post('/profile-action', authAdminMiddleware, (request, response, next) => {
 	const { status, user_id } = request.body;
 
@@ -293,6 +312,23 @@ router.get('/matches/:matchId/messages', authAdminMiddleware, async (request, re
 			request.query.pageSize,
 			request.query.nextToken
 		);
+		return response.json({ ...res, success: true });
+	} catch (err) {
+		console.log(err);
+		return response.status(500).send(`Error while fetching matches: ${err}`);
+	}
+});
+
+router.post('/conversations/:conversationId/send-bot-message', authAdminMiddleware, async (request, response, next) => {
+	try {
+		const conversationId = request.params.conversationId;
+		const message = request.body.message;
+
+		if (!message || !conversationId) {
+			return response.status(400).send('Invalid message');
+		}
+
+		const res = await botSendMessage({ conversation_id: conversationId, last_message: message })
 		return response.json({ ...res, success: true });
 	} catch (err) {
 		console.log(err);

@@ -60,7 +60,7 @@ async function updateUserFromLead(email) {
 	}
 }
 
-async function signUp({ full_name, email, password }) {
+async function signUp({ full_name, email, password, referral_code }) {
 	try {
 		const existingUser = await Users.findOne({
 			where: { email, email_verified: true },
@@ -89,7 +89,7 @@ async function signUp({ full_name, email, password }) {
 				}
 			);
 		} else {
-			const referral_code = await generateReferralCode(full_name);
+			const referral_id = await generateReferralCode(full_name);
 
 			const user = await Users.create({
 				full_name,
@@ -97,8 +97,14 @@ async function signUp({ full_name, email, password }) {
 				password: hashedPassword,
 				email_verified: false,
 				login_type: 'email',
-				referral_id: referral_code
+				referral_id: referral_id
 			});
+
+			if (referral_code && referral_code.length > 0) {
+				usersController.useReferral({ user_id: user.id, referral_code })
+					.then(() => { })
+					.catch(() => { });
+			}
 
 			await updateUserFromLead(email);
 		}
@@ -320,7 +326,7 @@ async function login({ email, password, session_token, device_id, platform }) {
 	}
 }
 
-async function googleLogin({ token, session_token, device_id, platform }) {
+async function googleLogin({ token, session_token, device_id, platform, referral_code }) {
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: token,
@@ -333,15 +339,21 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 		let user = await Users.findOne({ where: { email } });
 
 		if (!user) {
-			const referral_code = await generateReferralCode(full_name);
+			const referral_id = await generateReferralCode(full_name);
 
 			user = await Users.create({
 				email,
 				login_type: 'google',
 				email_verified: true,
 				full_name,
-				referral_id: referral_code
+				referral_id: referral_id
 			});
+
+			if (referral_code && referral_code.length > 0) {
+				usersController.useReferral({ user_id: user.id, referral_code })
+					.then(() => { })
+					.catch(() => { });
+			}
 
 			await updateUserFromLead(email);
 
@@ -394,7 +406,7 @@ async function googleLogin({ token, session_token, device_id, platform }) {
 	}
 }
 
-async function appleLogin({ full_name, token, session_token, device_id, platform }) {
+async function appleLogin({ full_name, token, session_token, device_id, platform, referral_code }) {
 	try {
 		const appleIdInfo = await appleSigninAuth.verifyIdToken(token);
 
@@ -404,14 +416,20 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 
 			if (!user) {
 				if (full_name) {
-					const referral_code = await generateReferralCode(full_name);
+					const referral_id = await generateReferralCode(full_name);
 					user = await Users.create({
 						email,
 						login_type: 'apple',
 						email_verified: true,
 						full_name,
-						referral_id: referral_code
+						referral_id: referral_id
 					});
+
+					if (referral_code && referral_code.length > 0) {
+						usersController.useReferral({ user_id: user.id, referral_code })
+							.then(() => { })
+							.catch(() => { });
+					}
 				} else {
 					return Promise.resolve({
 						data: null,

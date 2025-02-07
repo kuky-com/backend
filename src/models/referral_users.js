@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users');
 
 const ReferralUsers = sequelize.define('referral_users', {
   id: {
@@ -35,5 +36,8 @@ const ReferralUsers = sequelize.define('referral_users', {
     defaultValue: DataTypes.NOW,
   },
 });
+
+ReferralUsers.belongsTo(Users, { foreignKey: 'user_id', as: 'user' });
+ReferralUsers.belongsTo(Users, { foreignKey: 'referral_id', as: 'referral_user' });
 
 module.exports = ReferralUsers;

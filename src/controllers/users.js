@@ -449,7 +449,7 @@ async function useReferral({ user_id, referral_code }) {
 		});
 
 		if (!user) {
-			return Promise.reject('User not found');
+			return Promise.reject('Referral code not found');
 		}
 
 		await ReferralUsers.create({
