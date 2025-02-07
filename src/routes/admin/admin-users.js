@@ -8,7 +8,7 @@ const {
 	deleteInterest,
 	createUserPurpose,
 } = require('../../controllers/interests');
-const { updateUserNote } = require('@controllers/users');
+const { updateUserNote, updateProfile } = require('@controllers/users');
 const router = express.Router();
 const { Sequelize } = require('sequelize');
 
@@ -35,6 +35,18 @@ router.put('/:userId/note', async (request, response) => {
 		await updateUserNote({
 			userId: request.params.userId,
 			note: request.body.note,
+		});
+		return response.json({ ok: 'true', success: true });
+	} catch (err) {
+		return response.status(400).json({ message: err.message, success: false });
+	}
+});
+
+router.put('/:userId/profile', async (request, response) => {
+	try {
+		await updateProfile({
+			user_id: request.params.userId,
+			...request.body,
 		});
 		return response.json({ ok: 'true', success: true });
 	} catch (err) {
