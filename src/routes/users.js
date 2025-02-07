@@ -2,6 +2,7 @@ const express = require('express');
 const users = require('@controllers/users');
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware');
+const optionAuthMiddleware= require('../milddleware/optionAuthMiddleware');
 const { blockedUserMiddleware } = require('../milddleware/blockedUserMiddleware');
 const interests = require('@controllers/interests');
 
@@ -87,11 +88,11 @@ router.get('/user-info', authMiddleware, (request, response, next) => {
 		});
 });
 
-router.post('/friend-info', authMiddleware, (request, response, next) => {
+router.post('/friend-info', optionAuthMiddleware, (request, response, next) => {
 	const { user_id } = request;
 	const { friend_id } = request.body;
 
-	if (!user_id || !friend_id) {
+	if (!friend_id) {
 		return response.json({
 			success: false,
 			message: 'Missing required params: user_id, friend_id',
