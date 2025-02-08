@@ -198,10 +198,12 @@ async function getFriendProfile({ user_id, friend_id }) {
 		}
 		
 
-		await ProfileViews.create({
-			userId: user.id,
-			viewerId: user_id,
-		});
+		if(user_id) {
+			await ProfileViews.create({
+				userId: user.id,
+				viewerId: user_id,
+			});
+		}
 
 		let match = null
 		
