@@ -173,6 +173,38 @@ Users.addScope('withPassword', {
 	},
 });
 
+Users.addScope('withInterestCount', {
+	attributes: {
+		exclude: ['password'],
+		include: [
+			[
+				Sequelize.literal(`(
+                    SELECT CAST(COUNT(*) AS INTEGER)
+                    FROM user_interests AS ui
+                    WHERE ui.user_id = users.id and ui.interest_type = 'like'
+                )`),
+				'likeCount'
+			],
+			[
+				Sequelize.literal(`(
+                    SELECT CAST(COUNT(*) AS INTEGER)
+                    FROM user_interests AS ui
+                    WHERE ui.user_id = users.id and ui.interest_type = 'dislike'
+                )`),
+				'dislikeCount'
+			],
+			[
+				Sequelize.literal(`(
+                    SELECT CAST(COUNT(*) AS INTEGER)
+                    FROM user_purposes AS up
+                    WHERE up.user_id = users.id
+                )`),
+				'purposeCount'
+			]
+		]
+	},
+});
+
 const ReviewUsers = require('./review_users');
 
 Users.hasMany(ReviewUsers, {

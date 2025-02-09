@@ -110,7 +110,7 @@ async function getReviewStats(user_id) {
 
 async function getProfile({ user_id }) {
 	try {
-		const user = await Users.findOne({
+		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
 		});
@@ -169,46 +169,55 @@ async function getFriendProfile({ user_id, friend_id }) {
 			return Promise.reject('User not found');
 		}
 
-		const blocked = await BlockedUsers.findOne({
-			where: {
-				[Op.or]: [
-					{
-						user_id: user_id,
-						blocked_id: user.id,
-					},
-					{
-						user_id: user.id,
-						blocked_id: user_id,
-					},
-				],
-			},
-		});
-
-		if (blocked) {
-			return Promise.resolve({
-				message: 'User info retrieved successfully',
-				data: {
-					blocked: true,
-					user: {},
-					match: null,
+		if(user_id) {
+			const blocked = await BlockedUsers.findOne({
+				where: {
+					[Op.or]: [
+						{
+							user_id: user_id,
+							blocked_id: user.id,
+						},
+						{
+							user_id: user.id,
+							blocked_id: user_id,
+						},
+					],
 				},
+			});
+	
+			if (blocked) {
+				return Promise.resolve({
+					message: 'User info retrieved successfully',
+					data: {
+						blocked: true,
+						user: {},
+						match: null,
+					},
+				});
+			}
+		}
+		
+
+		if(user_id) {
+			await ProfileViews.create({
+				userId: user.id,
+				viewerId: user_id,
 			});
 		}
 
-		await ProfileViews.create({
-			userId: user.id,
-			viewerId: user_id,
-		});
-
-		const match = await Matches.findOne({
-			where: {
-				[Op.or]: [
-					{ sender_id: user_id, receiver_id: user.id },
-					{ sender_id: user.id, receiver_id: user_id },
-				],
-			},
-			order: [['id', 'desc']],
-		});
+		let match = null
+		
+		if(user_id) {
+			match = await Matches.findOne({
+				where: {
+					[Op.or]: [
+						{ sender_id: user_id, receiver_id: user.id },
+						{ sender_id: user.id, receiver_id: user_id },
+					],
+				},
+				order: [['id', 'desc']],
+			});
+		}
 
 		const reviewsData = await getReviewStats(user.id);
 
@@ -232,7 +241,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 async function getUser(user_id) {
 	try {
-		const user = await Users.findOne({
+		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
@@ -449,7 +458,7 @@ async function useReferral({ user_id, referral_code }) {
 		});
 
 		if (!user) {
-			return Promise.reject('User not found');
+			return Promise.reject('Referral code not found');
 		}
 
 		await ReferralUsers.create({

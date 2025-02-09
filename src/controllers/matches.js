@@ -595,20 +595,32 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 
 		const suggestions = [];
 
-		for (
-			var i = Math.max(page - 1, 0) * limit;
-			i <
-			Math.min(
-				Math.max(page - 1, 0) * limit + limit,
-				matchedUsersWithScores.length
-			);
-			i++
-		) {
-			const rawuser = matchedUsersWithScores[i];
-			const userInfo = await getProfile({ user_id: rawuser.user_id });
+		//if there is no match profile then return sample profiles
+		if(matchedUsersWithScores.length > 0) {
+			for (
+				var i = Math.max(page - 1, 0) * limit;
+				i <
+				Math.min(
+					Math.max(page - 1, 0) * limit + limit,
+					matchedUsersWithScores.length
+				);
+				i++
+			) {
+				const rawuser = matchedUsersWithScores[i];
+				const userInfo = await getProfile({ user_id: rawuser.user_id });
+	
+				suggestions.push(userInfo.data);
+			}
+		} else {
+			const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
 
-			suggestions.push(userInfo.data);
+			for (const rawuser of randomSampleUsers) {
+				const userInfo = await getProfile({ user_id: rawuser });
+
+				suggestions.push(userInfo.data);
+			}
 		}
+		
 		// for (const rawuser of matchedUsersWithScores) {
 		//     if (suggestions.length > 20) {
 		//         break
