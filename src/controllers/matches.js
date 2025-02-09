@@ -596,7 +596,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 		const suggestions = [];
 
 		//if there is no match profile then return sample profiles
-		if(matchedUsersWithScores.length === 0) {
+		if(matchedUsersWithScores.length > 0) {
 			for (
 				var i = Math.max(page - 1, 0) * limit;
 				i <

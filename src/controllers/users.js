@@ -241,7 +241,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 async function getUser(user_id) {
 	try {
-		const user = await Users.findOne({
+		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
