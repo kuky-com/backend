@@ -240,7 +240,7 @@ router.get('/normalize-purposes', (request, response, next) => {
 })
 
 router.post('/wordlist-validation', (request, response, next) => {
-    const {words} = request.body
+    const { words } = request.body
 
     if (!words) {
         return response.json({
@@ -249,7 +249,7 @@ router.post('/wordlist-validation', (request, response, next) => {
         })
     }
 
-    return interests.wordlistValidation({words}).then(({ data, message }) => {
+    return interests.wordlistValidation({ words }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -278,6 +278,69 @@ router.get('/force-update-all-tags', (request, response, next) => {
                 message: `${error}`
             })
         })
+})
+
+router.get('/all-purposes', (request, response, next) => {
+    return response.json({
+        success: true,
+        data: [
+            'Find support for anxiety',
+            'Cope with depression',
+            'Build confidence',
+            'Navigate a divorce or breakup',
+            'Overcome grief or loss',
+            'Manage stress better',
+            'Create healthier habits',
+            'Improve work-life balance',
+            'Learn mindfulness techniques',
+            'Connect with others facing similar challenges',
+        ]
+    })
+})
+
+router.get('/all-likes', (request, response, next) => {
+    return response.json({
+        success: true,
+        data: [
+            'Reading',
+            'Writing or journaling',
+            'Painting or drawing',
+            'Cooking or baking',
+            'Playing musical instruments',
+            'Listening to music',
+            'Watching movies or TV shows',
+            'Hiking or nature walks',
+            'Gardening',
+            'Fitness or working out',
+            'Yoga or meditation',
+            'Gaming',
+            'Traveling',
+            'Photography',
+            'Crafting or DIY projects',
+            'Dancing'
+        ]
+    })
+})
+
+router.get('/all-dislikes', (request, response, next) => {
+    return response.json({
+        success: true,
+        data: [
+            'Crowded places',
+            'Loud noises',
+            'Socializing with strangers',
+            'Conflict or arguments',
+            'Public speaking',
+            'Unstructured routines',
+            'Being alone for extended periods',
+            'Lack of support',
+            'Feeling judged',
+            'Overwhelming tasks',
+            'Poor communication',
+            'Toxic relationships',
+            'Excessive screen time',
+        ]
+    })
 })
 
 module.exports = router;
