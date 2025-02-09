@@ -110,7 +110,7 @@ async function getReviewStats(user_id) {
 
 async function getProfile({ user_id }) {
 	try {
-		const user = await Users.findOne({
+		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
 		});
