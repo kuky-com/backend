@@ -419,11 +419,11 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 
 		const relevanceScore = Sequelize.literal(`
             CASE
-                WHEN users.id =  ${isNumericQuery ? Number.parseInt(query) : -1} THEN 3
-                WHEN email LIKE '%${query}%' THEN 2
-                WHEN full_name LIKE '%${query}%' THEN 1
-                ELSE 0
-            END
+				WHEN users.id = ${isNumericQuery ? Number.parseInt(query) : -1} THEN 3
+				WHEN LOWER(email) LIKE LOWER('%${query}%') THEN 2
+				WHEN LOWER(full_name) LIKE LOWER('%${query}%') THEN 1
+				ELSE 0
+			END
         `);
 
 		if (profileStatus === '') {
