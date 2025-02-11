@@ -356,6 +356,7 @@ async function updateMatchDateTag(userId, last_date) {
 async function updateRejectedDateTag(userId, status) {
 	const user = await getOnesignalUser(userId);
 	const tagKey = `${process.env.NODE_ENV}_last_rejected_date`;
+	const statusTagKey = `${process.env.NODE_ENV}_current_status`;
 
 	console.log({ user })
 
@@ -371,6 +372,7 @@ async function updateRejectedDateTag(userId, status) {
 			tags[tagKey] = '';
 		}
 
+		tags[statusTagKey] = status
 		user.properties.tags = tags
 	} catch (error) {
 		console.log({ error })
