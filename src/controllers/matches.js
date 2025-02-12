@@ -1357,9 +1357,13 @@ async function getSampleExplore() {
 		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
 
 		for (const rawuser of randomSampleUsers) {
-			const userInfo = await getProfile({ user_id: rawuser });
+			try {
+				const userInfo = await getProfile({ user_id: rawuser });
 
 			suggestions.push(userInfo.data);
+			} catch (error) {
+				
+			}
 		}
 
 		return Promise.resolve({
