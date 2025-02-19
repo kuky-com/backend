@@ -16,23 +16,29 @@ function authAdminMiddleware(req, res, next) {
 				.status(403)
 				.json({ message: 'Invalid token' });
 
-		const session = await AdminSessions.findOne({
-			where: {
-				admin_id: decodedToken.admin_id,
-				id: decodedToken.session_id,
-				logout_date: {
-					[Op.eq]: null,
+		try {
+			const session = await AdminSessions.findOne({
+				where: {
+					admin_id: decodedToken.admin_id,
+					id: decodedToken.session_id,
+					logout_date: {
+						[Op.eq]: null,
+					},
 				},
-			},
-			raw: true,
-		});
+				raw: true,
+			});
 
-		if (session && session.id) {
-			req.session_id = decodedToken.session_id;
-			req.admin_id = decodedToken.admin_id;
+			if (session && session.id) {
+				req.session_id = decodedToken.session_id;
+				req.admin_id = decodedToken.admin_id;
 
-			next();
-		} else {
+				next();
+			} else {
+				return res
+					.status(403)
+					.json({ message: 'Invalid token' });
+			}
+		} catch (error) {
 			return res
 				.status(403)
 				.json({ message: 'Invalid token' });
