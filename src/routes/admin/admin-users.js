@@ -7,6 +7,7 @@ const {
 	createUserInterest,
 	deleteInterest,
 	createUserPurpose,
+	updateProfileTag,
 } = require('../../controllers/interests');
 const { updateUserNote, updateProfile } = require('@controllers/users');
 const router = express.Router();
@@ -49,6 +50,17 @@ router.put('/:userId/profile', async (request, response) => {
 			...request.body,
 		});
 		return response.json({ ok: 'true', success: true });
+	} catch (err) {
+		return response.status(400).json({ message: err.message, success: false });
+	}
+});
+
+router.get('/:userId/tags', async (request, response) => {
+	try {
+		const res = await updateProfileTag({
+			user_id: request.params.userId
+		});
+		return response.json({ ok: 'true', data: res.data, success: true });
 	} catch (err) {
 		return response.status(400).json({ message: err.message, success: false });
 	}

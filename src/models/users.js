@@ -155,6 +155,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	user_note: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 });
 
 module.exports = Users;

@@ -48,6 +48,8 @@ async function updateProfile({
 		// if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
 		// if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
 
+		console.log({updates, user_id})
+
 		const updatedUser = await Users.update(updates, {
 			where: { id: user_id },
 			returning: true,
@@ -208,7 +210,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 		let match = null
 		
 		if(user_id) {
-			match = await Matches.findOne({
+			match = await Matches.scope({ method: ['withIsFree', user_id] }).findOne({
 				where: {
 					[Op.or]: [
 						{ sender_id: user_id, receiver_id: user.id },
