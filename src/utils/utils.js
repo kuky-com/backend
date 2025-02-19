@@ -33,9 +33,15 @@ function formatNamesWithType(objects) {
 
 async function generateReferralCode(fullName) {
     let normalized = fullName
-        .toLowerCase()
-        // .replace(/[^a-z0-9 ]/g, '')
-        .replace(/\s+/g, '_');
+                    .normalize("NFD") // Decomposes accents (e.g., "é" -> "é")
+                    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .replace(/\s+/g, "_") // Replace spaces with underscores
+                    .replace(/[^a-zA-Z0-9_]/g, "") // Remove special characters
+                    .toLowerCase();
+
+    if(normalized === '_' || normalized === '__' || normalized === '___' || normalized === '____' || normalized === '_____' || normalized === '______' || normalized === '_______') {
+        normalized = 'kuky'
+    }
 
     let baseCode = `${normalized}`;
     let referralCode = baseCode;

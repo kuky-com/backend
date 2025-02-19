@@ -48,7 +48,7 @@ async function sendEmail(toAddress, subject, templateName, templateData) {
     try {
         const command = new SendEmailCommand(params);
         const result = await sesClient.send(command);
-        
+
         console.log(`Email sent! Message ID: ${result.MessageId}`);
         return Promise.resolve(result)
     } catch (error) {
@@ -121,9 +121,43 @@ async function sendVerificationEmail({ to_email, full_name, code }) {
     }
 }
 
+async function sendRejectProfileEmail({ to_email, reasons, to_name }) {
+
+    try {
+        const result = await sendEmail(to_email, '⚠️ Your Kuky App Account Review Update', 'profile_rejected', { to_email, to_name, reasons })
+
+        if (!result) {
+            return Promise.reject('Error sending connection request email')
+        } else {
+            return Promise.resolve({ message: 'Connection request email sent' })
+        }
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
+async function sendApproveProfileEmail({ to_email, to_name}) {
+
+    try {
+        const result = await sendEmail(to_email, 'Your profile has been approved!', 'profile_approved', { to_email, to_name })
+
+        if (!result) {
+            return Promise.reject('Error sending connection request email')
+        } else {
+            return Promise.resolve({ message: 'Connection request email sent' })
+        }
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     sendSuggestEmail,
     sendRequestEmail,
     sendWelcomeEmail,
     sendVerificationEmail,
+    sendApproveProfileEmail,
+    sendRejectProfileEmail
 }

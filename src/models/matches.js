@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Sequelize } = require('sequelize');
 const sequelize = require('@/config/database');
 const Users = require('./users');
 
@@ -71,5 +71,52 @@ const Matches = sequelize.define('matches', {
 
 Matches.belongsTo(Users, { foreignKey: 'sender_id', as: 'sender' });
 Matches.belongsTo(Users, { foreignKey: 'receiver_id', as: 'receiver' });
+
+Matches.addScope('withIsFree', (user_id) => ({
+    attributes: {
+        include: [
+            [
+                Sequelize.literal(`(
+                    SELECT CASE
+                        WHEN "matches"."messagesCount" <= 1 THEN
+                            CASE
+                                WHEN "matches"."id" IN (
+                                    SELECT "id" FROM (
+                                        SELECT "id" FROM "matches"
+                                        WHERE ("sender_id" = ${user_id} OR "receiver_id" = ${user_id})
+                                        AND "messagesCount" >= 2
+                                        ORDER BY "sent_date" ASC
+                                        LIMIT 3
+                                    ) AS "first_three_matches"
+                                ) THEN TRUE
+                                ELSE FALSE
+                            END
+                        ELSE
+                            CASE
+                                WHEN "matches"."id" IN (
+                                    SELECT "id" FROM (
+                                        SELECT "id" FROM "matches"
+                                        WHERE ("sender_id" = ${user_id} OR "receiver_id" = ${user_id})
+                                        AND "messagesCount" >= 2
+                                        ORDER BY "sent_date" ASC
+                                        LIMIT 3
+                                    ) AS "first_three_matches"
+                                ) THEN TRUE
+                                ELSE FALSE
+                            END
+                    END
+                )`),
+                'is_free'
+            ]
+        ]
+    },
+    where: {
+        [Sequelize.Op.or]: [
+            { sender_id: user_id },
+            { receiver_id: user_id }
+        ]
+    },
+    order: [['sent_date', 'ASC']]
+}));
 
 module.exports = Matches;

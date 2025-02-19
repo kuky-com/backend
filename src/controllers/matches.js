@@ -758,6 +758,65 @@ async function getExploreList({ user_id }) {
 	}
 }
 
+async function getMatchesWithPreminum({ user_id }) {
+	try {
+		const freeCount = await Matches.count({
+			where: {
+				[Op.or]: [
+					{ sender_id: user_id},
+					{ receiver_id: user_id },
+				],
+				messagesCount: {
+					[Op.gt]: 1,
+				}
+			},
+			order: [['send_date', 'ASC']],
+		});
+
+		const matches = await Matches.scope({ method: ['withIsFree', user_id] }).findAll({
+			where: {
+				[Op.or]: [
+					{ sender_id: user_id, status: 'sent' },
+					{ sender_id: user_id, status: 'accepted' },
+					{ receiver_id: user_id, status: 'sent' },
+					{ receiver_id: user_id, status: 'accepted' },
+				],
+			},
+			include: [
+				{ model: Users, as: 'sender' },
+				{ model: Users, as: 'receiver' },
+			],
+			order: [['last_message_date', 'DESC']],
+		});
+		const finalMatches = [];
+		for (const match of matches) {
+			if (match.get('sender_id') === user_id) {
+				const userInfo = await getProfile({
+					user_id: match.get('receiver_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			} else {
+				const userInfo = await getProfile({
+					user_id: match.get('sender_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Matches list',
+			data: {
+				matches: finalMatches,
+				freeTotal: 3,
+				freeCount: freeCount //Math.min(freeCount, 3),
+			}
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getMatches({ user_id }) {
 	try {
 		const matches = await Matches.findAll({
@@ -1607,5 +1666,6 @@ module.exports = {
 	getMatchById,
 	getSampleExplore,
 	syncMessages,
-	db
+	db,
+	getMatchesWithPreminum
 };

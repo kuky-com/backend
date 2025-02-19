@@ -547,6 +547,7 @@ async function profileAction({ status, reason, user_id }) {
 				'Your profile has been approved',
 				`Your account has been approved, and you’re all set to start connecting on Kuky.`
 			);
+			emailService.sendApproveProfileEmail({ to_email: user.email, to_name: user?.full_name });
 
 			//send notification to all users have same journey with approved user
 			try {
@@ -604,6 +605,7 @@ async function profileAction({ status, reason, user_id }) {
 				'Your profile has been rejected',
 				`Unfortunately, your account couldn’t be approved at this time due to the following reason: ${reason}.`
 			);
+			emailService.sendRejectProfileEmail({ to_email: user.email, to_name: user?.full_name, reasons: reason.split('\n') });
 		}
 
 		return Promise.resolve({
