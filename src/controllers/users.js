@@ -731,7 +731,15 @@ async function checkMatchingUsers(user1, user2) {
 async function updateExistingUsersReferral() {
 	try {
 		const users = await Users.findAll();
+		// Step 1: Set a temporary unique placeholder for all referral_id values
+        for (const user of users) {
+            const tempReferralId = `temp_${user.id}_${Date.now()}`;
+			console.log(`Updated temp: ${user.full_name} -> ${tempReferralId}`);
+			user.referral_id = tempReferralId;
+			await user.save();
+        }
 
+        // Step 2: Generate new referral codes
 		for (const user of users) {
 			const referralCode = await generateReferralCode(user.full_name);
 			user.referral_id = referralCode;
