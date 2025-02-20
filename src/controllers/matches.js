@@ -766,9 +766,6 @@ async function getMatchesWithPreminum({ user_id }) {
 					{ sender_id: user_id},
 					{ receiver_id: user_id },
 				],
-				messagesCount: {
-					[Op.gt]: 1,
-				}
 			},
 			order: [['send_date', 'ASC']],
 		});
