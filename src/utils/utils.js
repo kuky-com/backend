@@ -32,6 +32,9 @@ function formatNamesWithType(objects) {
 }
 
 async function generateReferralCode(fullName) {
+    // Clear all existing referral_id values
+    await Users.update({ referral_id: null }, { where: {} });
+    
     let normalized = fullName
                     .normalize("NFD") // Decomposes accents (e.g., "é" -> "é")
                     .replace(/[\u0300-\u036f]/g, "") // Remove accents

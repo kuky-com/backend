@@ -80,15 +80,12 @@ Matches.addScope('withIsFree', (user_id) => ({
                     SELECT CASE
                         WHEN "matches"."messagesCount" <= 1 THEN
                             CASE
-                                WHEN "matches"."id" IN (
-                                    SELECT "id" FROM (
-                                        SELECT "id" FROM "matches"
-                                        WHERE ("sender_id" = ${user_id} OR "receiver_id" = ${user_id})
-                                        AND "messagesCount" >= 2
-                                        ORDER BY "sent_date" ASC
-                                        LIMIT 3
-                                    ) AS "first_three_matches"
-                                ) THEN TRUE
+                                WHEN (
+                                    SELECT COUNT(*)
+                                    FROM "matches" AS "m"
+                                    WHERE ("m"."sender_id" = ${user_id} OR "m"."receiver_id" = ${user_id})
+                                    AND "m"."messagesCount" >= 2
+                                ) < 3 THEN TRUE
                                 ELSE FALSE
                             END
                         ELSE
