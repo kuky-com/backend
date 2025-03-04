@@ -409,7 +409,7 @@ async function login({ username, password }) {
 	}
 }
 
-async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
+async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVideo }) {
 	try {
 		const offset = (page - 1) * limit;
 
@@ -436,6 +436,30 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 			};
 		}
 
+		const whereClause = {
+            profile_approved: profileStatus.split(','),
+            [Op.or]: [
+                { email: { [Op.like]: `%${query}%` } },
+                {
+                    full_name: {
+                        [Op.like]: `%${query}%`,
+                    },
+                },
+            ].concat(
+                isNumericQuery
+                    ? [
+                        {
+                            id: Number.parseInt(query),
+                        },
+                    ]
+                    : []
+            ),
+        };
+
+        if (hasVideo && hasVideo === '1') {
+            whereClause.video_intro = { [Op.ne]: null };
+        }
+		
 		const users = await Users.findAll({
 			limit: limit,
 			offset: offset,
@@ -443,25 +467,7 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus }) {
 				[relevanceScore, 'DESC'],
 				['id', 'DESC'],
 			],
-			where: {
-				profile_approved: profileStatus.split(','),
-				[Op.or]: [
-					{ email: { [Op.like]: `%${query}%` } },
-					{
-						full_name: {
-							[Op.like]: `%${query}%`,
-						},
-					},
-				].concat(
-					isNumericQuery
-						? [
-							{
-								id: Number.parseInt(query),
-							},
-						]
-						: []
-				),
-			},
+			where: whereClause,
 			include: [
 				{
 					model: Purposes,
@@ -754,6 +760,51 @@ async function getReferrals({ page = 1, limit = 20 }) {
 	return { rows, count }
 }
 
+async function getLandingPageAmbassadorsInfo() {
+    try {
+        const snapshot = await db
+            .collection('landing_page_ambassadors_info')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const ambassadorsInfo = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        return Promise.resolve({
+            data: ambassadorsInfo,
+            message: 'Ambassadors info retrieved successfully',
+        });
+    } catch (error) {
+        console.log('Error retrieving ambassadors info:', error);
+        return Promise.reject('Error retrieving ambassadors info');
+    }
+}
+
+async function getLandingPageContactUs() {
+    try {
+        const snapshot = await db
+            .collection('landing_page_contact_us_info')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const contactsInfo = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        return Promise.resolve({
+            data: contactsInfo,
+            message: 'Contactus info retrieved successfully',
+        });
+    } catch (error) {
+        console.log('Error retrieving ambassadors info:', error);
+        return Promise.reject('Error retrieving ambassadors info');
+    }
+}
+
+
 async function botSendMessage({ conversation_id, last_message }) {
     try {
 		console.log({conversation_id, last_message})
@@ -866,5 +917,7 @@ module.exports = {
 	addVersion,
 	getMatches,
 	getReferrals,
-	botSendMessage
+	botSendMessage,
+	getLandingPageAmbassadorsInfo,
+	getLandingPageContactUs,
 };
