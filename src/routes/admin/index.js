@@ -17,6 +17,7 @@ const upload = multer({ dest: uploadDir });
 const adminUsers = require('./admin-users');
 const adminReviews = require('./admin-reviews');
 const adminStats = require('./admin-stats');
+const adminLandings = require('./admin-landing');
 
 const interests = require('@controllers/interests');
 const { botSendMessage } = require('../../controllers/admin');
@@ -24,6 +25,7 @@ const { botSendMessage } = require('../../controllers/admin');
 router.use('/users', authAdminMiddleware, adminUsers);
 router.use('/reviews', authAdminMiddleware, adminReviews);
 router.use('/stats', authAdminMiddleware, adminStats);
+router.use('/landing', authAdminMiddleware, adminLandings);
 
 router.post('/check-suggestion', authAdminMiddleware, (request, response, next) => {
 	const { to_email, suggest_email } = request.body;
