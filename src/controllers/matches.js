@@ -596,7 +596,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 		const suggestions = [];
 
 		//if there is no match profile then return sample profiles
-		if(matchedUsersWithScores.length > 0) {
+		if (matchedUsersWithScores.length > 0) {
 			for (
 				var i = Math.max(page - 1, 0) * limit;
 				i <
@@ -608,19 +608,21 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 			) {
 				const rawuser = matchedUsersWithScores[i];
 				const userInfo = await getProfile({ user_id: rawuser.user_id });
-	
+
 				suggestions.push(userInfo.data);
 			}
 		} else {
-			const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
+			if (page === 1) {
+				const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
 
-			for (const rawuser of randomSampleUsers) {
-				const userInfo = await getProfile({ user_id: rawuser });
+				for (const rawuser of randomSampleUsers) {
+					const userInfo = await getProfile({ user_id: rawuser });
 
-				suggestions.push(userInfo.data);
+					suggestions.push(userInfo.data);
+				}
 			}
 		}
-		
+
 		// for (const rawuser of matchedUsersWithScores) {
 		//     if (suggestions.length > 20) {
 		//         break
@@ -763,7 +765,7 @@ async function getMatchesWithPreminum({ user_id }) {
 		const freeCount = await Matches.count({
 			where: {
 				[Op.or]: [
-					{ sender_id: user_id},
+					{ sender_id: user_id },
 					{ receiver_id: user_id },
 				],
 			},
@@ -1416,9 +1418,9 @@ async function getSampleExplore() {
 			try {
 				const userInfo = await getProfile({ user_id: rawuser });
 
-			suggestions.push(userInfo.data);
+				suggestions.push(userInfo.data);
 			} catch (error) {
-				
+
 			}
 		}
 
