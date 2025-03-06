@@ -223,6 +223,7 @@ Users.addScope('withInterestCount', {
 });
 
 const ReviewUsers = require('./review_users');
+const UserPurposes = require('./user_purposes');
 
 Users.hasMany(ReviewUsers, {
 	foreignKey: 'user_id',
@@ -233,3 +234,5 @@ Users.hasMany(ReviewUsers, {
 	foreignKey: 'reviewer_id',
 	as: 'givenReviews',
 });
+
+Users.hasMany(UserPurposes, { foreignKey: 'user_id' });

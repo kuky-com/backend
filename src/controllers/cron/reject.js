@@ -3,6 +3,7 @@ const Matches = require("../../models/matches");
 const { addNewPushNotification } = require("../notifications");
 const Users = require("../../models/users");
 const { profileAction } = require("../admin");
+const { default: axios } = require("axios");
 
 const autoRejectProfile = async (req, res) => {
     const pendingUsers = await Users.scope('withInterestCount').findAll({
@@ -58,6 +59,14 @@ const autoRejectProfile = async (req, res) => {
 
         if (!user.video_intro) {
             reasons.push('Missing video intro')
+        } else {
+            const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
+                audio_uri: user.video_intro,
+            })
+
+            if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 10) {
+                reasons.push('Your video is invalid, please reupload better video')
+            }
         }
 
         if (reasons.length > 0) {
@@ -65,7 +74,7 @@ const autoRejectProfile = async (req, res) => {
             try {
                 await profileAction({ status: 'rejected', reason: reasons.join('\n'), user_id: user.id })
             } catch (error) {
-                console.log({error})
+                console.log({ error })
             }
         }
     }

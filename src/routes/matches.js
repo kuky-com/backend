@@ -281,6 +281,36 @@ router.get('/matches-with-preminum', authMiddleware, (request, response, next) =
         })
 })
 
+router.get('/find-matches-by-purpose/:purposeId', authMiddleware, async (request, response, next) => {
+    console.log({request: request.params.purposeId})
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    console.log({user_id, purpose_id: request.params.purposeId})
+
+	return matches
+		.findMatchesByPurpose({ user_id, purpose_id: request.params.purposeId })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.post('/disconnection', authMiddleware, (request, response, next) => {
     const { user_id } = request
     const { matchId } = request.body

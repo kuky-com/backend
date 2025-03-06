@@ -160,6 +160,82 @@ async function matchUsers(targetId, compareIds) {
 	}
 }
 
+async function findMatchesByPurpose({ user_id, purpose_id }) {
+
+	console.log({user_id, purpose_id})
+    try {
+        const blockedUsers = await BlockedUsers.findAll({
+            where: {
+                [Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+            },
+            raw: true,
+        });
+
+        const matchedUsers = await Matches.findAll({
+            where: {
+                [Op.or]: [
+                    {
+                        [Op.or]: [
+                            { sender_id: user_id, status: 'rejected' },
+                            { sender_id: user_id, status: 'accepted' },
+                            { sender_id: user_id, status: 'deleted' },
+                            { receiver_id: user_id, status: 'rejected' },
+                            { receiver_id: user_id, status: 'accepted' },
+                            { receiver_id: user_id, status: 'deleted' },
+                        ],
+                    },
+                    { sender_id: user_id, status: 'sent' },
+                ],
+            },
+            raw: true,
+        });
+
+        const blockedUserIds = blockedUsers.map((item) =>
+            item.user_id === user_id ? item.blocked_id : item.user_id
+        );
+        const matchedUserIds = matchedUsers.map((item) =>
+            item.sender_id === user_id ? item.receiver_id : item.sender_id
+        );
+
+        const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+        const matchingUsers = await Users.findAll({
+            where: {
+                is_active: true,
+                is_hidden_users: false,
+                profile_approved: 'approved',
+                profile_tag: {
+                    [Op.ne]: null,
+                },
+                id: { [Op.notIn]: [user_id, ...avoidUserIds] },
+            },
+            include: [
+                {
+                    model: UserPurposes,
+                    where: { purpose_id: purpose_id },
+                    attributes: [],
+                },
+            ],
+            attributes: ['id', 'profile_tag'],
+            order: [['id', 'DESC']],
+        });
+
+        const suggestions = [];
+        for (const user of matchingUsers) {
+            const userInfo = await getProfile({ user_id: user.id });
+            suggestions.push(userInfo.data);
+        }
+
+        return Promise.resolve({
+            message: 'Matching users list',
+            data: suggestions,
+        });
+    } catch (error) {
+        console.log({ error });
+        return Promise.reject(error);
+    }
+}
+
 async function findLessMatches({ user_id }) {
 	try {
 		const currentUser = await Users.findByPk(user_id);
@@ -817,53 +893,53 @@ async function getMatchesWithPreminum({ user_id }) {
 }
 
 async function getMatches({ user_id }) {
-    try {
-        const matches = await Matches.findAll({
-            where: {
-                [Op.or]: [
-                    { sender_id: user_id, status: 'sent' },
-                    { sender_id: user_id, status: 'accepted' },
-                    { receiver_id: user_id, status: 'sent' },
-                    { receiver_id: user_id, status: 'accepted' },
-                ],
-            },
-            include: [
-                { 
-                    model: Users, 
-                    as: 'sender',
-                    where: { profile_approved: 'approved' },
-                },
-                { 
-                    model: Users, 
-                    as: 'receiver',
-                    where: { profile_approved: 'approved' },
-                },
-            ],
-            order: [['last_message_date', 'DESC']],
-        });
-        const finalMatches = [];
-        for (const match of matches) {
-            if (match.get('sender_id') === user_id) {
-                const userInfo = await getProfile({
-                    user_id: match.get('receiver_id'),
-                });
-                finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
-            } else {
-                const userInfo = await getProfile({
-                    user_id: match.get('sender_id'),
-                });
-                finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
-            }
-        }
+	try {
+		const matches = await Matches.findAll({
+			where: {
+				[Op.or]: [
+					{ sender_id: user_id, status: 'sent' },
+					{ sender_id: user_id, status: 'accepted' },
+					{ receiver_id: user_id, status: 'sent' },
+					{ receiver_id: user_id, status: 'accepted' },
+				],
+			},
+			include: [
+				{
+					model: Users,
+					as: 'sender',
+					where: { profile_approved: 'approved' },
+				},
+				{
+					model: Users,
+					as: 'receiver',
+					where: { profile_approved: 'approved' },
+				},
+			],
+			order: [['last_message_date', 'DESC']],
+		});
+		const finalMatches = [];
+		for (const match of matches) {
+			if (match.get('sender_id') === user_id) {
+				const userInfo = await getProfile({
+					user_id: match.get('receiver_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			} else {
+				const userInfo = await getProfile({
+					user_id: match.get('sender_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			}
+		}
 
-        return Promise.resolve({
-            message: 'Matches list',
-            data: finalMatches,
-        });
-    } catch (error) {
-        console.log({ error });
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			message: 'Matches list',
+			data: finalMatches,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
 }
 
 async function getRecentMatches({ user_id }) {
@@ -927,53 +1003,53 @@ async function getRecentMatches({ user_id }) {
 }
 
 async function getUnverifiedMatches({ user_id }) {
-    try {
-        const matches = await Matches.findAll({
-            where: {
-                [Op.or]: [
-                    { sender_id: user_id, status: 'sent' },
-                    { sender_id: user_id, status: 'accepted' },
-                    { receiver_id: user_id, status: 'sent' },
-                    { receiver_id: user_id, status: 'accepted' },
-                ],
-            },
-            include: [
-                { 
-                    model: Users, 
-                    as: 'sender',
-                    where: { profile_approved: { [Op.ne]: 'approved' } },
-                },
-                { 
-                    model: Users, 
-                    as: 'receiver',
-                    where: { profile_approved: { [Op.ne]: 'approved' } },
-                },
-            ],
-            order: [['last_message_date', 'DESC']],
-        });
-        const finalMatches = [];
-        for (const match of matches) {
-            if (match.get('sender_id') === user_id) {
-                const userInfo = await getProfile({
-                    user_id: match.get('receiver_id'),
-                });
-                finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
-            } else {
-                const userInfo = await getProfile({
-                    user_id: match.get('sender_id'),
-                });
-                finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
-            }
-        }
+	try {
+		const matches = await Matches.findAll({
+			where: {
+				[Op.or]: [
+					{ sender_id: user_id, status: 'sent' },
+					{ sender_id: user_id, status: 'accepted' },
+					{ receiver_id: user_id, status: 'sent' },
+					{ receiver_id: user_id, status: 'accepted' },
+				],
+			},
+			include: [
+				{
+					model: Users,
+					as: 'sender',
+					where: { profile_approved: { [Op.ne]: 'approved' } },
+				},
+				{
+					model: Users,
+					as: 'receiver',
+					where: { profile_approved: { [Op.ne]: 'approved' } },
+				},
+			],
+			order: [['last_message_date', 'DESC']],
+		});
+		const finalMatches = [];
+		for (const match of matches) {
+			if (match.get('sender_id') === user_id) {
+				const userInfo = await getProfile({
+					user_id: match.get('receiver_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			} else {
+				const userInfo = await getProfile({
+					user_id: match.get('sender_id'),
+				});
+				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+			}
+		}
 
-        return Promise.resolve({
-            message: 'Matches list',
-            data: finalMatches,
-        });
-    } catch (error) {
-        console.log({ error });
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			message: 'Matches list',
+			data: finalMatches,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
 }
 
 async function rejectSuggestion({ user_id, friend_id }) {
@@ -1786,5 +1862,6 @@ module.exports = {
 	db,
 	getMatchesWithPreminum,
 	getRecentMatches,
-	getUnverifiedMatches
+	getUnverifiedMatches,
+	findMatchesByPurpose
 };
