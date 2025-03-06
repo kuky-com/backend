@@ -11,6 +11,6 @@ cron.schedule('0 0 * * *', async () => {
     await sendMatchNotification()
 });
 
-cron.schedule('0 * * * *', async () => {
+cron.schedule('0 */3 * * *', async () => {
     await autoRejectProfile()
 });
