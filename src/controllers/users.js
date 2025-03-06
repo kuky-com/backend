@@ -48,13 +48,17 @@ async function updateProfile({
 		// if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
 		// if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
 
-		console.log({updates, user_id})
-
 		const updatedUser = await Users.update(updates, {
 			where: { id: user_id },
 			returning: true,
 			plain: true,
 		});
+
+		if(restParams.video_intro) {
+			updateSubtitle(user_id, restParams.video_intro)
+		} else if (restParams.audio_intro) {
+			updateSubtitle(user_id, restParams.audio_intro)
+		}
 
 		if (updates.avatar || updates.full_name) {
 			const sendbirdPayload = {};
@@ -77,6 +81,24 @@ async function updateProfile({
 	} catch (error) {
 		return Promise.reject(error);
 	}
+}
+
+async function updateSubtitle(user_id, media_url) {
+	const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
+		audio_uri: media_url,
+	})
+
+	if(response && response.data && response.data.s3_url) {
+		await Users.update({ subtitle_intro : response.data.s3_url }, {
+			where: { id: user_id },
+			returning: true,
+			plain: true,
+		});
+	}
+	
+	return Promise.resolve({
+		message: 'Update successfully',
+	});
 }
 
 async function getReviewStats(user_id) {

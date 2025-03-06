@@ -159,6 +159,19 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	audio_intro: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subtitle_intro: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	register_platform: {
+		type: DataTypes.STRING,
+		allowNull: true,
+		defaultValue: 'web'
+	}
 });
 
 module.exports = Users;

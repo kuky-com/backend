@@ -60,7 +60,7 @@ async function updateUserFromLead(email) {
 	}
 }
 
-async function signUp({ full_name, email, password, referral_code }) {
+async function signUp({ full_name, email, password, platform, referral_code }) {
 	try {
 		const existingUser = await Users.findOne({
 			where: { email, email_verified: true },
@@ -81,6 +81,7 @@ async function signUp({ full_name, email, password, referral_code }) {
 					password: hashedPassword,
 					email_verified: false,
 					login_type: 'email',
+					register_platform: platform || 'web'
 				},
 				{
 					where: {
@@ -346,7 +347,8 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 				login_type: 'google',
 				email_verified: true,
 				full_name,
-				referral_id: referral_id
+				referral_id: referral_id,
+				register_platform: platform || 'web'
 			});
 
 			if (referral_code && referral_code.length > 0) {
@@ -422,7 +424,8 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 						login_type: 'apple',
 						email_verified: true,
 						full_name,
-						referral_id: referral_id
+						referral_id: referral_id,
+						register_platform: platform || 'web'
 					});
 
 					if (referral_code && referral_code.length > 0) {
