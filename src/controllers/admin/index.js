@@ -409,7 +409,7 @@ async function login({ username, password }) {
 	}
 }
 
-async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVideo }) {
+async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVideo, platforms }) {
 	try {
 		const offset = (page - 1) * limit;
 
@@ -436,8 +436,19 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 			};
 		}
 
+		if (platforms === '') {
+			return {
+				data: {
+					total: 0,
+					users: [],
+				},
+				message: 'Users list',
+			};
+		}
+
 		const whereClause = {
             profile_approved: profileStatus.split(','),
+			register_platform: platforms.split(','),
             [Op.or]: [
                 { email: { [Op.like]: `%${query}%` } },
                 {
