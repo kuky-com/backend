@@ -447,8 +447,12 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 		}
 
 		const whereClause = {
-            profile_approved: profileStatus.split(','),
-			register_platform: platforms.split(','),
+            profile_approved: {
+				[Op.in]: profileStatus.split(','),
+			},
+			register_platform: {
+				[Op.in]: platforms.split(','),
+			},
             [Op.or]: [
                 { email: { [Op.like]: `%${query}%` } },
                 {
