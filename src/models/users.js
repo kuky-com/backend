@@ -128,6 +128,50 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	audio_purpose: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subtitle_purpose: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_challenge: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	audio_challenge: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subtitle_challenge: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_why: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	audio_why: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subtitle_why: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_interests: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	audio_interests: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subtitle_interests: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	video_purpose_audio: {
 		type: DataTypes.STRING,
 		allowNull: true,
