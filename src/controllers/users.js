@@ -54,34 +54,34 @@ async function updateProfile({
 			plain: true,
 		});
 
-		if(restParams.video_intro) {
-			updateSubtitle(user_id, restParams.video_intro, ['subtitle_intro'])
+		if (restParams.video_intro) {
+			updateSubtitle(user_id, restParams.video_intro, 'subtitle_intro')
 		} else if (restParams.audio_intro) {
-			updateSubtitle(user_id, restParams.audio_intro, ['subtitle_intro'])
+			updateSubtitle(user_id, restParams.audio_intro, 'subtitle_intro')
 		}
 
-		if(restParams.video_purpose) {
-			updateSubtitle(user_id, restParams.video_purpose, ['subtitle_purpose'])
+		if (restParams.video_purpose) {
+			updateSubtitle(user_id, restParams.video_purpose, 'subtitle_purpose')
 		} else if (restParams.audio_purpose) {
-			updateSubtitle(user_id, restParams.audio_purpose, ['subtitle_purpose'])
+			updateSubtitle(user_id, restParams.audio_purpose, 'subtitle_purpose')
 		}
 
-		if(restParams.video_challenge) {
-			updateSubtitle(user_id, restParams.video_challenge, ['subtitle_challenge'])
+		if (restParams.video_challenge) {
+			updateSubtitle(user_id, restParams.video_challenge, 'subtitle_challenge')
 		} else if (restParams.audio_challenge) {
-			updateSubtitle(user_id, restParams.audio_challenge, ['subtitle_challenge'])
+			updateSubtitle(user_id, restParams.audio_challenge, 'subtitle_challenge')
 		}
 
-		if(restParams.video_why) {
-			updateSubtitle(user_id, restParams.video_why, ['subtitle_why'])
+		if (restParams.video_why) {
+			updateSubtitle(user_id, restParams.video_why, 'subtitle_why')
 		} else if (restParams.audio_why) {
-			updateSubtitle(user_id, restParams.audio_why, ['subtitle_why'])
+			updateSubtitle(user_id, restParams.audio_why, 'subtitle_why')
 		}
 
-		if(restParams.video_interests) {
-			updateSubtitle(user_id, restParams.video_interests, ['subtitle_interests'])
+		if (restParams.video_interests) {
+			updateSubtitle(user_id, restParams.video_interests, 'subtitle_interests')
 		} else if (restParams.audio_interests) {
-			updateSubtitle(user_id, restParams.audio_interests, ['subtitle_interests'])
+			updateSubtitle(user_id, restParams.audio_interests, 'subtitle_interests')
 		}
 
 		if (updates.avatar || updates.full_name) {
@@ -110,16 +110,17 @@ async function updateProfile({
 async function updateSubtitle(user_id, media_url, type) {
 	const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
 		audio_uri: media_url,
+		type: type
 	})
 
-	if(response && response.data && response.data.s3_url) {
-		await Users.update({ [type] : response.data.s3_url }, {
+	if (response && response.data && response.data.s3_url) {
+		await Users.update({ [type]: response.data.s3_url }, {
 			where: { id: user_id },
 			returning: true,
 			plain: true,
 		});
 	}
-	
+
 	return Promise.resolve({
 		message: 'Update successfully',
 	});
@@ -155,6 +156,40 @@ async function getReviewStats(user_id) {
 		avgRating: data?.avgRating || 0,
 	};
 }
+
+async function getSimpleProfile({ user_id }) {
+	try {
+		try {
+			const user = await Users.scope('withInterestCount').findOne({
+				where: { id: user_id },
+				include: [{ model: Tags }],
+				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday']
+			});
+	
+			if (!user) {
+				return Promise.reject('User not found');
+			}
+	
+			const reviewsData = await getReviewStats(user_id);
+	
+			return Promise.resolve({
+				message: 'User info retrieved successfully',
+				data: {
+					...user.toJSON(),
+					reviewsCount: reviewsData.reviewsCount,
+					avgRating: reviewsData.avgRating,
+				},
+			});
+		} catch (error) {
+			console.log('Error fetching user info:', error);
+			return Promise.reject(error);
+		}
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
+}
+
 
 async function getProfile({ user_id }) {
 	try {
@@ -217,7 +252,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 			return Promise.reject('User not found');
 		}
 
-		if(user_id) {
+		if (user_id) {
 			const blocked = await BlockedUsers.findOne({
 				where: {
 					[Op.or]: [
@@ -232,7 +267,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 					],
 				},
 			});
-	
+
 			if (blocked) {
 				return Promise.resolve({
 					message: 'User info retrieved successfully',
@@ -244,9 +279,9 @@ async function getFriendProfile({ user_id, friend_id }) {
 				});
 			}
 		}
-		
 
-		if(user_id) {
+
+		if (user_id) {
 			await ProfileViews.create({
 				userId: user.id,
 				viewerId: user_id,
@@ -254,8 +289,8 @@ async function getFriendProfile({ user_id, friend_id }) {
 		}
 
 		let match = null
-		
-		if(user_id) {
+
+		if (user_id) {
 			match = await Matches.scope({ method: ['withIsFree', user_id] }).findOne({
 				where: {
 					[Op.or]: [
@@ -778,14 +813,14 @@ async function updateExistingUsersReferral() {
 	try {
 		const users = await Users.findAll();
 		// Step 1: Set a temporary unique placeholder for all referral_id values
-        for (const user of users) {
-            const tempReferralId = `temp_${user.id}_${Date.now()}`;
+		for (const user of users) {
+			const tempReferralId = `temp_${user.id}_${Date.now()}`;
 			console.log(`Updated temp: ${user.full_name} -> ${tempReferralId}`);
 			user.referral_id = tempReferralId;
 			await user.save();
-        }
+		}
 
-        // Step 2: Generate new referral codes
+		// Step 2: Generate new referral codes
 		for (const user of users) {
 			const referralCode = await generateReferralCode(user.full_name);
 			user.referral_id = referralCode;
@@ -820,5 +855,6 @@ module.exports = {
 	updateLastActive,
 	useReferral,
 	getIapProducts,
-	updateExistingUsersReferral
+	updateExistingUsersReferral,
+	getSimpleProfile
 };

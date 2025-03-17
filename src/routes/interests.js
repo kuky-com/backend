@@ -343,4 +343,36 @@ router.get('/all-dislikes', (request, response, next) => {
     })
 })
 
+router.get('/all-tags', (request, response, next) => {
+    return interests.getAllTags().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/journey-list', (request, response, next) => {
+    return interests.getValidJourneys().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;
