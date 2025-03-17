@@ -421,4 +421,22 @@ router.get('/sample-explore', (request, response, next) => {
         })
 })
 
+router.get('/search-by-journey', async (request, response, next) => {
+	return matches
+		.searchByJourney({ ...request.query })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 module.exports = router;

@@ -13,6 +13,7 @@ const {
 	addBatchNotifications,
 	getProfileTagFilter,
 } = require('./onesignal');
+const sequelize = require('../config/database');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -197,7 +198,7 @@ async function updatePurposes({ user_id, purposes }) {
 				if (!currentPurposeIds.includes(purpose_id)) {
 					try {
 						await UserPurposes.create({ user_id, purpose_id });
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -302,7 +303,7 @@ async function updateLikes({ user_id, likes }) {
 							interest_type: 'like',
 							interest_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -397,7 +398,7 @@ async function updateDislikes({ user_id, dislikes }) {
 							interest_type: 'dislike',
 							interest_id,
 						});
-					} catch (error) {}
+					} catch (error) { }
 				}
 			})
 		);
@@ -565,9 +566,8 @@ async function normalizePurposes(purposeId) {
 		for (let purpose of purposes) {
 			const prompt = `Classify the following purpose into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${
-				purpose.name
-			}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nPurpose: ${purpose.name
+				}\nCategory:`;
 
 			// console.log({prompt})
 			const response = await openai.completions.create({
@@ -653,9 +653,8 @@ async function normalizeInterests(interestId) {
 		for (let interest of interests) {
 			const prompt = `Classify the following interest into a more specific predefined category, such as '${categoryNames.join(
 				"', '"
-			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${
-				interest.name
-			}\nCategory:`;
+			)}'. Be specific and assign the purpose to the closest, most relevant category, only show category in the given list, only return if purpose word or phase is in English.\n\nInterest: ${interest.name
+				}\nCategory:`;
 
 			const response = await openai.completions.create({
 				model: 'gpt-3.5-turbo-instruct',
@@ -1023,37 +1022,37 @@ async function checkPurposeMatch(user1, user2) {
 }, ...]
 		`;
 
-	const messages = [];
+		const messages = [];
 
-	if (user1.purposes.length === 0 || user2.purposes.length === 0) {
-		return [];
-	}
+		if (user1.purposes.length === 0 || user2.purposes.length === 0) {
+			return [];
+		}
 
-	for (let purpose of user1.purposes) {
-		for (let purpose2 of user2.purposes) {
-			console.log(purpose, purpose2);
-			messages.push(`
+		for (let purpose of user1.purposes) {
+			for (let purpose2 of user2.purposes) {
+				console.log(purpose, purpose2);
+				messages.push(`
 				 Item1 : ${purpose.name}
 				 Item2: ${purpose2.name}
 				 
 				 ------
 				 `);
+			}
 		}
-	}
 
-	const response = await openai.chat.completions.create({
-		model: 'gpt-4o',
+		const response = await openai.chat.completions.create({
+			model: 'gpt-4o',
 
-		messages: [
-			{ content: context, role: 'system' },
-			{ content: messages.join(), role: 'user' },
-		],
-	});
+			messages: [
+				{ content: context, role: 'system' },
+				{ content: messages.join(), role: 'user' },
+			],
+		});
 
-	const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
+		const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
 
 
-	return result.filter((r) => r.match > 0).sort((a, b) => b.match - a.match);
+		return result.filter((r) => r.match > 0).sort((a, b) => b.match - a.match);
 	} catch (error) {
 		return []
 	}
@@ -1101,54 +1100,54 @@ async function checkInterestMatch(user1, user2) {
 }, ...]
 		`;
 
-	const messages = [];
+		const messages = [];
 
-	for (let like of user1.likes) {
-		for (let like2 of user2.likes) {
-			messages.push(`
+		for (let like of user1.likes) {
+			for (let like2 of user2.likes) {
+				messages.push(`
 				 Tag: "like"
 				 Item1 : ${like.name}
 				 Item2: ${like2.name}
 				 
 				 ------
 				 `);
+			}
 		}
-	}
 
-	for (let dislike of user1.dislikes) {
-		for (let dislike2 of user2.dislikes) {
-			messages.push(`
+		for (let dislike of user1.dislikes) {
+			for (let dislike2 of user2.dislikes) {
+				messages.push(`
 				 Tag: "dislike"
 				 Item1 : ${dislike.name}
 				 Item2: ${dislike2.name}
 				 
 				 ------
 				 `);
+			}
 		}
-	}
 
-	if (messages.length === 0) {
-		return [];
-	}
-	const response = await openai.chat.completions.create({
-		model: 'gpt-4o',
+		if (messages.length === 0) {
+			return [];
+		}
+		const response = await openai.chat.completions.create({
+			model: 'gpt-4o',
 
-		messages: [
-			{ content: context, role: 'system' },
-			{ content: messages.join(), role: 'user' },
-		],
-	});
+			messages: [
+				{ content: context, role: 'system' },
+				{ content: messages.join(), role: 'user' },
+			],
+		});
 
-	const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
+		const result = JSON.parse(response.choices[0].message.content.trim().replace(/\n/g, '').replace(/\t/g, '').replace(/```json/g, '').replace(/```/g, ''));
 
-	return result
-		.sort((a, b) => b.match - a.match)
-		.filter((m) => m.match > 0)
-		.filter(
-			(item, index, self) =>
-				index ===
-				self.findIndex((t) => t.type === item.type && t.tag === item.tag)
-		);
+		return result
+			.sort((a, b) => b.match - a.match)
+			.filter((m) => m.match > 0)
+			.filter(
+				(item, index, self) =>
+					index ===
+					self.findIndex((t) => t.type === item.type && t.tag === item.tag)
+			);
 	} catch (error) {
 		return []
 	}
@@ -1178,6 +1177,56 @@ async function forceUpdateProfileTags() {
 	});
 }
 
+async function getAllTags() {
+	const tags = await Tags.findAll({
+		attributes: ['id', 'name'],
+	});
+
+	return Promise.resolve({
+		message: 'All journey tags!',
+		data: tags,
+	});
+}
+
+async function getValidJourneys() {
+    try {
+        const query = `
+            SELECT 
+                p.id,
+                p.name,
+                COUNT(up.id) AS usage_count
+            FROM 
+                purposes p
+            JOIN 
+                user_purposes up ON p.id = up.purpose_id
+            JOIN 
+                users u ON up.user_id = u.id
+            WHERE 
+                u.profile_approved = 'approved'
+            GROUP BY 
+                p.id
+            HAVING 
+                COUNT(up.id) >= 3
+            ORDER BY 
+                usage_count DESC;
+        `;
+
+        const results = await sequelize.query(query, {
+            type: Sequelize.QueryTypes.SELECT,
+        });
+
+        console.log({ results });
+
+        return Promise.resolve({
+            message: 'Purposes retrieved successfully!',
+            data: results,
+        });
+    } catch (error) {
+        console.log('Error retrieving purposes:', error);
+        return Promise.reject(error);
+    }
+}
+
 module.exports = {
 	getPurposes,
 	getLikes,
@@ -1197,4 +1246,6 @@ module.exports = {
 	checkPurposeMatch,
 	checkInterestMatch,
 	forceUpdateProfileTags,
+	getAllTags,
+	getValidJourneys
 };

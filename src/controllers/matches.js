@@ -21,7 +21,7 @@ const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
 
 // var serviceAccount = require("../config/serviceAccountKey.json");
-const { getProfile } = require('./users');
+const { getProfile, getSimpleProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
@@ -29,6 +29,7 @@ const { sendRequestEmail } = require('./email');
 const Messages = require('../models/messages');
 const { addMatchTagOnesignal, updateMatchDateTag } = require('./onesignal');
 const dayjs = require('dayjs');
+const { raw } = require('body-parser');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -1842,6 +1843,53 @@ async function getLastestUnanswerMatch(userId) {
 	return result[0].sent_date;
 }
 
+async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
+    try {
+        if (!journey_id) {
+            return Promise.reject('Journey id is required');
+        }
+
+        const suggestions = [];
+
+        const filterUsers = await Users.findAll({
+            where: {
+                is_active: true,
+                is_hidden_users: false,
+                profile_approved: 'approved',
+                profile_tag: {
+                    [Op.ne]: null,
+                },
+            },
+            include: [
+                {
+                    model: UserPurposes,
+                    as: 'user_purposes',
+                    where: { purpose_id: journey_id },
+                    attributes: [],
+                },
+            ],
+            attributes: ['id', 'profile_tag'],
+            limit: limit,
+            offset: offset,
+            order: [['id', 'DESC']],
+            raw: true,
+        });
+
+        for (const rawuser of filterUsers) {
+            const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+            suggestions.push(userInfo.data);
+        }
+
+        return Promise.resolve({
+            message: 'Search by journey',
+            data: suggestions,
+        });
+    } catch (error) {
+        console.log({ error });
+        return Promise.reject(error);
+    }
+}
+
 module.exports = findBestMatches;
 
 module.exports = {
@@ -1863,5 +1911,6 @@ module.exports = {
 	getMatchesWithPreminum,
 	getRecentMatches,
 	getUnverifiedMatches,
-	findMatchesByPurpose
+	findMatchesByPurpose,
+	searchByJourney
 };
