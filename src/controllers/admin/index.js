@@ -448,18 +448,18 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 
 		const whereClause = {
             profile_approved: {
-				[Op.in]: profileStatus.split(','),
-			},
-			register_platform: {
-				[Op.in]: platforms.split(','),
-			},
+                [Op.in]: profileStatus.split(','),
+            },
+            register_platform: {
+                [Op.in]: platforms.split(','),
+            },
             [Op.or]: [
-                { email: { [Op.like]: `%${query}%` } },
-                {
-                    full_name: {
-                        [Op.like]: `%${query}%`,
-                    },
-                },
+                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), {
+                    [Op.like]: `%${query.toLowerCase()}%`
+                }),
+                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('full_name')), {
+                    [Op.like]: `%${query.toLowerCase()}%`
+                }),
             ].concat(
                 isNumericQuery
                     ? [
