@@ -1202,7 +1202,7 @@ async function getValidJourneys() {
             JOIN 
                 users u ON up.user_id = u.id
             WHERE 
-                u.profile_approved = 'approved'
+                u.profile_approved = 'approved' and u.profile_tag is not null and is_active = TRUE and is_hidden_users = FALSE
             GROUP BY 
                 p.id
             HAVING 
