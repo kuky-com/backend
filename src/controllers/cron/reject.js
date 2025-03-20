@@ -4,6 +4,7 @@ const { addNewPushNotification } = require("../notifications");
 const Users = require("../../models/users");
 const { profileAction } = require("../admin");
 const { default: axios } = require("axios");
+const { scanImage } = require("../users");
 
 const autoRejectProfile = async (req, res) => {
     const pendingUsers = await Users.scope('withInterestCount').findAll({
@@ -37,10 +38,6 @@ const autoRejectProfile = async (req, res) => {
             reasons.push('Missing purpose/journey')
         }
 
-        if (!user.avatar) {
-            reasons.push('Missing profile picture')
-        }
-
         if (!user.location) {
             reasons.push('Missing location address')
         }
@@ -57,15 +54,21 @@ const autoRejectProfile = async (req, res) => {
             reasons.push('Missing gender')
         }
 
-        if (!user.video_intro) {
-            reasons.push('Missing video intro')
+        if (!user.avatar) {
+            reasons.push('Missing profile picture')
         } else {
-            const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
-                audio_uri: user.video_intro,
-            })
+            const avatarData = await scanImage({image: user.avatar})
+            const avatarDataLabels = avatarData.data
 
-            if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 10) {
-                reasons.push('Your video is invalid, please reupload better video')
+
+            if (avatarDataLabels.length > 0 &&
+                (avatarDataLabels.includes('Sexual') || avatarDataLabels.includes('Nudity') 
+            ||  avatarDataLabels.includes('Suggestive') || avatarDataLabels.includes('Adult')
+            ||  avatarDataLabels.includes('Violence') || avatarDataLabels.includes('Hate')
+            ||  avatarDataLabels.includes('Drugs') || avatarDataLabels.includes('Alcohol')
+            ||  avatarDataLabels.includes('Weapons') || avatarDataLabels.includes('Spam')
+            ||  avatarDataLabels.includes('Scam') || avatarDataLabels.includes('Fake'))){
+                reasons.push('Profile picture contains inappropriate content')
             }
         }
 

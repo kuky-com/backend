@@ -26,6 +26,10 @@ const { isStringInteger, generateReferralCode } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
 const { updateRejectedDateTag } = require('./onesignal');
 
+
+const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
+const { rekognitionClient } = require('../config/rekognitionClient');
+
 async function updateProfile({
 	user_id,
 	full_name,
@@ -165,13 +169,13 @@ async function getSimpleProfile({ user_id }) {
 				include: [{ model: Tags }],
 				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday']
 			});
-	
+
 			if (!user) {
 				return Promise.reject('User not found');
 			}
-	
+
 			const reviewsData = await getReviewStats(user_id);
-	
+
 			return Promise.resolve({
 				message: 'User info retrieved successfully',
 				data: {
@@ -832,6 +836,30 @@ async function updateExistingUsersReferral() {
 	}
 }
 
+async function scanImage({ image }) {
+	try {
+		const fetch = (await import('node-fetch')).default
+		const response = await fetch(image);
+		const arrayBuffer = await response.arrayBuffer();
+		const imageBytes = Buffer.from(arrayBuffer);
+
+		const params = {
+			Image: { Bytes: imageBytes },
+			MinConfidence: 50
+		};
+
+		const data = await rekognitionClient.send(new DetectModerationLabelsCommand(params));
+		console.log({data})
+		
+		return Promise.resolve({
+			data: data.ModerationLabels.map((item) => item.Name),
+			message: 'Scan successfully',
+		});
+	} catch (error) {
+		console.error('Error while scan image:', error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -856,5 +884,6 @@ module.exports = {
 	useReferral,
 	getIapProducts,
 	updateExistingUsersReferral,
-	getSimpleProfile
+	getSimpleProfile,
+	scanImage
 };
