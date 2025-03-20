@@ -2,7 +2,7 @@ const express = require('express');
 const users = require('@controllers/users');
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware');
-const optionAuthMiddleware= require('../milddleware/optionAuthMiddleware');
+const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware');
 const { blockedUserMiddleware } = require('../milddleware/blockedUserMiddleware');
 const interests = require('@controllers/interests');
 
@@ -650,7 +650,7 @@ router.post(
 	(request, response, next) => {
 		const { user_id } = request;
 		const { referral_code } = request.body;
-		
+
 		if (!user_id || !referral_code) {
 			return response.json({
 				success: false,
@@ -685,7 +685,7 @@ router.post(
 	(request, response, next) => {
 		const { user_id } = request;
 		const { platform } = request.body;
-		
+
 		if (!user_id || !platform) {
 			return response.json({
 				success: false,
@@ -697,6 +697,38 @@ router.post(
 			.getIapProducts({
 				user_id,
 				platform
+			})
+			.then(({ data, message }) => {
+				return response.json({
+					success: true,
+					data: data,
+					message: message,
+				});
+			})
+			.catch((error) => {
+				return response.json({
+					success: false,
+					message: `${error}`,
+				});
+			});
+	}
+);
+
+router.post(
+	'/scan-image',
+	(request, response, next) => {
+		const { image } = request.body;
+
+		if (!image) {
+			return response.json({
+				success: false,
+				message: 'Missing required params: image',
+			});
+		}
+
+		return users
+			.scanImage({
+				image
 			})
 			.then(({ data, message }) => {
 				return response.json({
