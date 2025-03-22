@@ -1161,7 +1161,7 @@ async function forceUpdateProfileTags() {
 			},
 		},
 		attributes: ['id', 'profile_tag'],
-		orderBy: [['id', 'DESC']],
+		order: [['id', 'DESC']],
 		raw: true,
 	});
 	for (var user of missingUsers) {

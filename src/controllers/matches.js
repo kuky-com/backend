@@ -347,7 +347,7 @@ async function findLessMatches({ user_id }) {
 				id: { [Op.notIn]: [user_id, ...avoidUserIds] },
 			},
 			attributes: ['id', 'profile_tag'],
-			orderBy: [['id', 'DESC']],
+			order: [['id', 'DESC']],
 		});
 
 		const matchedUsersWithScores = [];
@@ -561,7 +561,7 @@ async function findBestMatches({ user_id, page = 1, limit = 20 }) {
 				id: { [Op.notIn]: [user_id, ...avoidUserIds] },
 			},
 			attributes: ['id', 'profile_tag'],
-			orderBy: [['id', 'DESC']],
+			order: [['id', 'DESC']],
 		});
 
 		const matchedUsersWithScores = [];
@@ -1583,25 +1583,10 @@ async function getConversation({ user_id, conversation_id }) {
 async function getSampleProfiles() {
 	try {
 		const suggestions = [];
-		// const randomSampleUsers = getRandomElements(
-		// 	process.env.SAMPLE_PROFILES.split(',') ?? [],
-		// 	3
-		// );
-		const randomSampleUsers = await Users.findAll({
-			where: {
-				is_active: true,
-				is_hidden_users: false,
-				profile_approved: 'approved',
-				video_intro: {
-					[Op.ne]: null,
-				},
-				profile_tag: {
-					[Op.ne]: null,
-				}
-			},
-			attributes: ['id', 'profile_tag'],
-			orderBy: [['id', 'DESC']],
-		});
+		const randomSampleUsers = getRandomElements(
+			process.env.SAMPLE_PROFILES.split(',') ?? [],
+			3
+		);
 
 		for (const rawuser of randomSampleUsers) {
 			const userInfo = await getProfile({ user_id: rawuser });
@@ -1622,11 +1607,28 @@ async function getSampleProfiles() {
 async function getSampleExplore() {
 	try {
 		const suggestions = [];
-		const randomSampleUsers = process.env.SAMPLE_PROFILES.split(',');
+		const randomSampleUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				video_intro: {
+					[Op.ne]: null,
+				},
+				profile_tag: {
+					[Op.ne]: null,
+				}
+			},
+			attributes: ['id'],
+			order: [['createdAt', 'DESC']],
+			raw: true
+		});
+
+		console.log({randomSampleUsers})
 
 		for (const rawuser of randomSampleUsers) {
 			try {
-				const userInfo = await getProfile({ user_id: rawuser });
+				const userInfo = await getProfile({ user_id: rawuser.id });
 
 				suggestions.push(userInfo.data);
 			} catch (error) {
