@@ -406,7 +406,7 @@ router.get('/sample-profiles', (request, response, next) => {
 })
 
 router.get('/sample-explore', (request, response, next) => {
-    return matches.getSampleExplore().then(({ data, message }) => {
+    return matches.getSampleExplore({ ...request.query }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,

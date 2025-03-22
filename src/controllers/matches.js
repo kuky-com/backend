@@ -1604,7 +1604,7 @@ async function getSampleProfiles() {
 	}
 }
 
-async function getSampleExplore() {
+async function getSampleExplore({limit = 20, offset = 0}) {
 	try {
 		const suggestions = [];
 		const randomSampleUsers = await Users.findAll({
@@ -1621,6 +1621,8 @@ async function getSampleExplore() {
 			},
 			attributes: ['id'],
 			order: [['createdAt', 'DESC']],
+			limit: limit,
+			offset: offset,
 			raw: true
 		});
 
