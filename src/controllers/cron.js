@@ -8,9 +8,12 @@ const { autoRejectProfile } = require('./cron/reject');
 // });
 
 cron.schedule('0 0 * * *', async () => {
-    await sendMatchNotification()
+
+    if(process.env.NODE_ENV === 'production')
+        await sendMatchNotification()
 });
 
 cron.schedule('0 */3 * * *', async () => {
-    await autoRejectProfile()
+    if(process.env.NODE_ENV === 'production')
+        await autoRejectProfile()
 });
