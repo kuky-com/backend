@@ -163,78 +163,78 @@ async function matchUsers(targetId, compareIds) {
 
 async function findMatchesByPurpose({ user_id, purpose_id }) {
 
-	console.log({user_id, purpose_id})
-    try {
-        const blockedUsers = await BlockedUsers.findAll({
-            where: {
-                [Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
-            },
-            raw: true,
-        });
+	console.log({ user_id, purpose_id })
+	try {
+		const blockedUsers = await BlockedUsers.findAll({
+			where: {
+				[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+			},
+			raw: true,
+		});
 
-        const matchedUsers = await Matches.findAll({
-            where: {
-                [Op.or]: [
-                    {
-                        [Op.or]: [
-                            { sender_id: user_id, status: 'rejected' },
-                            { sender_id: user_id, status: 'accepted' },
-                            { sender_id: user_id, status: 'deleted' },
-                            { receiver_id: user_id, status: 'rejected' },
-                            { receiver_id: user_id, status: 'accepted' },
-                            { receiver_id: user_id, status: 'deleted' },
-                        ],
-                    },
-                    { sender_id: user_id, status: 'sent' },
-                ],
-            },
-            raw: true,
-        });
+		const matchedUsers = await Matches.findAll({
+			where: {
+				[Op.or]: [
+					{
+						[Op.or]: [
+							{ sender_id: user_id, status: 'rejected' },
+							{ sender_id: user_id, status: 'accepted' },
+							{ sender_id: user_id, status: 'deleted' },
+							{ receiver_id: user_id, status: 'rejected' },
+							{ receiver_id: user_id, status: 'accepted' },
+							{ receiver_id: user_id, status: 'deleted' },
+						],
+					},
+					{ sender_id: user_id, status: 'sent' },
+				],
+			},
+			raw: true,
+		});
 
-        const blockedUserIds = blockedUsers.map((item) =>
-            item.user_id === user_id ? item.blocked_id : item.user_id
-        );
-        const matchedUserIds = matchedUsers.map((item) =>
-            item.sender_id === user_id ? item.receiver_id : item.sender_id
-        );
+		const blockedUserIds = blockedUsers.map((item) =>
+			item.user_id === user_id ? item.blocked_id : item.user_id
+		);
+		const matchedUserIds = matchedUsers.map((item) =>
+			item.sender_id === user_id ? item.receiver_id : item.sender_id
+		);
 
-        const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+		const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
 
-        const matchingUsers = await Users.findAll({
-            where: {
-                is_active: true,
-                is_hidden_users: false,
-                profile_approved: 'approved',
-                profile_tag: {
-                    [Op.ne]: null,
-                },
-                id: { [Op.notIn]: [user_id, ...avoidUserIds] },
-            },
-            include: [
-                {
-                    model: UserPurposes,
-                    where: { purpose_id: purpose_id },
-                    attributes: [],
-                },
-            ],
-            attributes: ['id', 'profile_tag'],
-            order: [['id', 'DESC']],
-        });
+		const matchingUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				profile_tag: {
+					[Op.ne]: null,
+				},
+				id: { [Op.notIn]: [user_id, ...avoidUserIds] },
+			},
+			include: [
+				{
+					model: UserPurposes,
+					where: { purpose_id: purpose_id },
+					attributes: [],
+				},
+			],
+			attributes: ['id', 'profile_tag'],
+			order: [['id', 'DESC']],
+		});
 
-        const suggestions = [];
-        for (const user of matchingUsers) {
-            const userInfo = await getProfile({ user_id: user.id });
-            suggestions.push(userInfo.data);
-        }
+		const suggestions = [];
+		for (const user of matchingUsers) {
+			const userInfo = await getProfile({ user_id: user.id });
+			suggestions.push(userInfo.data);
+		}
 
-        return Promise.resolve({
-            message: 'Matching users list',
-            data: suggestions,
-        });
-    } catch (error) {
-        console.log({ error });
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			message: 'Matching users list',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
 }
 
 async function findLessMatches({ user_id }) {
@@ -1583,10 +1583,25 @@ async function getConversation({ user_id, conversation_id }) {
 async function getSampleProfiles() {
 	try {
 		const suggestions = [];
-		const randomSampleUsers = getRandomElements(
-			process.env.SAMPLE_PROFILES.split(',') ?? [],
-			3
-		);
+		// const randomSampleUsers = getRandomElements(
+		// 	process.env.SAMPLE_PROFILES.split(',') ?? [],
+		// 	3
+		// );
+		const randomSampleUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				video_intro: {
+					[Op.ne]: null,
+				},
+				profile_tag: {
+					[Op.ne]: null,
+				}
+			},
+			attributes: ['id', 'profile_tag'],
+			orderBy: [['id', 'DESC']],
+		});
 
 		for (const rawuser of randomSampleUsers) {
 			const userInfo = await getProfile({ user_id: rawuser });
@@ -1844,50 +1859,50 @@ async function getLastestUnanswerMatch(userId) {
 }
 
 async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
-    try {
-        if (!journey_id) {
-            return Promise.reject('Journey id is required');
-        }
+	try {
+		if (!journey_id) {
+			return Promise.reject('Journey id is required');
+		}
 
-        const suggestions = [];
+		const suggestions = [];
 
-        const filterUsers = await Users.findAll({
-            where: {
-                is_active: true,
-                is_hidden_users: false,
-                profile_approved: 'approved',
-                profile_tag: {
-                    [Op.ne]: null,
-                },
-            },
-            include: [
-                {
-                    model: UserPurposes,
-                    as: 'user_purposes',
-                    where: { purpose_id: journey_id },
-                    attributes: [],
-                },
-            ],
-            attributes: ['id', 'profile_tag'],
-            limit: limit,
-            offset: offset,
-            order: [['id', 'DESC']],
-            raw: true,
-        });
+		const filterUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				profile_tag: {
+					[Op.ne]: null,
+				},
+			},
+			include: [
+				{
+					model: UserPurposes,
+					as: 'user_purposes',
+					where: { purpose_id: journey_id },
+					attributes: [],
+				},
+			],
+			attributes: ['id', 'profile_tag'],
+			limit: limit,
+			offset: offset,
+			order: [['id', 'DESC']],
+			raw: true,
+		});
 
-        for (const rawuser of filterUsers) {
-            const userInfo = await getSimpleProfile({ user_id: rawuser.id });
-            suggestions.push(userInfo.data);
-        }
+		for (const rawuser of filterUsers) {
+			const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+			suggestions.push(userInfo.data);
+		}
 
-        return Promise.resolve({
-            message: 'Search by journey',
-            data: suggestions,
-        });
-    } catch (error) {
-        console.log({ error });
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			message: 'Search by journey',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
 }
 
 module.exports = findBestMatches;
