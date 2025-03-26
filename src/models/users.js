@@ -240,6 +240,13 @@ module.exports = Users;
 
 Users.belongsTo(Tags, { foreignKey: 'profile_tag' });
 
+const Journeys = require('./journeys');
+const JourneyCategories = require('./journey_categories');
+
+Users.belongsTo(Journeys, { foreignKey: 'journey_id' });
+
+Users.belongsTo(JourneyCategories, { foreignKey: 'journey_category_id' });
+
 Users.addScope('defaultScope', {
 	attributes: {
 		exclude: ['password'],

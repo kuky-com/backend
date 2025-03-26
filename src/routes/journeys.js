@@ -3,7 +3,7 @@ const journeys = require("@controllers/journeys");
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware')
 
-router.get('/categories', (request, response, next) => {
+router.get('/categories', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
     if (!user_id) {
@@ -28,7 +28,7 @@ router.get('/categories', (request, response, next) => {
         })
 })
 
-router.get('/journeys', (request, response, next) => {
+router.get('/journeys', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
     if (!user_id) {
@@ -38,16 +38,16 @@ router.get('/journeys', (request, response, next) => {
         })
     }
 
-    const { category_id } = request.query
+    const { category } = request.query
 
-    if (!category_id) {
+    if (!category) {
         return response.json({
             success: false,
-            message: "Missing required params: category_id"
+            message: "Missing required params: category"
         })
     }
 
-    return journeys.getJourneys({category_id, user_id}).then(({ data, message }) => {
+    return journeys.getJourneys({category, user_id}).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -62,8 +62,17 @@ router.get('/journeys', (request, response, next) => {
         })
 })
 
-router.get('/jpf-general-questions', (request, response, next) => {
-    return journeys.getGeneralQuestion(request.query).then(({ data, message }) => {
+router.get('/jpf-general-questions', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return journeys.getGeneralQuestion({user_id, ...request.query}).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -78,8 +87,17 @@ router.get('/jpf-general-questions', (request, response, next) => {
         })
 })
 
-router.get('/jpf-questions', (request, response, next) => {
-    return journeys.getJPFQuestions(request.query).then(({ data, message }) => {
+router.get('/jpf-questions', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return journeys.getJPFQuestions({user_id, ...request.query}).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
@@ -94,7 +112,7 @@ router.get('/jpf-questions', (request, response, next) => {
         })
 })
 
-router.get('/jpf-video-question', (request, response, next) => {
+router.get('/jpf-video-question', authMiddleware, (request, response, next) => {
     return journeys.getVideoQuestion(request.query).then(({ data, message }) => {
         return response.json({
             success: true,
@@ -110,7 +128,7 @@ router.get('/jpf-video-question', (request, response, next) => {
         })
 })
 
-router.post('/submit-answer', (request, response, next) => {
+router.post('/submit-answer', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
     if (!user_id) {

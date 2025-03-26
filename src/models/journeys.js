@@ -60,7 +60,17 @@ const Journeys = sequelize.define('journeys', {
       key: 'id',
     },
     onDelete: 'CASCADE',
-  }
+  },
+  createdAt: {
+    allowNull: false,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    allowNull: false,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 });
 
 module.exports = Journeys;

@@ -29,6 +29,8 @@ const { updateRejectedDateTag } = require('./onesignal');
 
 const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { rekognitionClient } = require('../config/rekognitionClient');
+const Journeys = require('../models/journeys');
+const JourneyCategories = require('../models/journey_categories');
 
 async function updateProfile({
 	user_id,
@@ -166,7 +168,7 @@ async function getSimpleProfile({ user_id }) {
 		try {
 			const user = await Users.scope('withInterestCount').findOne({
 				where: { id: user_id },
-				include: [{ model: Tags }],
+				include: [{ model: Journeys }, { model: JourneyCategories }],
 				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday']
 			});
 
@@ -199,7 +201,13 @@ async function getProfile({ user_id }) {
 	try {
 		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
-			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
+			include: [
+				{ model: Purposes }, 
+				{ model: Interests }, 
+				{ model: Tags }, 
+				{ model: Journeys },
+				{ model: JourneyCategories}
+			],
 		});
 
 		if (!user) {
@@ -849,8 +857,8 @@ async function scanImage({ image }) {
 		};
 
 		const data = await rekognitionClient.send(new DetectModerationLabelsCommand(params));
-		console.log({data})
-		
+		console.log({ data })
+
 		return Promise.resolve({
 			data: data.ModerationLabels.map((item) => item.Name),
 			message: 'Scan successfully',

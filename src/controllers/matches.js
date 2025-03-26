@@ -30,6 +30,8 @@ const Messages = require('../models/messages');
 const { addMatchTagOnesignal, updateMatchDateTag } = require('./onesignal');
 const dayjs = require('dayjs');
 const { raw } = require('body-parser');
+const Journeys = require('../models/journeys');
+const JourneyCategories = require('../models/journey_categories');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -1909,8 +1911,13 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
-async function getMatchesByJourney({ user_id, journey_id, limit = 20, offset = 0 }) {
+async function getMatchesByJourney({ journey_id, limit = 20, offset = 0 }) {
 	try {
+
+		if (!journey_id) {
+			return Promise.reject('Journey id is required');
+		}
+
 		const suggestions = [];
 
 		const filterUsers = await Users.findAll({
@@ -1918,19 +1925,17 @@ async function getMatchesByJourney({ user_id, journey_id, limit = 20, offset = 0
 				is_active: true,
 				is_hidden_users: false,
 				profile_approved: 'approved',
-				profile_tag: {
-					[Op.ne]: null,
-				},
+				journey_id: journey_id,
 			},
 			include: [
 				{
-					model: UserPurposes,
-					as: 'user_purposes',
-					where: { purpose_id: journey_id },
-					attributes: [],
+					model: Journeys,
+				},
+				{
+					model: JourneyCategories,
 				},
 			],
-			attributes: ['id', 'profile_tag'],
+			attributes: ['id', 'journey_id'],
 			limit: limit,
 			offset: offset,
 			order: [['id', 'DESC']],
@@ -1938,7 +1943,7 @@ async function getMatchesByJourney({ user_id, journey_id, limit = 20, offset = 0
 		});
 
 		for (const rawuser of filterUsers) {
-			const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+			const userInfo = await getProfile({ user_id: rawuser.id });
 			suggestions.push(userInfo.data);
 		}
 

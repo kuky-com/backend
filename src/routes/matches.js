@@ -439,7 +439,7 @@ router.get('/search-by-journey', async (request, response, next) => {
 		});
 });
 
-router.get('/match-by-journey', async (request, response, next) => {
+router.get('/match-by-journey', authMiddleware, async (request, response, next) => {
     const { user_id } = request
 
     if (!user_id) {

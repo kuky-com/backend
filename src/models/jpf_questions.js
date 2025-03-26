@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const JPFAnswers = require('./jpf_answers');
 
 const JPFQuestions = sequelize.define('jpf_questions', {
   id: {
@@ -23,7 +24,19 @@ const JPFQuestions = sequelize.define('jpf_questions', {
   image: {
     type: DataTypes.STRING,
     allowNull: true
-  }
+  },
+  createdAt: {
+    allowNull: false,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    allowNull: false,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 });
+
+JPFQuestions.hasMany(JPFAnswers, { foreignKey: 'question', as: 'answers' });
 
 module.exports = JPFQuestions;
