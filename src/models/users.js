@@ -215,6 +215,24 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 		defaultValue: 'web'
+	},
+	journey_id: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: {
+			model: 'journeys',
+			key: 'id',
+		},
+		onDelete: 'CASCADE',
+	},
+	journey_category_id: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: {
+			model: 'journey_categories',
+			key: 'id',
+		},
+		onDelete: 'CASCADE',
 	}
 });
 

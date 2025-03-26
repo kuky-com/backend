@@ -1909,6 +1909,50 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
+async function getMatchesByJourney({ user_id, journey_id, limit = 20, offset = 0 }) {
+	try {
+		const suggestions = [];
+
+		const filterUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				profile_tag: {
+					[Op.ne]: null,
+				},
+			},
+			include: [
+				{
+					model: UserPurposes,
+					as: 'user_purposes',
+					where: { purpose_id: journey_id },
+					attributes: [],
+				},
+			],
+			attributes: ['id', 'profile_tag'],
+			limit: limit,
+			offset: offset,
+			order: [['id', 'DESC']],
+			raw: true,
+		});
+
+		for (const rawuser of filterUsers) {
+			const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+			suggestions.push(userInfo.data);
+		}
+
+		return Promise.resolve({
+			message: 'Search by journey',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+
 module.exports = findBestMatches;
 
 module.exports = {
@@ -1931,5 +1975,6 @@ module.exports = {
 	getRecentMatches,
 	getUnverifiedMatches,
 	findMatchesByPurpose,
-	searchByJourney
+	searchByJourney,
+	getMatchesByJourney
 };

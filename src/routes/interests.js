@@ -375,4 +375,139 @@ router.get('/journey-list', (request, response, next) => {
         })
 })
 
+
+//new onboarding api
+
+router.get('/journey-categories', (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return interests.getJourneyCategories({user_id}).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/journeys', (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    const { category_id } = request.query
+
+    if (!category_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: category_id"
+        })
+    }
+
+    return interests.getJourneys({category_id, user_id}).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/jpf-general-questions', (request, response, next) => {
+    return interests.getGeneralQuestion(request.query).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/jpf-questions', (request, response, next) => {
+    return interests.getJPFQuestions(request.query).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.get('/jpf-video-question', (request, response, next) => {
+    return interests.getVideoQuestion(request.query).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+router.post('/submit-answer', (request, response, next) => {
+    const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return interests.submitAnswer({...request.body, user_id}).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;
