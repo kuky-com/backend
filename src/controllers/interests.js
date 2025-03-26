@@ -14,7 +14,7 @@ const {
 	getProfileTagFilter,
 } = require('./onesignal');
 const sequelize = require('../config/database');
-const JourneyCategories = require('../models/journey_catetories');
+const JourneyCategories = require('../models/journey_categories');
 const Journeys = require('../models/journeys');
 const JPFQuestions = require('../models/jpf_questions');
 const JPFUserAnswer = require('../models/jpf_user_answers');

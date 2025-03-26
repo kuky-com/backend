@@ -3,175 +3,177 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    return Promise.all([
-      queryInterface.createTable('journey_categories', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          autoIncrement: true,
+    await queryInterface.createTable('journey_categories', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: {
+        type: Sequelize.STRING
+      },
+      question: {
+        type: Sequelize.STRING
+      },
+      icon: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      image: {
+        type: Sequelize.STRING,
+        allowNull: true
+      }
+    })
+
+    await queryInterface.createTable('journeys', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: {
+        type: Sequelize.STRING
+      },
+      description: {
+        type: Sequelize.STRING
+      },
+      example: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      jpf_question1: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_questions',
+          key: 'id',
         },
-        name: {
-          type: Sequelize.STRING
+        onDelete: 'CASCADE',
+      },
+      jpf_question2: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_questions',
+          key: 'id',
         },
-        question: {
-          type: Sequelize.STRING
+        onDelete: 'CASCADE',
+      },
+      jpf_video_question: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_questions',
+          key: 'id',
         },
-        icon: {
-          type: Sequelize.STRING,
-          allowNull: true
+        onDelete: 'CASCADE',
+      },
+      icon: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      image: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      category: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'journey_categories',
+          key: 'id',
         },
-        image: {
-          type: Sequelize.STRING,
-          allowNull: true
-        }
-      }),
-      queryInterface.createTable('journeys', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          autoIncrement: true,
+        onDelete: 'CASCADE',
+      }
+    })
+
+    await queryInterface.createTable('jpf_answers', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      question: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_questions',
+          key: 'id',
         },
-        name: {
-          type: Sequelize.STRING
+        onDelete: 'CASCADE',
+      },
+      content: {
+        type: Sequelize.STRING
+      },
+      icon: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      image: {
+        type: Sequelize.STRING,
+        allowNull: true
+      }
+    })
+
+    await queryInterface.createTable('jpf_questions', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      question: {
+        type: Sequelize.STRING
+      },
+      question_type: {
+        type: Sequelize.STRING, //multiple_choice, single_choice, text, one_to_ten
+      },
+      level_type: {
+        type: Sequelize.STRING, //general, normal, video
+      },
+      icon: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      image: {
+        type: Sequelize.STRING,
+        allowNull: true
+      }
+    })
+
+    await queryInterface.createTable('jpf_user_answers', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      user: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id',
         },
-        description: {
-          type: Sequelize.STRING
+        onDelete: 'CASCADE',
+      },
+      question: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_questions',
+          key: 'id',
         },
-        example: {
-          type: Sequelize.STRING,
-          allowNull: true
+        onDelete: 'CASCADE',
+      },
+      answer: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'jpf_answers',
+          key: 'id',
         },
-        jpf_question1: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_questions',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        jpf_question2: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_questions',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        jpf_video_question: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_questions',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        icon: {
-          type: Sequelize.STRING,
-          allowNull: true
-        },
-        image: {
-          type: Sequelize.STRING,
-          allowNull: true
-        },
-        category: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'journey_catetories',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        }
-      }),
-      queryInterface.createTable('jpf_answers', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          autoIncrement: true,
-        },
-        question: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_questions',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        content: {
-          type: Sequelize.STRING
-        },
-        icon: {
-          type: Sequelize.STRING,
-          allowNull: true
-        },
-        image: {
-          type: Sequelize.STRING,
-          allowNull: true
-        }
-      }),
-      queryInterface.createTable('jpf_questions', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          autoIncrement: true,
-        },
-        question: {
-          type: Sequelize.STRING
-        },
-        question_type: {
-          type: Sequelize.STRING, //multiple_choice, single_choice, text, one_to_ten
-        },
-        level_type: {
-          type: Sequelize.STRING, //general, normal, video
-        },
-        icon: {
-          type: Sequelize.STRING,
-          allowNull: true
-        },
-        image: {
-          type: Sequelize.STRING,
-          allowNull: true
-        }
-      }),
-      queryInterface.createTable('jpf_user_answers', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          autoIncrement: true,
-        },
-        user: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'users',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        question: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_questions',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-        answer: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: {
-            model: 'jpf_answers',
-            key: 'id',
-          },
-          onDelete: 'CASCADE',
-        },
-      })
-    ])
+        onDelete: 'CASCADE',
+      },
+    })
   },
 
   async down(queryInterface, Sequelize) {

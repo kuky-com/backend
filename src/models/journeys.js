@@ -56,7 +56,7 @@ const Journeys = sequelize.define('journeys', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'journey_catetories',
+      model: 'journey_categories',
       key: 'id',
     },
     onDelete: 'CASCADE',
