@@ -88,9 +88,7 @@ async function getGeneralQuestion({ user_id }) {
         });
     } catch (error) {
         console.error('Error fetching general questions:', error);
-        return Promise.reject({
-            message: 'Error fetching general questions',
-        });
+        return Promise.reject('Error fetching general questions');
     }
 }
 
@@ -102,9 +100,7 @@ async function getJPFQuestions({ journey_id, user_id }) {
     });
 
     if (!journey) {
-        return Promise.reject({
-            message: 'Journey not found!',
-        });
+        return Promise.reject('Journey not found!');
     }
 
     const question1 = await JPFQuestions.findOne({
@@ -152,9 +148,7 @@ async function getVideoQuestion({ journey_id }) {
     })
 
     if (!journey) {
-        return Promise.reject({
-            message: 'Journey not found!',
-        });
+        return Promise.reject('Journey not found!');
     }
 
     const question = await JPFQuestions.findOne({
@@ -171,20 +165,15 @@ async function getVideoQuestion({ journey_id }) {
 
 const submitAnswer = async ({answers, user_id}) => {
     if (!Array.isArray(answers) || answers.length === 0) {
-        return Promise.reject({
-            message: 'Answers must be a non-empty array',
-        });
+        return Promise.reject('Answers must be a non-empty array');
     }
 
     try {
         const results = [];
 
         for (const { question_id, answer_id, answer_text } of answers) {
-            console.log({question_id, answer_id, answer_text, user_id })
             if (!user_id || !question_id || (!answer_id && !answer_text)) {
-                return Promise.reject({
-                    message: 'Missing required fields in one or more answers',
-                });
+                return Promise.reject('Missing required fields in one or more answers');
             }
 
             await JPFUserAnswer.update(
@@ -215,9 +204,7 @@ const submitAnswer = async ({answers, user_id}) => {
         });
     } catch (error) {
         console.log('Error submitting answers:', error);
-        return Promise.reject({
-            message: 'Error submitting answers',
-        });
+        return Promise.reject('Error submitting answers');
     }
 };
 
