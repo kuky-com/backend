@@ -169,41 +169,57 @@ async function getVideoQuestion({ journey_id }) {
     });
 }
 
-const submitAnswer = async ({ question_id, answer_id, answer_text, user_id }) => {
-
-    if (!user_id || !question_id || (!answer_id && !answer_text)) {
+const submitAnswer = async ({answers, user_id}) => {
+    if (!Array.isArray(answers) || answers.length === 0) {
         return Promise.reject({
-            message: 'Missing required fields',
+            message: 'Answers must be a non-empty array',
         });
     }
 
     try {
-        await JPFUserAnswer.update({
-            is_active: false,
-        }, {
-            where: {
+        const results = [];
+
+        for (const { question_id, answer_id, answer_text } of answers) {
+            console.log({question_id, answer_id, answer_text, user_id })
+            if (!user_id || !question_id || (!answer_id && !answer_text)) {
+                return Promise.reject({
+                    message: 'Missing required fields in one or more answers',
+                });
+            }
+
+            await JPFUserAnswer.update(
+                {
+                    is_active: false,
+                },
+                {
+                    where: {
+                        user_id,
+                        question_id,
+                    },
+                }
+            );
+
+            const userAnswer = await JPFUserAnswer.create({
                 user_id,
                 question_id,
-            },
-        });
+                answer_id,
+                answer_text,
+            });
 
-        const userAnswer = await JPFUserAnswer.create({
-            user_id,
-            question_id,
-            answer_id, answer_text
-        });
+            results.push(userAnswer);
+        }
 
         return Promise.resolve({
-            message: 'Answer submitted successfully!',
-            data: userAnswer,
+            message: 'Answers submitted successfully!',
+            data: results,
         });
     } catch (error) {
-        console.log('Error submitting answer:', error);
+        console.log('Error submitting answers:', error);
         return Promise.reject({
-            message: 'Error submitting answer',
+            message: 'Error submitting answers',
         });
     }
-}
+};
 
 module.exports = {
     getCategories,

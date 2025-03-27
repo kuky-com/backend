@@ -199,7 +199,7 @@ async function getSimpleProfile({ user_id }) {
 
 async function getProfile({ user_id }) {
 	try {
-		const user = await Users.scope('withInterestCount').findOne({
+		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
 			where: { id: user_id },
 			include: [
 				{ model: Purposes }, 
