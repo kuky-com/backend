@@ -117,7 +117,7 @@ async function getJPFQuestions({ journey_id, user_id }) {
 
     const question2 = await JPFQuestions.findOne({
         where: {
-            id: journey.jpf_question1
+            id: journey.jpf_question2
         },
         include: [
             {
