@@ -47,6 +47,15 @@ async function getJourneys({ category }) {
     });
 }
 
+async function getAllJourneys() {
+    const journeys = await Journeys.findAll()
+
+    return Promise.resolve({
+        message: 'All journeys!',
+        data: journeys,
+    });
+}
+
 async function getGeneralQuestion({ user_id }) {
     try {
         const questions = await JPFQuestions.findAll({
@@ -214,5 +223,6 @@ module.exports = {
     getGeneralQuestion,
     getJPFQuestions,
     getVideoQuestion,
-    submitAnswer
+    submitAnswer,
+    getAllJourneys
 };
