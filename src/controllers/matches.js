@@ -1606,7 +1606,7 @@ async function getSampleProfiles() {
 	}
 }
 
-async function getSampleExplore({limit = 20, offset = 0}) {
+async function getSampleExplore({ limit = 20, offset = 0 }) {
 	try {
 		const suggestions = [];
 		const randomSampleUsers = await Users.findAll({
@@ -1628,7 +1628,7 @@ async function getSampleExplore({limit = 20, offset = 0}) {
 			raw: true
 		});
 
-		console.log({randomSampleUsers})
+		console.log({ randomSampleUsers })
 
 		for (const rawuser of randomSampleUsers) {
 			try {
@@ -1911,7 +1911,7 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
-async function getMatchesByJourney({ journey_id, limit = 20, offset = 0 }) {
+async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id }) {
 	try {
 
 		if (!journey_id) {
@@ -1927,14 +1927,6 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0 }) {
 				profile_approved: 'approved',
 				journey_id: journey_id,
 			},
-			include: [
-				{
-					model: Journeys,
-				},
-				{
-					model: JourneyCategories,
-				},
-			],
 			attributes: ['id', 'journey_id'],
 			limit: limit,
 			offset: offset,
@@ -1943,8 +1935,13 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0 }) {
 		});
 
 		for (const rawuser of filterUsers) {
-			const userInfo = await getProfile({ user_id: rawuser.id });
-			suggestions.push(userInfo.data);
+			if (user_id) {
+				const userInfo = await getProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			} else {
+				const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			}
 		}
 
 		return Promise.resolve({

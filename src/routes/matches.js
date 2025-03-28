@@ -2,6 +2,7 @@ const express = require("express");
 const matches = require("@controllers/matches");
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware')
+const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware')
 
 router.get('/suggestions', authMiddleware, (request, response, next) => {
     const { user_id } = request
@@ -439,15 +440,8 @@ router.get('/search-by-journey', async (request, response, next) => {
 		});
 });
 
-router.get('/match-by-journey', authMiddleware, async (request, response, next) => {
+router.get('/match-by-journey', optionAuthMiddleware, async (request, response, next) => {
     const { user_id } = request
-
-    if (!user_id) {
-        return response.json({
-            success: false,
-            message: "Missing required params: user_id"
-        })
-    }
 
 	return matches
 		.getMatchesByJourney({ ...request.query, user_id })
