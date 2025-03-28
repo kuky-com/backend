@@ -20,6 +20,8 @@ const ReferralUsers = require('../../models/referral_users');
 const Messages = require('../../models/messages');
 const { db } = require('../matches');
 const { v4: uuidv4 } = require('uuid');
+const JourneyCategories = require('../../models/journey_categories');
+const Journeys = require('../../models/journeys');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -494,6 +496,12 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 				{
 					model: Tags,
 				},
+				{
+					model: JourneyCategories
+				},
+				{
+					model: Journeys
+				}
 			],
 		});
 
