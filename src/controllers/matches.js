@@ -30,6 +30,8 @@ const Messages = require('../models/messages');
 const { addMatchTagOnesignal, updateMatchDateTag } = require('./onesignal');
 const dayjs = require('dayjs');
 const { raw } = require('body-parser');
+const Journeys = require('../models/journeys');
+const JourneyCategories = require('../models/journey_categories');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -1604,7 +1606,7 @@ async function getSampleProfiles() {
 	}
 }
 
-async function getSampleExplore({limit = 20, offset = 0}) {
+async function getSampleExplore({ limit = 20, offset = 0 }) {
 	try {
 		const suggestions = [];
 		const randomSampleUsers = await Users.findAll({
@@ -1626,7 +1628,7 @@ async function getSampleExplore({limit = 20, offset = 0}) {
 			raw: true
 		});
 
-		console.log({randomSampleUsers})
+		console.log({ randomSampleUsers })
 
 		for (const rawuser of randomSampleUsers) {
 			try {
@@ -1909,6 +1911,50 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
+async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id }) {
+	try {
+
+		if (!journey_id) {
+			return Promise.reject('Journey id is required');
+		}
+
+		const suggestions = [];
+
+		const filterUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				is_hidden_users: false,
+				profile_approved: 'approved',
+				journey_id: journey_id,
+			},
+			attributes: ['id', 'journey_id'],
+			limit: limit,
+			offset: offset,
+			order: [['id', 'DESC']],
+			raw: true,
+		});
+
+		for (const rawuser of filterUsers) {
+			if (user_id) {
+				const userInfo = await getProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			} else {
+				const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Search by journey',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+
 module.exports = findBestMatches;
 
 module.exports = {
@@ -1931,5 +1977,6 @@ module.exports = {
 	getRecentMatches,
 	getUnverifiedMatches,
 	findMatchesByPurpose,
-	searchByJourney
+	searchByJourney,
+	getMatchesByJourney
 };

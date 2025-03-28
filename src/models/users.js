@@ -215,12 +215,37 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 		defaultValue: 'web'
+	},
+	journey_id: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: {
+			model: 'journeys',
+			key: 'id',
+		},
+		onDelete: 'CASCADE',
+	},
+	journey_category_id: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+		references: {
+			model: 'journey_categories',
+			key: 'id',
+		},
+		onDelete: 'CASCADE',
 	}
 });
 
 module.exports = Users;
 
 Users.belongsTo(Tags, { foreignKey: 'profile_tag' });
+
+const Journeys = require('./journeys');
+const JourneyCategories = require('./journey_categories');
+
+Users.belongsTo(Journeys, { foreignKey: 'journey_id' });
+
+Users.belongsTo(JourneyCategories, { foreignKey: 'journey_category_id' });
 
 Users.addScope('defaultScope', {
 	attributes: {
@@ -264,6 +289,68 @@ Users.addScope('withInterestCount', {
 			]
 		]
 	},
+});
+
+Users.addScope('askJPFGeneral', {
+	attributes: {
+		include: [
+			[
+				Sequelize.literal(`(
+					SELECT CASE
+						WHEN COUNT(*) = 0 THEN true
+						ELSE EXISTS (
+							SELECT 1
+							FROM jpf_questions AS jq
+							WHERE jq.level_type = 'general'
+							AND NOT EXISTS (
+								SELECT 1
+								FROM jpf_user_answers AS ua
+								WHERE ua.user_id = users.id
+								AND ua.question_id = jq.id
+							)
+						)
+					END
+					FROM jpf_questions AS jq
+					WHERE jq.level_type = 'general'
+				)`),
+				'askJPFGeneral'
+			]
+		]
+	},
+});
+
+Users.addScope('askJPFSpecific', {
+	attributes: {
+		include: [
+			[
+				Sequelize.literal(`(
+					SELECT CASE
+						WHEN users.journey_id IS NULL THEN true
+						ELSE NOT EXISTS (
+							SELECT 1
+							FROM journeys AS j
+							JOIN jpf_questions AS jq1 ON jq1.id = j.jpf_question1
+							JOIN jpf_questions AS jq2 ON jq2.id = j.jpf_question2
+							WHERE j.id = users.journey_id
+							AND EXISTS (
+								SELECT 1
+								FROM jpf_user_answers AS ua1
+								WHERE ua1.user_id = users.id
+								AND ua1.question_id = jq1.id
+							)
+							AND EXISTS (
+								SELECT 1
+								FROM jpf_user_answers AS ua2
+								WHERE ua2.user_id = users.id
+								AND ua2.question_id = jq2.id
+							)
+						)
+					END
+				)`),
+				'askJPFSpecific'
+			]
+		]
+	}
 });
 
 const ReviewUsers = require('./review_users');

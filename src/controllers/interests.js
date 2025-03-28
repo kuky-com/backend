@@ -1189,8 +1189,8 @@ async function getAllTags() {
 }
 
 async function getValidJourneys() {
-    try {
-        const query = `
+	try {
+		const query = `
             SELECT 
                 p.id,
                 p.name,
@@ -1211,20 +1211,20 @@ async function getValidJourneys() {
                 usage_count DESC;
         `;
 
-        const results = await sequelize.query(query, {
-            type: Sequelize.QueryTypes.SELECT,
-        });
+		const results = await sequelize.query(query, {
+			type: Sequelize.QueryTypes.SELECT,
+		});
 
-        console.log({ results });
+		console.log({ results });
 
-        return Promise.resolve({
-            message: 'Purposes retrieved successfully!',
-            data: results,
-        });
-    } catch (error) {
-        console.log('Error retrieving purposes:', error);
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			message: 'Purposes retrieved successfully!',
+			data: results,
+		});
+	} catch (error) {
+		console.log('Error retrieving purposes:', error);
+		return Promise.reject(error);
+	}
 }
 
 module.exports = {
@@ -1247,5 +1247,5 @@ module.exports = {
 	checkInterestMatch,
 	forceUpdateProfileTags,
 	getAllTags,
-	getValidJourneys
+	getValidJourneys,
 };

@@ -20,6 +20,8 @@ const ReferralUsers = require('../../models/referral_users');
 const Messages = require('../../models/messages');
 const { db } = require('../matches');
 const { v4: uuidv4 } = require('uuid');
+const JourneyCategories = require('../../models/journey_categories');
+const Journeys = require('../../models/journeys');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -494,6 +496,12 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 				{
 					model: Tags,
 				},
+				{
+					model: JourneyCategories
+				},
+				{
+					model: Journeys
+				}
 			],
 		});
 
@@ -571,43 +579,59 @@ async function profileAction({ status, reason, user_id }) {
 			emailService.sendApproveProfileEmail({ to_email: user.email, to_name: user?.full_name });
 
 			//send notification to all users have same journey with approved user
-			try {
-				const purposes = await UserPurposes.findAll({
-					where: {
-						user_id: user_id,
-					},
-					include: [
-						{
-							model: Purposes,
-							where: {
-								normalized_purpose_id: {
-									[Op.ne]: null,
-								},
-							},
-						},
-					],
-				});
+			// try {
+			// 	const purposes = await UserPurposes.findAll({
+			// 		where: {
+			// 			user_id: user_id,
+			// 		},
+			// 		include: [
+			// 			{
+			// 				model: Purposes,
+			// 				where: {
+			// 					normalized_purpose_id: {
+			// 						[Op.ne]: null,
+			// 					},
+			// 				},
+			// 			},
+			// 		],
+			// 	});
 
-				for (const purpose of purposes) {
-					const userPs = await UserPurposes.findAll({
-						include: [
-							{
-								model: Purposes,
-								where: {
-									// normalized_purpose_id: purpose.purpose.normalized_purpose_id
-									id: purpose.purpose.id
-								},
-							},
-						],
-					});
+			// 	const userPurposeMap = new Map();
 
-					for (const userP of userPs) {
-						await addNewPushNotification(userP.user_id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${purpose.purpose.name}. Tap to view their request and support each other!`);
-					}
-				}
-			} catch (error) {
-				console.log({ error })
-			}
+			// 	for (const purpose of purposes) {
+			// 		const userPs = await UserPurposes.findAll({
+			// 			include: [
+			// 				{
+			// 					model: Purposes,
+			// 					where: {
+			// 						id: purpose.purpose.id,
+			// 					},
+			// 				},
+			// 			],
+			// 		});
+
+			// 		for (const userP of userPs) {
+			// 			if (!userPurposeMap.has(userP.user_id)) {
+			// 				userPurposeMap.set(userP.user_id, []);
+			// 			}
+			// 			userPurposeMap.get(userP.user_id).push(purpose.purpose.name);
+			// 		}
+			// 	}
+
+			// 	for (const [userId, purposeNames] of userPurposeMap.entries()) {
+			// 		const uniquePurposes = [...new Set(purposeNames)];
+			// 		await addNewPushNotification(
+			// 			userId,
+			// 			null,
+			// 			user,
+			// 			'new_suggestion',
+			// 			`New suggestion 🤝`,
+			// 			`${user.full_name} is on the same journey as you: ${uniquePurposes.join(', ')}. Tap to view their request and support each other!`
+			// 		);
+			// 	}
+			// } catch (error) {
+			// 	console.log({ error })
+			// }
 		} else {
 			addNewNotification(
 				user.id,

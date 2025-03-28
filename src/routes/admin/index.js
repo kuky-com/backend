@@ -21,6 +21,7 @@ const adminLandings = require('./admin-landing');
 
 const interests = require('@controllers/interests');
 const { botSendMessage } = require('../../controllers/admin');
+const { getAllJourneys } = require('../../controllers/journeys');
 
 router.use('/users', authAdminMiddleware, adminUsers);
 router.use('/reviews', authAdminMiddleware, adminReviews);
@@ -194,6 +195,23 @@ router.post('/login', (request, response, next) => {
 router.get('/users-list', authAdminMiddleware, (request, response, next) => {
 	return admin
 		.getUsers({ ...request.query })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.get('/all-journeys', authAdminMiddleware, (request, response, next) => {
+	return getAllJourneys()
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
