@@ -1914,19 +1914,27 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id }) {
 	try {
 
-		if (!journey_id) {
-			return Promise.reject('Journey id is required');
-		}
-
 		const suggestions = [];
 
+		const whereFilter = journey_id ? {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+			journey_id: journey_id,
+			avatar: {
+				[Op.ne]: null
+			}
+		} : {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+			avatar: {
+				[Op.ne]: null
+			}
+		}
+
 		const filterUsers = await Users.findAll({
-			where: {
-				is_active: true,
-				is_hidden_users: false,
-				profile_approved: 'approved',
-				journey_id: journey_id,
-			},
+			where: whereFilter,
 			attributes: ['id', 'journey_id'],
 			limit: limit,
 			offset: offset,
