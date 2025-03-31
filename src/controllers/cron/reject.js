@@ -50,7 +50,7 @@ const autoRejectProfile = async (req, res) => {
         //     reasons.push('Missing gender')
         // }
 
-        if (!user.journey_category_id || user.journey_id) {
+        if (!user.journey_category_id || !user.journey_id) {
             reasons.push('Missing selected journey')
         }
 
@@ -59,7 +59,6 @@ const autoRejectProfile = async (req, res) => {
         } else {
             const avatarData = await scanImage({ image: user.avatar })
             const avatarDataLabels = avatarData.data
-
 
             if (avatarDataLabels.length > 0 &&
                 (avatarDataLabels.includes('Sexual') || avatarDataLabels.includes('Nudity')

@@ -1913,7 +1913,6 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 
 async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id }) {
 	try {
-
 		const suggestions = [];
 
 		const whereFilter = journey_id ? {
@@ -1930,11 +1929,11 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 		const filterUsers = await Users.findAll({
 			where: whereFilter,
 			attributes: ['id', 'journey_id'],
-			limit: limit,
-			offset: offset,
+			limit: parseInt(limit.toString()),
+			offset: parseInt(offset.toString()),
 			order: [['id', 'DESC']],
 			raw: true,
-		});
+		})
 
 		for (const rawuser of filterUsers) {
 			if (user_id) {
@@ -1947,7 +1946,7 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 		}
 
 		return Promise.resolve({
-			message: 'Search by journey',
+			message: 'Get matches by journey',
 			data: suggestions,
 		});
 	} catch (error) {
