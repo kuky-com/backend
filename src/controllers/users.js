@@ -269,7 +269,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 		const user = await Users.findOne({
 			where: findCondition,
-			include: [{ model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
+			include: [{model: Purposes}, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {

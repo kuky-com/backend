@@ -56,6 +56,41 @@ async function getAllJourneys() {
     });
 }
 
+async function getActiveJourneys() {
+    try {
+        const query = `
+            SELECT 
+                p.id,
+                p.name,
+                COUNT(u.id) AS usage_count
+            FROM 
+                journeys p
+            JOIN 
+                users u ON p.id = u.journey_id
+            WHERE 
+                u.profile_approved = 'approved' and is_active = TRUE and is_hidden_users = FALSE
+            GROUP BY 
+                p.id
+            HAVING 
+                COUNT(u.id) >= 1
+            ORDER BY 
+                usage_count DESC;
+        `;
+
+        const results = await sequelize.query(query, {
+            type: Sequelize.QueryTypes.SELECT,
+        });
+
+        return Promise.resolve({
+            message: 'Active journeys retrieved successfully!',
+            data: results,
+        });
+    } catch (error) {
+        console.log('Error retrieving active journeys:', error);
+        return Promise.reject(error);
+    }
+}
+
 async function getGeneralQuestion({ user_id }) {
     try {
         const questions = await JPFQuestions.findAll({
@@ -226,5 +261,6 @@ module.exports = {
     getJPFQuestions,
     getVideoQuestion,
     submitAnswer,
-    getAllJourneys
+    getAllJourneys,
+    getActiveJourneys
 };

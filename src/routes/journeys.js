@@ -44,6 +44,22 @@ router.get('/all-journeys', (request, response, next) => {
         })
 })
 
+router.get('/active-journeys', (request, response, next) => {
+    return journeys.getActiveJourneys().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 router.get('/journeys', authMiddleware, (request, response, next) => {
     const { user_id } = request
 
