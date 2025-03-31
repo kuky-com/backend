@@ -60,8 +60,7 @@ async function getActiveJourneys() {
     try {
         const query = `
             SELECT 
-                p.id,
-                p.name,
+                p.*,
                 COUNT(u.id) AS usage_count
             FROM 
                 journeys p
