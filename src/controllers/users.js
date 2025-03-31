@@ -265,7 +265,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 	try {
 		const findCondition = isStringInteger(friend_id)
 			? { id: friend_id }
-			: { referral_id: friend_id };
+			: { referral_id: friend_id.toString().toLowerCase() };
 
 		const user = await Users.findOne({
 			where: findCondition,
