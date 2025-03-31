@@ -20,7 +20,7 @@ const autoRejectProfile = async (req, res) => {
                 }
             ],
             createdAt: {
-                [Op.lt]: new Date(new Date() - 2 * 60 * 60 * 1000)
+                [Op.lt]: new Date(new Date() - 3 * 60 * 60 * 1000)
             }
         }
     });
