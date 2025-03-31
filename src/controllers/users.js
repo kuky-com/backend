@@ -126,22 +126,26 @@ async function updateProfile({
 }
 
 async function updateSubtitle(user_id, media_url, type) {
-	const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
-		audio_uri: media_url,
-		type: type
-	})
+	try {
+		const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
+			audio_uri: media_url,
+			type: type
+		})
 
-	if (response && response.data && response.data.s3_url) {
-		await Users.update({ [type]: response.data.s3_url }, {
-			where: { id: user_id },
-			returning: true,
-			plain: true,
+		if (response && response.data && response.data.s3_url) {
+			await Users.update({ [type]: response.data.s3_url }, {
+				where: { id: user_id },
+				returning: true,
+				plain: true,
+			});
+		}
+
+		return Promise.resolve({
+			message: 'Update successfully',
 		});
-	}
+	} catch (error) {
 
-	return Promise.resolve({
-		message: 'Update successfully',
-	});
+	}
 }
 
 async function getReviewStats(user_id) {
@@ -178,7 +182,7 @@ async function getReviewStats(user_id) {
 async function getSimpleProfile({ user_id }) {
 	try {
 		try {
-			const user = await Users.scope('withInterestCount').findOne({
+			const user = await Users.findOne({
 				where: { id: user_id },
 				include: [{ model: Journeys }, { model: JourneyCategories }],
 				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday', 'referral_id']
@@ -269,7 +273,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 		const user = await Users.findOne({
 			where: findCondition,
-			include: [{model: Purposes}, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
+			include: [{ model: Purposes }, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {
@@ -348,7 +352,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 async function getUser(user_id) {
 	try {
-		const user = await Users.scope('withInterestCount').findOne({
+		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
