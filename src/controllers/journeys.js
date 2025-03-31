@@ -6,7 +6,7 @@ const Interests = require('../models/interests');
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
-const { getProfile } = require('./users');
+const { getProfile, getUser } = require('./users');
 const { categoryMap } = require('../config/categories');
 const {
     updateOnesignalUserTags,
@@ -65,9 +65,9 @@ async function getGeneralQuestion({ user_id }) {
         });
 
         const formattedQuestions = []
-        
 
-        for(let i = 0; i < questions.length; i++) {
+
+        for (let i = 0; i < questions.length; i++) {
             const question = questions[i];
             const selectedAnswer = await JPFUserAnswer.findOne({
                 where: {
@@ -172,7 +172,7 @@ async function getVideoQuestion({ journey_id }) {
     });
 }
 
-const submitAnswer = async ({answers, user_id}) => {
+const submitAnswer = async ({ answers, user_id }) => {
     if (!Array.isArray(answers) || answers.length === 0) {
         return Promise.reject('Answers must be a non-empty array');
     }
@@ -207,9 +207,11 @@ const submitAnswer = async ({answers, user_id}) => {
             results.push(userAnswer);
         }
 
+        const userInfo = await getUser(user_id);
+
         return Promise.resolve({
-            message: 'Answers submitted successfully!',
-            data: results,
+            data: userInfo,
+            message: 'Update successfully',
         });
     } catch (error) {
         console.log('Error submitting answers:', error);
