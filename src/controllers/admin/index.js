@@ -578,60 +578,25 @@ async function profileAction({ status, reason, user_id }) {
 			);
 			emailService.sendApproveProfileEmail({ to_email: user.email, to_name: user?.full_name });
 
-			//send notification to all users have same journey with approved user
-			// try {
-			// 	const purposes = await UserPurposes.findAll({
-			// 		where: {
-			// 			user_id: user_id,
-			// 		},
-			// 		include: [
-			// 			{
-			// 				model: Purposes,
-			// 				where: {
-			// 					normalized_purpose_id: {
-			// 						[Op.ne]: null,
-			// 					},
-			// 				},
-			// 			},
-			// 		],
-			// 	});
+			try {
+				const matchedUsers = await Users.findAll({
+					where: {
+						journey_id: user.journey_id
+					}
+				})
 
-			// 	const userPurposeMap = new Map();
+				const journey = await Journeys.findOne({
+					where: {
+						id: user.journey_id
+					}
+				})
 
-			// 	for (const purpose of purposes) {
-			// 		const userPs = await UserPurposes.findAll({
-			// 			include: [
-			// 				{
-			// 					model: Purposes,
-			// 					where: {
-			// 						id: purpose.purpose.id,
-			// 					},
-			// 				},
-			// 			],
-			// 		});
-
-			// 		for (const userP of userPs) {
-			// 			if (!userPurposeMap.has(userP.user_id)) {
-			// 				userPurposeMap.set(userP.user_id, []);
-			// 			}
-			// 			userPurposeMap.get(userP.user_id).push(purpose.purpose.name);
-			// 		}
-			// 	}
-
-			// 	for (const [userId, purposeNames] of userPurposeMap.entries()) {
-			// 		const uniquePurposes = [...new Set(purposeNames)];
-			// 		await addNewPushNotification(
-			// 			userId,
-			// 			null,
-			// 			user,
-			// 			'new_suggestion',
-			// 			`New suggestion 🤝`,
-			// 			`${user.full_name} is on the same journey as you: ${uniquePurposes.join(', ')}. Tap to view their request and support each other!`
-			// 		);
-			// 	}
-			// } catch (error) {
-			// 	console.log({ error })
-			// }
+				for (const matchedUser of matchedUsers) {
+					await addNewPushNotification(matchedUser.user_id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${journey?.name}. Tap to view their request and support each other!`);
+				}
+			} catch (error) {
+				console.log({ error })
+			}
 		} else {
 			addNewNotification(
 				user.id,

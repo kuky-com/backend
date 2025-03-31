@@ -16,7 +16,7 @@ const BlockedUsers = require('../models/blocked_users');
 const InactiveUsers = require('../models/inactive_users');
 const Tags = require('../models/tags');
 const Matches = require('../models/matches');
-const { Op } = require('sequelize');
+const { Op, where } = require('sequelize');
 const ReportUsers = require('../models/report_users');
 const ReviewUsers = require('../models/review_users');
 const ReferralUsers = require('../models/referral_users');
@@ -31,6 +31,8 @@ const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition')
 const { rekognitionClient } = require('../config/rekognitionClient');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
+const JPFAnswers = require('../models/jpf_answers');
+const JPFUserAnswer = require('../models/jpf_user_answers');
 
 async function updateProfile({
 	user_id,
@@ -54,11 +56,21 @@ async function updateProfile({
 		// if (subscribeEmail) updates.subscribeEmail = subscribeEmail;
 		// if (emailNotificationEnable) updates.emailNotificationEnable = emailNotificationEnable;
 
+		if (restParams.journey_category_id && !restParams.journey_id) {
+			updates.journey_id = null
+		}
+
 		const updatedUser = await Users.update(updates, {
 			where: { id: user_id },
 			returning: true,
 			plain: true,
-		});
+		})
+
+		if (restParams.journey_category_id || restParams.journey_id) {
+			await JPFUserAnswer.update({ is_active: false }, {
+				where: { user_id: user_id }
+			})
+		}
 
 		if (restParams.video_intro) {
 			updateSubtitle(user_id, restParams.video_intro, 'subtitle_intro')
@@ -202,11 +214,11 @@ async function getProfile({ user_id }) {
 		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
 			where: { id: user_id },
 			include: [
-				{ model: Purposes }, 
-				{ model: Interests }, 
-				{ model: Tags }, 
+				{ model: Purposes },
+				{ model: Interests },
+				{ model: Tags },
 				{ model: Journeys },
-				{ model: JourneyCategories}
+				{ model: JourneyCategories }
 			],
 		});
 
@@ -257,7 +269,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 		const user = await Users.findOne({
 			where: findCondition,
-			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
+			include: [{ model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
 		});
 
 		if (!user) {
@@ -339,7 +351,7 @@ async function getUser(user_id) {
 		const user = await Users.scope('withInterestCount').findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
-			include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
+			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
 		});
 
 		if (!user) {

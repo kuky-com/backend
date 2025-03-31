@@ -17,6 +17,8 @@ const {
 	deleteOnesignalUser,
 } = require('./src/controllers/onesignal');
 const { syncMessages } = require('./src/controllers/matches');
+const Journeys = require('./src/models/journeys');
+const JourneyCategories = require('./src/models/journey_categories');
 require('./src/controllers/cron')
 
 const app = express();
@@ -66,7 +68,7 @@ async function syncOnesignalUsers(page = 0, limit = 100) {
 	const users = await Users.findAll({
 		limit,
 		offset: page * limit,
-		include: [{ model: Purposes }, { model: Interests }, { model: Tags }],
+		include: [{ model: Journeys }, {model: JourneyCategories}, { model: Interests }, { model: Tags }],
 	});
 
 	const promies = users.map(async (u) => {
