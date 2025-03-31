@@ -30,28 +30,28 @@ const autoRejectProfile = async (req, res) => {
 
         let reasons = []
 
-        if (user.likeCount === 0) {
-            reasons.push('Missing interest/hobbies')
-        }
+        // if (user.likeCount === 0) {
+        //     reasons.push('Missing interest/hobbies')
+        // }
 
-        if (user.purposeCount === 0) {
-            reasons.push('Missing purpose/journey')
-        }
+        // if (!user.location) {
+        //     reasons.push('Missing location address')
+        // }
 
-        if (!user.location) {
-            reasons.push('Missing location address')
-        }
+        // if (!user.birthday) {
+        //     reasons.push('Missing birthday')
+        // }
 
-        if (!user.birthday) {
-            reasons.push('Missing birthday')
-        }
+        // if (!user.pronouns) {
+        //     reasons.push('Missing pronouns')
+        // }
 
-        if (!user.pronouns) {
-            reasons.push('Missing pronouns')
-        }
+        // if (!user.gender) {
+        //     reasons.push('Missing gender')
+        // }
 
-        if (!user.gender) {
-            reasons.push('Missing gender')
+        if (!user.journey_category_id || user.journey_id) {
+            reasons.push('Missing selected journey')
         }
 
         if (!user.avatar) {
