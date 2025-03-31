@@ -1921,16 +1921,10 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 			is_hidden_users: false,
 			profile_approved: 'approved',
 			journey_id: journey_id,
-			avatar: {
-				[Op.ne]: null
-			}
 		} : {
 			is_active: true,
 			is_hidden_users: false,
 			profile_approved: 'approved',
-			avatar: {
-				[Op.ne]: null
-			}
 		}
 
 		const filterUsers = await Users.findAll({

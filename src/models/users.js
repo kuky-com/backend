@@ -307,6 +307,7 @@ Users.addScope('askJPFGeneral', {
 								FROM jpf_user_answers AS ua
 								WHERE ua.user_id = users.id
 								AND ua.question_id = jq.id
+								AND ua.is_active = TRUE
 							)
 						)
 					END
@@ -337,12 +338,14 @@ Users.addScope('askJPFSpecific', {
 								FROM jpf_user_answers AS ua1
 								WHERE ua1.user_id = users.id
 								AND ua1.question_id = jq1.id
+								AND ua1.is_active = TRUE
 							)
 							AND EXISTS (
 								SELECT 1
 								FROM jpf_user_answers AS ua2
 								WHERE ua2.user_id = users.id
 								AND ua2.question_id = jq2.id
+								AND ua2.is_active = TRUE
 							)
 						)
 					END
