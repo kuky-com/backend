@@ -169,7 +169,7 @@ async function getSimpleProfile({ user_id }) {
 			const user = await Users.scope('withInterestCount').findOne({
 				where: { id: user_id },
 				include: [{ model: Journeys }, { model: JourneyCategories }],
-				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday']
+				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday', 'referral_id']
 			});
 
 			if (!user) {
