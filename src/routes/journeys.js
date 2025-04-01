@@ -2,6 +2,7 @@ const express = require("express");
 const journeys = require("@controllers/journeys");
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware')
+const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware')
 
 router.get('/categories', authMiddleware, (request, response, next) => {
     const { user_id } = request
@@ -44,8 +45,10 @@ router.get('/all-journeys', (request, response, next) => {
         })
 })
 
-router.get('/active-journeys', (request, response, next) => {
-    return journeys.getActiveJourneys().then(({ data, message }) => {
+router.get('/active-journeys', optionAuthMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    return journeys.getActiveJourneys({ user_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
