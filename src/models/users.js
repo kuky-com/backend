@@ -295,25 +295,7 @@ Users.addScope('askJPFGeneral', {
 	attributes: {
 		include: [
 			[
-				Sequelize.literal(`(
-					SELECT CASE
-						WHEN COUNT(*) = 0 THEN true
-						ELSE EXISTS (
-							SELECT 1
-							FROM jpf_questions AS jq
-							WHERE jq.level_type = 'general'
-							AND NOT EXISTS (
-								SELECT 1
-								FROM jpf_user_answers AS ua
-								WHERE ua.user_id = users.id
-								AND ua.question_id = jq.id
-								AND ua.is_active = TRUE
-							)
-						)
-					END
-					FROM jpf_questions AS jq
-					WHERE jq.level_type = 'general'
-				)`),
+				sequelize.literal(false),
 				'askJPFGeneral'
 			]
 		]
@@ -324,37 +306,77 @@ Users.addScope('askJPFSpecific', {
 	attributes: {
 		include: [
 			[
-				Sequelize.literal(`(
-					SELECT CASE
-						WHEN users.journey_id IS NULL THEN true
-						ELSE NOT EXISTS (
-							SELECT 1
-							FROM journeys AS j
-							JOIN jpf_questions AS jq1 ON jq1.id = j.jpf_question1
-							JOIN jpf_questions AS jq2 ON jq2.id = j.jpf_question2
-							WHERE j.id = users.journey_id
-							AND EXISTS (
-								SELECT 1
-								FROM jpf_user_answers AS ua1
-								WHERE ua1.user_id = users.id
-								AND ua1.question_id = jq1.id
-								AND ua1.is_active = TRUE
-							)
-							AND EXISTS (
-								SELECT 1
-								FROM jpf_user_answers AS ua2
-								WHERE ua2.user_id = users.id
-								AND ua2.question_id = jq2.id
-								AND ua2.is_active = TRUE
-							)
-						)
-					END
-				)`),
+				sequelize.literal(false),
 				'askJPFSpecific'
 			]
 		]
 	}
 });
+
+// Users.addScope('askJPFGeneral', {
+// 	attributes: {
+// 		include: [
+// 			[
+// 				Sequelize.literal(`(
+// 					SELECT CASE
+// 						WHEN COUNT(*) = 0 THEN true
+// 						ELSE EXISTS (
+// 							SELECT 1
+// 							FROM jpf_questions AS jq
+// 							WHERE jq.level_type = 'general'
+// 							AND NOT EXISTS (
+// 								SELECT 1
+// 								FROM jpf_user_answers AS ua
+// 								WHERE ua.user_id = users.id
+// 								AND ua.question_id = jq.id
+// 								AND ua.is_active = TRUE
+// 							)
+// 						)
+// 					END
+// 					FROM jpf_questions AS jq
+// 					WHERE jq.level_type = 'general'
+// 				)`),
+// 				'askJPFGeneral'
+// 			]
+// 		]
+// 	},
+// });
+
+// Users.addScope('askJPFSpecific', {
+// 	attributes: {
+// 		include: [
+// 			[
+// 				Sequelize.literal(`(
+// 					SELECT CASE
+// 						WHEN users.journey_id IS NULL THEN true
+// 						ELSE NOT EXISTS (
+// 							SELECT 1
+// 							FROM journeys AS j
+// 							JOIN jpf_questions AS jq1 ON jq1.id = j.jpf_question1
+// 							JOIN jpf_questions AS jq2 ON jq2.id = j.jpf_question2
+// 							WHERE j.id = users.journey_id
+// 							AND EXISTS (
+// 								SELECT 1
+// 								FROM jpf_user_answers AS ua1
+// 								WHERE ua1.user_id = users.id
+// 								AND ua1.question_id = jq1.id
+// 								AND ua1.is_active = TRUE
+// 							)
+// 							AND EXISTS (
+// 								SELECT 1
+// 								FROM jpf_user_answers AS ua2
+// 								WHERE ua2.user_id = users.id
+// 								AND ua2.question_id = jq2.id
+// 								AND ua2.is_active = TRUE
+// 							)
+// 						)
+// 					END
+// 				)`),
+// 				'askJPFSpecific'
+// 			]
+// 		]
+// 	}
+// });
 
 const ReviewUsers = require('./review_users');
 const UserPurposes = require('./user_purposes');
