@@ -56,8 +56,9 @@ async function getAllJourneys() {
     });
 }
 
-async function getActiveJourneys() {
+async function getActiveJourneys({ user_id }) {
     try {
+        const extraQuery = user_id ? `and u.id <> ${user_id}` : ''
         const query = `
             SELECT 
                 p.*,
@@ -67,7 +68,7 @@ async function getActiveJourneys() {
             JOIN 
                 users u ON p.id = u.journey_id
             WHERE 
-                u.profile_approved = 'approved' and is_active = TRUE and is_hidden_users = FALSE
+                u.profile_approved = 'approved' and is_active = TRUE and is_hidden_users = FALSE ${extraQuery}
             GROUP BY 
                 p.id
             HAVING 

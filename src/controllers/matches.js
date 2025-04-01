@@ -1915,15 +1915,20 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 	try {
 		const suggestions = [];
 
-		const whereFilter = journey_id ? {
+		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
 			profile_approved: 'approved',
-			journey_id: journey_id,
-		} : {
-			is_active: true,
-			is_hidden_users: false,
-			profile_approved: 'approved',
+		} 
+		
+		if(journey_id) {
+			whereFilter.journey_id = journey_id
+		}
+
+		if(user_id) {
+			whereFilter.id = {
+				[Op.ne]: user_id
+			}
 		}
 
 		const filterUsers = await Users.findAll({
