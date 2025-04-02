@@ -16,6 +16,7 @@ const { sendWelcomeEmail, sendVerificationEmail } = require('./email');
 const sendbird = require('./sendbird');
 const { Op } = require('sequelize');
 const { generateReferralCode } = require('../utils/utils');
+const OnetimeAuth = require('../models/onetime_auths');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION });
 function generateToken(session_id, user_id) {
@@ -540,6 +541,114 @@ async function updatePassword({ user_id, current_password, new_password }) {
 	}
 }
 
+async function useOnetimeAuth({ session_code, session_token, device_id, platform }) {
+	try {
+		const record = await OnetimeAuth.findOne({
+			where: { 
+				session: session_code,
+				is_active: true
+			}
+		});
+
+		if (!record || new Date() > record.expires_at) {
+			return Promise.reject('Invalid or expired onetime auth code');
+		}
+
+		if(record.used) {
+			return Promise.reject('This code has been used.');
+		}
+
+		const user = await Users.findOne({ where: { id: record.user_id } });
+
+		if (!user || !user.email_verified) {
+			return Promise.reject('Invalid user');
+		}
+
+		await OnetimeAuth.update({is_active: false}, { where: { user_id: user.id } });
+		await OnetimeAuth.update({used: true}, { where: { id: record.id } });
+
+		if (platform && device_id) {
+			await Sessions.update(
+				{
+					logout_date: new Date(),
+					session_token: null,
+				},
+				{
+					where: {
+						platform: platform,
+						device_id: device_id,
+					},
+				}
+			);
+		}
+
+		const newSession = await Sessions.create({
+			user_id: user.id,
+			platform: platform || 'web',
+			device_id: device_id || null,
+			login_date: new Date(),
+			session_token,
+		});
+
+		const token = generateToken(newSession.id, user.id);
+		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
+		const userInfo = await usersController.getUser(user.id);
+
+		return Promise.resolve({
+			data: {
+				user: userInfo,
+				token,
+				sendbirdToken,
+			},
+			message: 'Session verified successfully',
+		});
+	} catch (error) {
+		console.log(error);
+		return Promise.reject('Use session code failed');
+	}
+}
+
+async function getOnetimeAuth({ user_id }) {
+	try {
+		const existingVerifyUser = await Users.findOne({
+			where: { id: user_id, email_verified: true },
+		});
+		if (!existingVerifyUser) {
+			return Promise.reject('This is not valid user!');
+		}
+		if (!existingVerifyUser.journey_category_id && !existingVerifyUser.journey_id) {
+			return Promise.reject('User has no journey!');
+		}
+
+		const expires_at = new Date(Date.now() + 5 * 60 * 1000);
+
+		await OnetimeAuth.update(
+			{ is_active: false },
+			{
+				where: {
+					user_id: user_id,
+				},
+			}
+		);
+
+		const onetime = await OnetimeAuth.create({ user_id: user_id, expiredAt: expires_at });
+
+		return Promise.resolve({
+			message: 'Onetime auth created success',
+			data: {
+				code: onetime.session,
+				expiredAt: onetime.expiredAt,
+				qr_link: `https://kuky.com/session/${onetime.session}`,
+				android_link: `https://play.google.com/store/apps/details?id=com.kuky.android`,
+				ios_link: `https://apps.apple.com/app/kuky/id6711341485`
+			}
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	appleLogin,
 	googleLogin,
@@ -549,4 +658,6 @@ module.exports = {
 	logout,
 	updatePassword,
 	resendVerification,
+	getOnetimeAuth,
+	useOnetimeAuth
 };
