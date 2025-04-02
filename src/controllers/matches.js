@@ -21,7 +21,7 @@ const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
 
 // var serviceAccount = require("../config/serviceAccountKey.json");
-const { getProfile, getSimpleProfile } = require('./users');
+const { getProfile, getSimpleProfile, getFriendProfile } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
@@ -1919,13 +1919,13 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 			is_active: true,
 			is_hidden_users: false,
 			profile_approved: 'approved',
-		} 
-		
-		if(journey_id) {
+		}
+
+		if (journey_id) {
 			whereFilter.journey_id = journey_id
 		}
 
-		if(user_id) {
+		if (user_id) {
 			whereFilter.id = {
 				[Op.ne]: user_id
 			}
@@ -1960,6 +1960,38 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 	}
 }
 
+async function getNextMatch({ journey_id, current_profile_id, user_id }) {
+	try {
+		
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+			id: {
+				[Op.lt]: current_profile_id,
+				[Op.ne]: user_id
+			}
+		}
+
+		if (journey_id) {
+			whereFilter.journey_id = journey_id
+		}
+
+		const nextUser = await Users.findOne({
+			where: whereFilter,
+			attributes: ['id', 'journey_id'],
+			order: [['id', 'DESC']],
+			raw: true,
+		})
+
+		console.log({journey_id, current_profile_id, user_id, next: nextUser.id})
+
+		return getFriendProfile({user_id, friend_id: nextUser.id})
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
 
 module.exports = findBestMatches;
 
@@ -1984,5 +2016,6 @@ module.exports = {
 	getUnverifiedMatches,
 	findMatchesByPurpose,
 	searchByJourney,
-	getMatchesByJourney
+	getMatchesByJourney,
+	getNextMatch
 };
