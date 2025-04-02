@@ -209,6 +209,61 @@ router.get('/logout', authMiddleware, (request, response, next) => {
 		});
 });
 
+router.get('/get-onetime-auth', authMiddleware, (request, response, next) => {
+	const { user_id } = request
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+	return auth
+		.getOnetimeAuth({ user_id })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.post('/use-onetime-auth', (request, response, next) => {
+	const { session_code } = request.body;
+
+	if (!session_code) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: session_code',
+		});
+	}
+
+
+	return auth
+		.useOnetimeAuth({...request.body})
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.post('/update-password', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
 	const { current_password, new_password } = request.body;
