@@ -5,8 +5,9 @@
       {
         "appID": "CYP38L8DLB.com.kuky.ios",
         "paths": [
-          "*"
-           }
+          "*",
+          "/session/*"
+        }
        ]
    }
 }
