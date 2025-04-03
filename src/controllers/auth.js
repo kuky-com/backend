@@ -616,9 +616,9 @@ async function getOnetimeAuth({ user_id }) {
 		if (!existingVerifyUser) {
 			return Promise.reject('This is not valid user!');
 		}
-		if (!existingVerifyUser.journey_category_id && !existingVerifyUser.journey_id) {
-			return Promise.reject('User has no journey!');
-		}
+		// if (!existingVerifyUser.journey_category_id && !existingVerifyUser.journey_id) {
+		// 	return Promise.reject('User has no journey!');
+		// }
 
 		const expires_at = new Date(Date.now() + 5 * 60 * 1000);
 
