@@ -185,7 +185,7 @@ async function getSimpleProfile({ user_id }) {
 			const user = await Users.findOne({
 				where: { id: user_id },
 				include: [{ model: Journeys }, { model: JourneyCategories }],
-				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday', 'referral_id']
+				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday', 'referral_id', 'last_active_time', 'online_status']
 			});
 
 			if (!user) {
