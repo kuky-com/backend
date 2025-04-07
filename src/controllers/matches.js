@@ -844,8 +844,10 @@ async function getMatchesWithPreminum({ user_id }) {
 		const freeCount = await Matches.count({
 			where: {
 				[Op.or]: [
-					{ sender_id: user_id },
-					{ receiver_id: user_id },
+					{ sender_id: user_id, status: 'sent' },
+					{ sender_id: user_id, status: 'accepted' },
+					{ receiver_id: user_id, status: 'sent' },
+					{ receiver_id: user_id, status: 'accepted' },
 				],
 			},
 			order: [['send_date', 'ASC']],

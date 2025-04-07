@@ -111,7 +111,7 @@ Matches.addScope('withIsFree', (user_id) => ({
                         WHEN "matches"."id" IN (
                             SELECT "id" FROM (
                                 SELECT "id" FROM "matches"
-                                WHERE ("sender_id" = ${user_id} OR "receiver_id" = ${user_id})
+                                WHERE ("sender_id" = ${user_id} OR "receiver_id" = ${user_id}) and ("status" = 'accepted' or "status" = 'sent')
                                 ORDER BY "sent_date" ASC
                                 LIMIT 3
                             ) AS "first_three_matches"
