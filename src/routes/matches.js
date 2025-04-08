@@ -487,4 +487,29 @@ router.get('/next-match', authMiddleware, async (request, response, next) => {
 		});
 });
 
+router.get('/check-matches', (request, response, next) => {
+    const { user_id } = request.body
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return matches.getMatchesWithPreminum({ user_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;
