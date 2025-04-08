@@ -911,7 +911,7 @@ async function getMatchesWithPreminum({ user_id }) {
 		return Promise.resolve({
 			message: 'Matches list',
 			data: {
-				matches: matches,
+				matches: finalMatches,
 				freeTotal: 3,
 				freeCount: freeCount //Math.min(freeCount, 3),
 			}
