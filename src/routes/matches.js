@@ -487,7 +487,7 @@ router.get('/next-match', authMiddleware, async (request, response, next) => {
 		});
 });
 
-router.get('/check-matches', (request, response, next) => {
+router.post('/check-matches', (request, response, next) => {
     const { user_id } = request.body
 
     if (!user_id) {
