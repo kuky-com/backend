@@ -1412,36 +1412,39 @@ const createConversation = async (user1Id, user2Id) => {
 
 const addMessageToConversation = async (conversationId, fromUser, toUser) => {
 	try {
-		let interestList = [];
-		const currentUserLikes = (
-			await interestsController.getLikes({ user_id: fromUser.id })
-		).data.map((d) => d.dataValues);
-		const friendLikes = (
-			await interestsController.getLikes({ user_id: toUser.id })
-		).data.map((d) => d.dataValues);
+		// let interestList = [];
+		// const currentUserLikes = (
+		// 	await interestsController.getLikes({ user_id: fromUser.id })
+		// ).data.map((d) => d.dataValues);
+		// const friendLikes = (
+		// 	await interestsController.getLikes({ user_id: toUser.id })
+		// ).data.map((d) => d.dataValues);
 
-		const currentUserDislikes = (
-			await interestsController.getDislikes({ user_id: fromUser.id })
-		).data.map((d) => d.dataValues);
-		const friendDislikes = (
-			await interestsController.getDislikes({ user_id: toUser.id })
-		).data.map((d) => d.dataValues);
+		// const currentUserDislikes = (
+		// 	await interestsController.getDislikes({ user_id: fromUser.id })
+		// ).data.map((d) => d.dataValues);
+		// const friendDislikes = (
+		// 	await interestsController.getDislikes({ user_id: toUser.id })
+		// ).data.map((d) => d.dataValues);
 
-		try {
-			interestList = await interestsController.checkInterestMatch(
-				{ likes: currentUserLikes, dislikes: currentUserDislikes },
-				{ likes: friendLikes, dislikes: friendDislikes }
-			);
-		} catch (err) { }
+		// try {
+		// 	interestList = await interestsController.checkInterestMatch(
+		// 		{ likes: currentUserLikes, dislikes: currentUserDislikes },
+		// 		{ likes: friendLikes, dislikes: friendDislikes }
+		// 	);
+		// } catch (err) { }
 
-		const sameInterests = formatNamesWithType(interestList);
+		// const sameInterests = formatNamesWithType(interestList);
 
 		const messageId = uuidv4();
+		// const message =
+		// 	`Hi ${toUser.full_name},\n` +
+		// 	`I’d love to connect with you as we share the same interests ${sameInterests.length > 0 ? `in ${sameInterests}` : ''
+		// 	}. 😊\n\n` +
+		// 	`Looking forward to connecting!`;
 		const message =
 			`Hi ${toUser.full_name},\n` +
-			`I’d love to connect with you as we share the same interests ${sameInterests.length > 0 ? `in ${sameInterests}` : ''
-			}. 😊\n\n` +
-			`Looking forward to connecting!`;
+			`I’d love to connect with you to share more about our journey. Looking forward to connecting! 😊`
 
 		await db
 			.collection('conversations')
@@ -1938,7 +1941,7 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 			attributes: ['id', 'journey_id'],
 			limit: parseInt(limit.toString()),
 			offset: parseInt(offset.toString()),
-			order: [['id', 'DESC']],
+			order: [['last_active_time', 'DESC'], ['id', 'DESC']],
 			raw: true,
 		})
 
@@ -1964,7 +1967,7 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 
 async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 	try {
-		
+
 		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
@@ -1982,13 +1985,13 @@ async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 		const nextUser = await Users.findOne({
 			where: whereFilter,
 			attributes: ['id', 'journey_id'],
-			order: [['id', 'DESC']],
+			order: [['last_active_time', 'DESC'], ['id', 'DESC']],
 			raw: true,
 		})
 
-		console.log({journey_id, current_profile_id, user_id, next: nextUser.id})
+		console.log({ journey_id, current_profile_id, user_id, next: nextUser.id })
 
-		return getFriendProfile({user_id, friend_id: nextUser.id})
+		return getFriendProfile({ user_id, friend_id: nextUser.id })
 	} catch (error) {
 		console.log({ error });
 		return Promise.reject(error);
