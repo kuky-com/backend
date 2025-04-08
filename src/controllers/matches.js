@@ -15,7 +15,7 @@ const Interests = require('../models/interests');
 const interestsController = require('./interests');
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
-const { Op, Sequelize } = require('sequelize');
+const { Op, Sequelize, or } = require('sequelize');
 var admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
@@ -839,6 +839,25 @@ async function getExploreList({ user_id }) {
 	}
 }
 
+async function freeMatchesList({ user_id }) {
+	const freeMathces = await Matches.findAll({
+		where: {
+			[Op.or]: [
+				{ sender_id: user_id, status: 'sent' },
+				{ sender_id: user_id, status: 'accepted' },
+				{ receiver_id: user_id, status: 'sent' },
+				{ receiver_id: user_id, status: 'accepted' },
+			],
+		},
+		order: [['sent_date', 'DESC']],
+		attributes: ['id'],
+		limit: 3,
+		raw: true,
+	});
+
+	return freeMathces;
+}
+
 async function getMatchesWithPreminum({ user_id }) {
 	try {
 		const freeCount = await Matches.count({
@@ -849,11 +868,10 @@ async function getMatchesWithPreminum({ user_id }) {
 					{ receiver_id: user_id, status: 'sent' },
 					{ receiver_id: user_id, status: 'accepted' },
 				],
-			},
-			order: [['send_date', 'ASC']],
+			}
 		});
 
-		const matches = await Matches.scope({ method: ['withIsFree', user_id] }).findAll({
+		const matches = await Matches.findAll({
 			where: {
 				[Op.or]: [
 					{ sender_id: user_id, status: 'sent' },
@@ -862,31 +880,38 @@ async function getMatchesWithPreminum({ user_id }) {
 					{ receiver_id: user_id, status: 'accepted' },
 				],
 			},
-			include: [
-				{ model: Users, as: 'sender' },
-				{ model: Users, as: 'receiver' },
-			],
+			// include: [
+			// 	{ model: Users, as: 'sender' },
+			// 	{ model: Users, as: 'receiver' },
+			// ],
 			order: [['last_message_date', 'DESC']],
 		});
+
+		const freeMatches = await freeMatchesList({ user_id });
+		const freeMatchesIds = freeMatches.map((item) => item.id);
+		
 		const finalMatches = [];
 		for (const match of matches) {
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+				if(userInfo.data && userInfo.data.is_active)
+					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 			} else {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+
+				if(userInfo.data && userInfo.data.is_active)
+					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 			}
 		}
 
 		return Promise.resolve({
 			message: 'Matches list',
 			data: {
-				matches: finalMatches,
+				matches: matches,
 				freeTotal: 3,
 				freeCount: freeCount //Math.min(freeCount, 3),
 			}
