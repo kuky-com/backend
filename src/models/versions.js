@@ -14,6 +14,10 @@ const AppVersions = sequelize.define('app_versions', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  is_required_android: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: false,

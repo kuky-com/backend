@@ -58,4 +58,30 @@ router.get('/views', async (req, res) => {
 	}
 });
 
+router.get('/journeys', async (req, res) => {
+	try {
+		const result = await stats.getCountJourneys(
+			req.query.granularity,
+			req.query.timeline
+		);
+
+		res.status(200).json({ ...result, success: true });
+	} catch (err) {
+		res.status(500).json({ message: err.message, success: false });
+	}
+});
+
+router.get('/journey-categories', async (req, res) => {
+	try {
+		const result = await stats.getCountJourneyCategories(
+			req.query.granularity,
+			req.query.timeline
+		);
+
+		res.status(200).json({ ...result, success: true });
+	} catch (err) {
+		res.status(500).json({ message: err.message, success: false });
+	}
+});
+
 module.exports = router;
