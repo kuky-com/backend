@@ -5,19 +5,16 @@
       {
         "appID": "CYP38L8DLB.com.kuky.ios",
         "paths": [
-          "*",
-          "/session/*"
-        }
-       ]
-   }
-}
+          "/session/*",
+          "/profile/*",
+          "*"
         ]
       }
     ]
   },
   "webcredentials": {
     "apps": [
-     "CYP38L8DLB.com.kuky.ios"
+      "CYP38L8DLB.com.kuky.ios"
     ]
   }
 }
