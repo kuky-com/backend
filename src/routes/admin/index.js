@@ -273,12 +273,12 @@ router.post('/profile-action', authAdminMiddleware, (request, response, next) =>
 });
 
 router.post('/set-moderator', authAdminMiddleware, (request, response, next) => {
-	const { is_moderator, user_id } = request.body;
+	const { user_id } = request.body;
 
-	if (!is_moderator || !user_id) {
+	if (!user_id) {
 		return response.json({
 			success: false,
-			message: 'Missing required params: is_moderator, user_id',
+			message: 'Missing required params: user_id',
 		});
 	}
 

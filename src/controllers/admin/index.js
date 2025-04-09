@@ -651,7 +651,7 @@ async function profileAction({ status, reason, user_id }) {
 	}
 }
 
-async function setModerator({ is_moderator, user_id }) {
+async function setModerator({ is_moderators, user_id }) {
 	try {
 		const user = await Users.findOne({
 			where: {
@@ -663,9 +663,9 @@ async function setModerator({ is_moderator, user_id }) {
 			return Promise.reject('User not exist');
 		}
 
-		await Users.update(
+		const result = await Users.update(
 			{
-				is_moderator: is_moderator,
+				is_moderators: is_moderators,
 			},
 			{
 				where: {
