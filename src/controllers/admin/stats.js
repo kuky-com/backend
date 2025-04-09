@@ -1,10 +1,14 @@
-const { Op } = require('sequelize');
+const { Op, Sequelize, fn, col, where } = require('sequelize');
 const { subWeeks, subMonths, subYears, format } = require('date-fns');
 const User = require('@models/users');
 const Matches = require('../../models/matches');
 const sendbird = require('../sendbird');
 const Messages = require('../../models/messages');
 const ProfileViews = require('../../models/profile_views');
+const Journeys = require('../../models/journeys');
+const sequelize = require('../../config/database');
+const Users = require('../../models/users');
+const JourneyCategories = require('../../models/journey_categories');
 
 function parseTimeline(timeline) {
 	const now = new Date();
@@ -269,10 +273,76 @@ async function getCallsCount(timeline, next, acc = {}) {
 	return new_acc;
 }
 
+async function getCountJourneys() {
+	try {
+		const results = []
+
+		const journeys = await Journeys.findAll({
+			raw: true
+		})
+
+		journeys.forEach(async (journey) => {
+			const count = await Users.count({
+				where: {
+					journey_id: journey.id
+				}
+			})
+			results.push({name: journey.name, id: journey.id, count: count})
+		});
+
+		const totalUsers = await Users.count({
+			where: {
+				journey_id: {
+					[Op.ne]: null
+				}
+			}
+		})
+	
+		return {journeys: results, total: totalUsers}
+	  } catch (error) {
+		console.error('Error fetching user counts by journey:', error);
+		return {journeys: [], total: 0}
+	  }
+}
+
+async function getCountJourneyCategories() {
+	try {
+		const results = []
+
+		const categories = await JourneyCategories.findAll({
+			raw: true
+		})
+
+		categories.forEach(async (category) => {
+			const count = await Users.count({
+				where: {
+					journey_category_id: category.id
+				}
+			})
+			results.push({name: category.name, id: category.id, count: count})
+		});
+
+		const totalUsers = await Users.count({
+			where: {
+				journey_category_id: {
+					[Op.ne]: null
+				}
+			}
+		})
+	
+		return {categories: results, total: totalUsers}
+	  } catch (error) {
+		console.error('Error fetching user counts by journey:', error);
+		return {categories: [], total: 0}
+	  }
+}
+
 module.exports = {
 	getUserGrowth,
 	getMatches,
 	getMessagesCount,
 	getCallsCount,
 	getProfileViewsCount,
+	getCountJourneys,
+	getCountJourneyCategories
 };

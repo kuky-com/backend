@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('@/config/database');
+const Users = require('./users');
 
 const Journeys = sequelize.define('journeys', {
   id: {
@@ -72,5 +73,9 @@ const Journeys = sequelize.define('journeys', {
     defaultValue: DataTypes.NOW,
   },
 });
+
+Journeys.associate = (models) => {
+  Journeys.hasMany(Users, { foreignKey: 'journey_id' });
+}
 
 module.exports = Journeys;

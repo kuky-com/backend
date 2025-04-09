@@ -449,34 +449,34 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 		}
 
 		const whereClause = {
-            profile_approved: {
-                [Op.in]: profileStatus.split(','),
-            },
-            register_platform: {
-                [Op.in]: platforms.split(','),
-            },
-            [Op.or]: [
-                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), {
-                    [Op.like]: `%${query.toLowerCase()}%`
-                }),
-                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('full_name')), {
-                    [Op.like]: `%${query.toLowerCase()}%`
-                }),
-            ].concat(
-                isNumericQuery
-                    ? [
-                        {
-                            id: Number.parseInt(query),
-                        },
-                    ]
-                    : []
-            ),
-        };
+			profile_approved: {
+				[Op.in]: profileStatus.split(','),
+			},
+			register_platform: {
+				[Op.in]: platforms.split(','),
+			},
+			[Op.or]: [
+				Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), {
+					[Op.like]: `%${query.toLowerCase()}%`
+				}),
+				Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('full_name')), {
+					[Op.like]: `%${query.toLowerCase()}%`
+				}),
+			].concat(
+				isNumericQuery
+					? [
+						{
+							id: Number.parseInt(query),
+						},
+					]
+					: []
+			),
+		};
 
-        if (hasVideo && hasVideo === '1') {
-            whereClause.video_intro = { [Op.ne]: null };
-        }
-		
+		if (hasVideo && hasVideo === '1') {
+			whereClause.video_intro = { [Op.ne]: null };
+		}
+
 		const users = await Users.findAll({
 			limit: limit,
 			offset: offset,
@@ -503,6 +503,30 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 					model: Journeys
 				}
 			],
+			attributes: {
+				include: [
+					[
+						Sequelize.literal(`(
+							SELECT COUNT(*)
+							FROM matches AS m
+							WHERE m.sender_id = users.id OR m.receiver_id = users.id
+						)`),
+						'matches_count',
+					],
+					[
+						Sequelize.literal(`(
+							SELECT COUNT(*)
+							FROM messages AS msg
+							WHERE msg."matchId" IN (
+								SELECT id
+								FROM matches AS m
+								WHERE m.sender_id = users.id OR m.receiver_id = users.id
+							)
+						)`),
+						'messages_count',
+					],
+				],
+			},
 		});
 
 		return Promise.resolve({
@@ -617,6 +641,38 @@ async function profileAction({ status, reason, user_id }) {
 			);
 			emailService.sendRejectProfileEmail({ to_email: user.email, to_name: user?.full_name, reasons: reason.split('\n') });
 		}
+
+		return Promise.resolve({
+			message: 'Profile updated!',
+		});
+	} catch (error) {
+		console.log('Profile update error:', error);
+		return Promise.reject(error);
+	}
+}
+
+async function setModerator({ is_moderator, user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id,
+			},
+		});
+
+		if (!user) {
+			return Promise.reject('User not exist');
+		}
+
+		await Users.update(
+			{
+				is_moderator: is_moderator,
+			},
+			{
+				where: {
+					id: user_id,
+				},
+			}
+		);
 
 		return Promise.resolve({
 			message: 'Profile updated!',
@@ -765,148 +821,148 @@ async function getReferrals({ page = 1, limit = 20 }) {
 }
 
 async function getLandingPageAmbassadorsInfo() {
-    try {
-        const snapshot = await db
-            .collection('landing_page_ambassadors_info')
-            .orderBy('createdAt', 'desc')
-            .get();
+	try {
+		const snapshot = await db
+			.collection('landing_page_ambassadors_info')
+			.orderBy('createdAt', 'desc')
+			.get();
 
-        const ambassadorsInfo = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+		const ambassadorsInfo = snapshot.docs.map(doc => ({
+			id: doc.id,
+			...doc.data()
+		}));
 
-        return Promise.resolve({
-            data: ambassadorsInfo,
-            message: 'Ambassadors info retrieved successfully',
-        });
-    } catch (error) {
-        console.log('Error retrieving ambassadors info:', error);
-        return Promise.reject('Error retrieving ambassadors info');
-    }
+		return Promise.resolve({
+			data: ambassadorsInfo,
+			message: 'Ambassadors info retrieved successfully',
+		});
+	} catch (error) {
+		console.log('Error retrieving ambassadors info:', error);
+		return Promise.reject('Error retrieving ambassadors info');
+	}
 }
 
 async function getLandingPageContactUs() {
-    try {
-        const snapshot = await db
-            .collection('landing_page_contact_us_info')
-            .orderBy('createdAt', 'desc')
-            .get();
+	try {
+		const snapshot = await db
+			.collection('landing_page_contact_us_info')
+			.orderBy('createdAt', 'desc')
+			.get();
 
-        const contactsInfo = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+		const contactsInfo = snapshot.docs.map(doc => ({
+			id: doc.id,
+			...doc.data()
+		}));
 
-        return Promise.resolve({
-            data: contactsInfo,
-            message: 'Contactus info retrieved successfully',
-        });
-    } catch (error) {
-        console.log('Error retrieving ambassadors info:', error);
-        return Promise.reject('Error retrieving ambassadors info');
-    }
+		return Promise.resolve({
+			data: contactsInfo,
+			message: 'Contactus info retrieved successfully',
+		});
+	} catch (error) {
+		console.log('Error retrieving ambassadors info:', error);
+		return Promise.reject('Error retrieving ambassadors info');
+	}
 }
 
 
 async function botSendMessage({ conversation_id, last_message }) {
-    try {
-		console.log({conversation_id, last_message})
-        const last_message_date = new Date();
-        // we don't need these anymore because we're keeping the full messages log
-        const updatedMatch = await Matches.update(
-            {
-                last_message,
-                last_message_date,
-                last_message_sender: 0,
-                send_date: last_message_date,
-            },
-            {
-                where: {
-                    conversation_id: conversation_id,
-                },
-            }
-        );
+	try {
+		console.log({ conversation_id, last_message })
+		const last_message_date = new Date();
+		// we don't need these anymore because we're keeping the full messages log
+		const updatedMatch = await Matches.update(
+			{
+				last_message,
+				last_message_date,
+				last_message_sender: 0,
+				send_date: last_message_date,
+			},
+			{
+				where: {
+					conversation_id: conversation_id,
+				},
+			}
+		);
 
-        const messageId = uuidv4();
-        db
-            .collection('conversations')
-            .doc(conversation_id)
-            .collection('messages')
-            .add({
-                _id: messageId,
-                text: last_message,
-                createdAt: new Date(),
-                user: {
-                    _id: 0,
-                    name: 'Kuky Bot',
-                },
-                readBy: [0],
-                type: 'text',
-            });
+		const messageId = uuidv4();
+		db
+			.collection('conversations')
+			.doc(conversation_id)
+			.collection('messages')
+			.add({
+				_id: messageId,
+				text: last_message,
+				createdAt: new Date(),
+				user: {
+					_id: 0,
+					name: 'Kuky Bot',
+				},
+				readBy: [0],
+				type: 'text',
+			});
 
-        await Matches.increment(
-            { messagesCount: 1 },
-            {
-                where: {
-                    conversation_id: conversation_id,
-                },
-            }
-        );
-        await Matches.increment(
-            { bot_messages_count: 1 },
-            {
-                where: {
-                    conversation_id: conversation_id,
-                },
-            }
-        );
+		await Matches.increment(
+			{ messagesCount: 1 },
+			{
+				where: {
+					conversation_id: conversation_id,
+				},
+			}
+		);
+		await Matches.increment(
+			{ bot_messages_count: 1 },
+			{
+				where: {
+					conversation_id: conversation_id,
+				},
+			}
+		);
 
-        const existMatch = await Matches.findOne({
-            where: {
-                conversation_id: conversation_id,
-            },
-            include: [
-                { model: Users, as: 'sender' },
-                { model: Users, as: 'receiver' },
-            ],
-        });
+		const existMatch = await Matches.findOne({
+			where: {
+				conversation_id: conversation_id,
+			},
+			include: [
+				{ model: Users, as: 'sender' },
+				{ model: Users, as: 'receiver' },
+			],
+		});
 
-        await Messages.create({
-            text: last_message,
-            senderId: 0,
-            matchId: existMatch.id,
-            createdAt: last_message_date,
-        });
+		await Messages.create({
+			text: last_message,
+			senderId: 0,
+			matchId: existMatch.id,
+			createdAt: last_message_date,
+		});
 
-        try {
-            addNewPushNotification(
-                existMatch.receiver_id,
-                existMatch.toJSON(),
-                null,
-                'message',
-                'Kuky Bot',
-                last_message
-            );
-            addNewPushNotification(
-                existMatch.sender_id,
-                existMatch.toJSON(),
-                null,
-                'message',
-                'Kuky Bot',
-                last_message
-            );
-        } catch (error) {
-            console.log({ error });
-        }
+		try {
+			addNewPushNotification(
+				existMatch.receiver_id,
+				existMatch.toJSON(),
+				null,
+				'message',
+				'Kuky Bot',
+				last_message
+			);
+			addNewPushNotification(
+				existMatch.sender_id,
+				existMatch.toJSON(),
+				null,
+				'message',
+				'Kuky Bot',
+				last_message
+			);
+		} catch (error) {
+			console.log({ error });
+		}
 
-        return Promise.resolve({
-            data: existMatch,
-        });
-    } catch (error) {
-        console.log({ error });
-        return Promise.reject(error);
-    }
+		return Promise.resolve({
+			data: existMatch,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
 }
 
 
@@ -924,4 +980,5 @@ module.exports = {
 	botSendMessage,
 	getLandingPageAmbassadorsInfo,
 	getLandingPageContactUs,
+	setModerator
 };

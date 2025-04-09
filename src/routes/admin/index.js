@@ -25,7 +25,7 @@ const { getAllJourneys } = require('../../controllers/journeys');
 
 router.use('/users', authAdminMiddleware, adminUsers);
 router.use('/reviews', authAdminMiddleware, adminReviews);
-router.use('/stats', authAdminMiddleware, adminStats);
+router.use('/stats', adminStats);
 router.use('/landing', authAdminMiddleware, adminLandings);
 
 router.post('/check-suggestion', authAdminMiddleware, (request, response, next) => {
@@ -257,6 +257,33 @@ router.post('/profile-action', authAdminMiddleware, (request, response, next) =>
 
 	return admin
 		.profileAction({ ...request.body })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.post('/set-moderator', authAdminMiddleware, (request, response, next) => {
+	const { is_moderator, user_id } = request.body;
+
+	if (!is_moderator || !user_id) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: is_moderator, user_id',
+		});
+	}
+
+	return admin
+		.setModerator({ ...request.body })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,

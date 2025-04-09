@@ -98,6 +98,10 @@ const Users = sequelize.define('users', {
 		allowNull: true,
 		defaultValue: false,
 	},
+	is_moderators: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false,
+	},
 	profile_approved: {
 		type: DataTypes.ENUM('pending', 'rejected', 'approved', 'resubmitted'),
 		allowNull: false,
