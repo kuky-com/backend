@@ -889,21 +889,21 @@ async function getMatchesWithPreminum({ user_id }) {
 
 		const freeMatches = await freeMatchesList({ user_id });
 		const freeMatchesIds = freeMatches.map((item) => item.id);
-		
+
 		const finalMatches = [];
 		for (const match of matches) {
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				if(userInfo.data && userInfo.data.is_active)
+				if (userInfo.data && userInfo.data.is_active)
 					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 			} else {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
 
-				if(userInfo.data && userInfo.data.is_active)
+				if (userInfo.data && userInfo.data.is_active)
 					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 			}
 		}
@@ -1956,8 +1956,43 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 		}
 
 		if (user_id) {
+			const blockedUsers = await BlockedUsers.findAll({
+				where: {
+					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+				},
+				raw: true,
+			});
+
+			const matchedUsers = await Matches.findAll({
+				where: {
+					[Op.or]: [
+						{
+							[Op.or]: [
+								{ sender_id: user_id, status: 'rejected' },
+								{ sender_id: user_id, status: 'accepted' },
+								{ sender_id: user_id, status: 'deleted' },
+								{ receiver_id: user_id, status: 'rejected' },
+								{ receiver_id: user_id, status: 'accepted' },
+								{ receiver_id: user_id, status: 'deleted' },
+							],
+						},
+						{ sender_id: user_id, status: 'sent' },
+					],
+				},
+				raw: true,
+			});
+
+			const blockedUserIds = blockedUsers.map((item) =>
+				item.user_id === user_id ? item.blocked_id : item.user_id
+			);
+			const matchedUserIds = matchedUsers.map((item) =>
+				item.sender_id === user_id ? item.receiver_id : item.sender_id
+			);
+
+			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
 			whereFilter.id = {
-				[Op.ne]: user_id
+				[Op.notIn]: [user_id, ...avoidUserIds]
 			}
 		}
 
