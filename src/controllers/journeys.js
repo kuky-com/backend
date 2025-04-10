@@ -84,7 +84,7 @@ async function getActiveJourneys({ user_id }) {
 								{ receiver_id: user_id, status: 'deleted' },
 							],
 						},
-						{ sender_id: user_id, status: 'sent' },
+						{ receiver_id: user_id, status: 'sent' },
 					],
 				},
 				raw: true,
