@@ -269,7 +269,10 @@ async function getFriendProfile({ user_id, friend_id }) {
 	try {
 		const findCondition = isStringInteger(friend_id)
 			? { id: friend_id }
-			: { referral_id: friend_id.toString().toLowerCase() };
+			: Sequelize.where(
+				Sequelize.fn('LOWER', Sequelize.col('referral_id')),
+				friend_id.toString().trim().toLowerCase()
+			);
 
 		const user = await Users.findOne({
 			where: findCondition,
