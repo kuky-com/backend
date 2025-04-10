@@ -20,6 +20,9 @@ const JPFQuestions = require('../models/jpf_questions');
 const JPFAnswers = require('../models/jpf_answers');
 const JPFUserAnswer = require('../models/jpf_user_answers');
 const { is } = require('date-fns/locale');
+const BlockedUsers = require('../models/blocked_users');
+const Matches = require('../models/matches');
+const { findUnique } = require('../utils/utils');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -58,7 +61,49 @@ async function getAllJourneys() {
 
 async function getActiveJourneys({ user_id }) {
     try {
-        const extraQuery = user_id ? `and u.id <> ${user_id}` : ''
+        let extraQuery = ''
+        
+        if(user_id) {
+            const blockedUsers = await BlockedUsers.findAll({
+				where: {
+					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+				},
+				raw: true,
+			});
+
+			const matchedUsers = await Matches.findAll({
+				where: {
+					[Op.or]: [
+						{
+							[Op.or]: [
+								{ sender_id: user_id, status: 'rejected' },
+								{ sender_id: user_id, status: 'accepted' },
+								{ sender_id: user_id, status: 'deleted' },
+								{ receiver_id: user_id, status: 'rejected' },
+								{ receiver_id: user_id, status: 'accepted' },
+								{ receiver_id: user_id, status: 'deleted' },
+							],
+						},
+						{ sender_id: user_id, status: 'sent' },
+					],
+				},
+				raw: true,
+			});
+
+			const blockedUserIds = blockedUsers.map((item) =>
+				item.user_id === user_id ? item.blocked_id : item.user_id
+			);
+			const matchedUserIds = matchedUsers.map((item) =>
+				item.sender_id === user_id ? item.receiver_id : item.sender_id
+			);
+
+			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+            extraQuery = `and u.id not in (${avoidUserIds.join(', ')})`
+        }
+
+        console.log({extraQuery})
+        
         const query = `
             SELECT 
                 p.*,
