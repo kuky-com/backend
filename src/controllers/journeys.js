@@ -98,6 +98,7 @@ async function getActiveJourneys({ user_id }) {
 			);
 
 			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+            avoidUserIds.push(user_id)
 
             extraQuery = `and u.id not in (${avoidUserIds.join(', ')})`
         }
