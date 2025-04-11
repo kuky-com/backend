@@ -1177,9 +1177,15 @@ async function acceptSuggestion({ user_id, friend_id }) {
 			attributes: ['id', 'full_name', 'profile_approved', 'email'],
 		});
 
-		if (requestUser && requestUser.profile_approved !== 'approved') {
+		// if (requestUser && requestUser.profile_approved !== 'approved') {
+		// 	return Promise.reject(
+		// 		'Your account is almost ready! While we complete the approval, feel free to browse and get familiar with other profiles. You’ll be connecting soon!'
+		// 	);
+		// }
+
+		if (!requestUser || !requestUser.is_active || !requestUser.email_verified) {
 			return Promise.reject(
-				'Your account is almost ready! While we complete the approval, feel free to browse and get familiar with other profiles. You’ll be connecting soon!'
+				'Your account had not actived yet!'
 			);
 		}
 
