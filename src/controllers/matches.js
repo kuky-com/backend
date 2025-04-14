@@ -1169,12 +1169,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		const requestUser = await Users.findOne({
 			where: { id: user_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email'],
+			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
 		});
 
 		const receiveUser = await Users.findOne({
 			where: { id: friend_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email'],
+			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
 		});
 
 		// if (requestUser && requestUser.profile_approved !== 'approved') {
