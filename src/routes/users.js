@@ -5,6 +5,8 @@ const authMiddleware = require('../milddleware/authMiddleware');
 const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware');
 const { blockedUserMiddleware } = require('../milddleware/blockedUserMiddleware');
 const interests = require('@controllers/interests');
+const SessionLog = require('../models/session_logs');
+const { v4: uuidv4 } = require('uuid')
 
 router.post('/update', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
@@ -745,5 +747,87 @@ router.post(
 			});
 	}
 );
+
+
+router.post('/sessions', authMiddleware, async (req, res) => {
+	const { user_id } = req;
+	const session_id = uuidv4()
+	const { device_id, platform, start_time } = req.body;
+
+	try {
+		const latestSession = await SessionLog.findOne({
+			where: {
+				user_id,
+				device_id,
+			},
+			order: [['start_time', 'DESC']],
+		});
+
+		if (latestSession && new Date() - new Date(latestSession.start_time) < 2 * 60 * 1000) {
+			return res.status(200).json({
+				message: 'Session already exists',
+				data: {
+					session_id: latestSession.session_id,
+					user_id: latestSession.user_id,
+					device_id: latestSession.device_id,
+					platform: latestSession.platform,
+					start_time: latestSession.start_time,
+				},
+			});
+		}
+
+		await SessionLog.update(
+			{ end_time: new Date(new Date(start_time).getTime() + 60 * 1000) },
+			{
+				where: {
+					user_id,
+					device_id,
+					end_time: null,
+				},
+			}
+		);
+
+		await SessionLog.create({
+			session_id,
+			user_id,
+			device_id,
+			platform,
+			start_time,
+		});
+
+		res.status(200).json({
+			message: 'Session created',
+			data: {
+				session_id,
+				user_id,
+				device_id,
+				platform,
+				start_time,
+			},
+		});
+	} catch (error) {
+		console.log({error})
+		res.status(500).json({ error: 'Failed to create session' });
+	}
+});
+
+router.put('/sessions/:session_id', authMiddleware, async (req, res) => {
+	const { session_id } = req.params;
+	const { end_time } = req.body;
+
+	try {
+		const session = await SessionLog.findByPk(session_id);
+		if (!session) {
+			return res.status(404).json({ error: 'Session not found' });
+		}
+
+		session.end_time = end_time;
+		await session.save();
+
+		res.json({ message: 'Session updated' });
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to update session' });
+	}
+});
 
 module.exports = router;

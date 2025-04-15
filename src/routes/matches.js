@@ -3,6 +3,8 @@ const matches = require("@controllers/matches");
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware')
 const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware')
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 router.get('/suggestions', authMiddleware, (request, response, next) => {
     const { user_id } = request
@@ -511,5 +513,30 @@ router.post('/check-matches', (request, response, next) => {
             })
         })
 })
+
+router.get('/url-preview', async (req, res) => {
+    const { url } = req.query;
+  
+    if (!url) return res.status(400).json({ error: 'Missing URL' });
+  
+    try {
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+    });
+  
+      const $ = cheerio.load(data);
+  
+      const title = $('meta[property="og:title"]').attr('content') || $('title').text();
+      const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content');
+      const image = $('meta[property="og:image"]').attr('content');
+      const siteName = $('meta[property="og:site_name"]').attr('content');
+  
+      res.json({ title, description, image, siteName, url });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch or parse URL' });
+    }
+  });
 
 module.exports = router;
