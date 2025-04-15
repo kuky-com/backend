@@ -849,7 +849,7 @@ async function freeMatchesList({ user_id }) {
 				{ receiver_id: user_id, status: 'accepted' },
 			],
 		},
-		order: [['sent_date', 'DESC']],
+		order: [['sent_date', 'ASC']],
 		attributes: ['id'],
 		limit: 3,
 		raw: true,
