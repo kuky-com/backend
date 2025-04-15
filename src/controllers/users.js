@@ -22,10 +22,10 @@ const ReviewUsers = require('../models/review_users');
 const ReferralUsers = require('../models/referral_users');
 const AppVersions = require('../models/versions');
 const Sequelize = require('../config/database');
-const { isStringInteger, generateReferralCode } = require('../utils/utils');
+const { isStringInteger, generateReferralCode, parseFormattedCallSeconds } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
 const { updateRejectedDateTag } = require('./onesignal');
-
+var admin = require('firebase-admin');
 
 const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { rekognitionClient } = require('../config/rekognitionClient');
@@ -33,6 +33,12 @@ const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
 const JPFAnswers = require('../models/jpf_answers');
 const JPFUserAnswer = require('../models/jpf_user_answers');
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+admin.initializeApp({
+	credential: admin.credential.cert(serviceAccount),
+});
+const db = admin.firestore();
 
 async function updateProfile({
 	user_id,
@@ -215,6 +221,7 @@ async function getSimpleProfile({ user_id }) {
 
 async function getProfile({ user_id }) {
 	try {
+		console.log({user_id})
 		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
 			where: { id: user_id },
 			include: [
@@ -887,6 +894,109 @@ async function scanImage({ image }) {
 	}
 }
 
+async function getStats({ user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id
+			},
+			attributes: {
+				include: [
+					[
+						Sequelize.literal(`(
+							SELECT COUNT(*)
+							FROM matches AS m
+							WHERE m.sender_id = users.id OR m.receiver_id = users.id
+						)`),
+						'matches_count',
+					],
+					[
+						Sequelize.literal(`(
+							SELECT COUNT(*)
+							FROM messages AS msg
+							WHERE msg."matchId" IN (
+								SELECT id
+								FROM matches AS m
+								WHERE m.sender_id = users.id OR m.receiver_id = users.id
+							)
+						)`),
+						'messages_count',
+					],
+					[
+						Sequelize.literal(`(
+							SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
+							FROM session_logs AS sl
+							WHERE sl.user_id = users.id
+						)`),
+						'total_session_time',
+					],
+				],
+			},
+		})
+
+		const matches = await Matches.findAll({
+			where: {
+				[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
+				conversation_id: {
+					[Op.ne]: null
+				}
+			},
+			attributes: ['conversation_id'],
+			raw: true,
+		});
+
+		const conversationIds = matches.map((match) => match.conversation_id);
+
+		let totalVideoCallDuration = 0;
+		let totalVoiceCallDuration = 0;
+
+		if (conversationIds.length > 0) {
+			const conversations = await db
+				.collection('conversations')
+				.where('id', 'in', conversationIds)
+				.get();
+
+			for(const conversation of conversations.docs){
+				const messagesCollection = conversation.ref.collection('messages');
+				const messagesSnapshot = await messagesCollection.get()
+
+				for(const messageDoc of messagesSnapshot.docs){
+					const message = messageDoc.data();
+
+					if (message.type === 'video_call' || message.type === 'voice_call') {
+						const duration = parseFormattedCallSeconds(message.text);
+
+						if (message.type === 'video_call') {
+							totalVideoCallDuration += duration;
+						} else if (message.type === 'voice_call') {
+							totalVoiceCallDuration += duration;
+						}
+					}
+				};
+			};
+		}
+
+		const reviewsData = await getReviewStats(user_id);
+
+		const userInfo = {
+			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
+			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
+			total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
+			total_video_call_duration: totalVideoCallDuration,
+			total_voice_call_duration: totalVoiceCallDuration,
+			reviews_count: reviewsData.reviewsCount,
+			avg_rating: reviewsData.avgRating,
+		};
+
+		return Promise.resolve({
+			data: userInfo,
+			message: 'Get stats successfully',
+		});
+	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -912,5 +1022,7 @@ module.exports = {
 	getIapProducts,
 	updateExistingUsersReferral,
 	getSimpleProfile,
-	scanImage
+	scanImage,
+	getStats,
+	db
 };
