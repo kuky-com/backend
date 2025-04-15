@@ -7,7 +7,7 @@ const { addNewPushNotification } = require('../notifications');
 const interestsController = require('../interests');
 const { OpenAI } = require('openai');
 const { v4: uuidv4 } = require('uuid');
-const { db } = require('../matches');
+const { db } = require('../users');
 const { id } = require('date-fns/locale');
 
 const openai = new OpenAI({

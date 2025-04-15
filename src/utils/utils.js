@@ -13,6 +13,27 @@ function isStringInteger(value) {
     return (Number.isInteger(value) || (typeof value === 'string' && Number.isInteger(Number(value))));
 }
 
+function parseFormattedCallSeconds(formattedString) {
+    try {
+        console.log({formattedString})
+        const timeUnits = {
+            hour: 3600,
+            minute: 60,
+            second: 1,
+        };
+    
+        const duration = formattedString.split(', ').reduce((totalMilliseconds, part) => {
+            const [value, unit] = part.split(' ');
+            const singularUnit = unit.replace(/s$/, ''); // Remove plural 's' if present
+            return totalMilliseconds + (parseInt(value, 10) * (timeUnits[singularUnit] || 0));
+        }, 0);
+
+        return duration
+    } catch (error) {
+        console.log({error})
+        return 0
+    }
+};
 
 function formatNamesWithType(objects) {
     if (!Array.isArray(objects) || objects.length === 0) return '';
@@ -61,5 +82,6 @@ module.exports = {
     getRandomElements,
     isStringInteger,
     formatNamesWithType,
-    generateReferralCode
+    generateReferralCode,
+    parseFormattedCallSeconds
 }

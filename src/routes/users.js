@@ -830,4 +830,24 @@ router.put('/sessions/:session_id', authMiddleware, async (req, res) => {
 	}
 });
 
+router.get(
+	'/:userId/stats',
+	async (request, response, next) => {
+		try {
+			const result = await users.getStats({
+				user_id: request.params.userId,
+			});
+			return response.json({
+				success: true,
+				data: result,
+			});
+		} catch (err) {
+			return response.json({
+				success: false,
+				message: `${err}`,
+			});
+		}
+	}
+);
+
 module.exports = router;
