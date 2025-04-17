@@ -806,7 +806,7 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.log({error})
+		console.log({ error })
 		res.status(500).json({ error: 'Failed to create session' });
 	}
 });
@@ -831,11 +831,14 @@ router.put('/sessions/:session_id', authMiddleware, async (req, res) => {
 });
 
 router.get(
-	'/:userId/stats',
+	'/stats',
+	authMiddleware,
 	async (request, response, next) => {
+		const { user_id } = request;
+
 		try {
 			const result = await users.getStats({
-				user_id: request.params.userId,
+				user_id: user_id,
 			});
 			return response.json({
 				success: true,

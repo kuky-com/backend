@@ -9,7 +9,7 @@ const {
 	createUserPurpose,
 	updateProfileTag,
 } = require('../../controllers/interests');
-const { updateUserNote, updateProfile } = require('@controllers/users');
+const { updateUserNote, updateProfile, getStats } = require('@controllers/users');
 const router = express.Router();
 const { Sequelize } = require('sequelize');
 
@@ -42,6 +42,26 @@ router.put('/:userId/note', async (request, response) => {
 		return response.status(400).json({ message: err.message, success: false });
 	}
 });
+
+router.get(
+	'/:userId/stats',
+	async (request, response, next) => {
+		try {
+			const result = await getStats({
+				user_id: request.params.userId,
+			});
+			return response.json({
+				success: true,
+				data: result,
+			});
+		} catch (err) {
+			return response.json({
+				success: false,
+				message: `${err}`,
+			});
+		}
+	}
+);
 
 router.put('/:userId/profile', async (request, response) => {
 	try {
