@@ -180,6 +180,22 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	video_intro_blur: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_purpose_blur: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	payment_type: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	payment_id: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	referral_id: {
 		type: DataTypes.STRING,
 		allowNull: false,
