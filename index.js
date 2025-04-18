@@ -20,6 +20,10 @@ const { syncMessages } = require('./src/controllers/matches');
 const Journeys = require('./src/models/journeys');
 const JourneyCategories = require('./src/models/journey_categories');
 require('./src/controllers/cron')
+var customParseFormat = require("dayjs/plugin/customParseFormat");
+const dayjs = require('dayjs');
+
+dayjs.extend(customParseFormat);
 
 const app = express();
 

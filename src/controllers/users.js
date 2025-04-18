@@ -904,8 +904,6 @@ async function getStats({ user_id, start_date, end_date }) {
 			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString() 
 			: dayjs().endOf('month').toISOString();
 
-		console.log({startOfDay, endOfDay})
-
 		const user = await Users.findOne({
 			where: {
 				id: user_id
