@@ -109,6 +109,13 @@ async function updateProfile({
 			updateSubtitle(user_id, restParams.audio_interests, 'subtitle_interests')
 		}
 
+		if(restParams.is_video_intro_blur && restParams.video_intro) {
+			updateBlurVideo(user_id, restParams.video_intro, 'video_intro_blur')
+		}
+		if(restParams.is_video_purpose_blur && restParams.video_purpose) {
+			updateBlurVideo(user_id, restParams.video_purpose, 'video_purpose_blur')
+		}
+
 		if (updates.avatar || updates.full_name) {
 			const sendbirdPayload = {};
 			if (updates.avatar) {
@@ -141,6 +148,35 @@ async function updateSubtitle(user_id, media_url, type) {
 
 		if (response && response.data && response.data.s3_url) {
 			await Users.update({ [type]: response.data.s3_url }, {
+				where: { id: user_id },
+				returning: true,
+				plain: true,
+			});
+		}
+
+		return Promise.resolve({
+			message: 'Update successfully',
+		});
+	} catch (error) {
+
+	}
+}
+
+async function updateBlurVideo(user_id, media_url, type) {
+	try {
+		await Users.update({ [type]: null }, {
+			where: { id: user_id },
+			returning: true,
+			plain: true,
+		});
+
+		const response = await axios.post('https://h73gkjldkyjxyc4ygsguvon35u0zncvs.lambda-url.ap-southeast-1.on.aws/', {
+			video_uri: media_url,
+			type: type
+		})
+
+		if (response && response.data && response.data.blurred_video_url) {
+			await Users.update({ [type]: response.data.blurred_video_url }, {
 				where: { id: user_id },
 				returning: true,
 				plain: true,
@@ -189,15 +225,16 @@ async function getReviewStats(user_id) {
 async function getSimpleProfile({ user_id }) {
 	try {
 		try {
-			const user = await Users.findOne({
+			const user = await Users.scope(['simpleProfile', 'blurVideo']).findOne({
 				where: { id: user_id },
 				include: [{ model: Journeys }, { model: JourneyCategories }],
-				attributes: ['id', 'full_name', 'avatar', 'location', 'birthday', 'referral_id', 'last_active_time', 'online_status']
 			});
 
 			if (!user) {
 				return Promise.reject('User not found');
 			}
+
+			console.log({user})
 
 			const reviewsData = await getReviewStats(user_id);
 
@@ -222,8 +259,7 @@ async function getSimpleProfile({ user_id }) {
 
 async function getProfile({ user_id }) {
 	try {
-		console.log({user_id})
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
+		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
 			where: { id: user_id },
 			include: [
 				{ model: Purposes },
@@ -282,7 +318,7 @@ async function getFriendProfile({ user_id, friend_id }) {
 				friend_id.toString().trim().toLowerCase()
 			);
 
-		const user = await Users.findOne({
+		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: findCondition,
 			include: [{ model: Purposes }, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
 		});
@@ -363,11 +399,13 @@ async function getFriendProfile({ user_id, friend_id }) {
 
 async function getUser(user_id) {
 	try {
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount']).findOne({
+		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
 			where: { id: user_id },
 			attributes: { exclude: ['password'] },
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
 		});
+
+		console.log({user})
 
 		if (!user) {
 			return Promise.reject('User not found');
@@ -904,7 +942,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString() 
 			: dayjs().endOf('month').toISOString();
 
-		const user = await Users.findOne({
+		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
 				id: user_id
 			},
