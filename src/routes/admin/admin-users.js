@@ -49,6 +49,7 @@ router.get(
 		try {
 			const result = await getStats({
 				user_id: request.params.userId,
+				...request.query
 			});
 			return response.json({
 				success: true,

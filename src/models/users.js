@@ -231,6 +231,14 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	is_video_intro_blur: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false
+	},
+	is_video_purpose_blur: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false,
+	},
 	register_platform: {
 		type: DataTypes.STRING,
 		allowNull: true,
