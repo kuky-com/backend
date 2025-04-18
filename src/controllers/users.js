@@ -33,6 +33,7 @@ const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
 const JPFAnswers = require('../models/jpf_answers');
 const JPFUserAnswer = require('../models/jpf_user_answers');
+const dayjs = require('dayjs');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -894,8 +895,17 @@ async function scanImage({ image }) {
 	}
 }
 
-async function getStats({ user_id }) {
+async function getStats({ user_id, start_date, end_date }) {
 	try {
+		const startOfDay = start_date 
+			? dayjs(start_date, 'DD/MM/YYYY').startOf('day').toISOString() 
+			: dayjs().startOf('month').toISOString();
+		const endOfDay = end_date 
+			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString() 
+			: dayjs().endOf('month').toISOString();
+
+		console.log({startOfDay, endOfDay})
+
 		const user = await Users.findOne({
 			where: {
 				id: user_id
@@ -906,7 +916,8 @@ async function getStats({ user_id }) {
 						Sequelize.literal(`(
 							SELECT COUNT(*)
 							FROM matches AS m
-							WHERE m.sender_id = users.id OR m.receiver_id = users.id
+							WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
+							AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
 						)`),
 						'matches_count',
 					],
@@ -917,7 +928,8 @@ async function getStats({ user_id }) {
 							WHERE msg."matchId" IN (
 								SELECT id
 								FROM matches AS m
-								WHERE m.sender_id = users.id OR m.receiver_id = users.id
+								WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
+								AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
 							)
 						)`),
 						'messages_count',
@@ -927,18 +939,22 @@ async function getStats({ user_id }) {
 							SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 							FROM session_logs AS sl
 							WHERE sl.user_id = users.id
+							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 						)`),
 						'total_session_time',
 					],
 				],
 			},
-		})
+		});
 
 		const matches = await Matches.findAll({
 			where: {
 				[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
 				conversation_id: {
 					[Op.ne]: null
+				},
+				createdAt: {
+					[Op.between]: [startOfDay, endOfDay]
 				}
 			},
 			attributes: ['conversation_id'],
@@ -956,11 +972,14 @@ async function getStats({ user_id }) {
 				.where('id', 'in', conversationIds)
 				.get();
 
-			for(const conversation of conversations.docs){
+			for (const conversation of conversations.docs) {
 				const messagesCollection = conversation.ref.collection('messages');
-				const messagesSnapshot = await messagesCollection.get()
+				const messagesSnapshot = await messagesCollection
+					.where('createdAt', '>=', new Date(startOfDay))
+					.where('createdAt', '<=', new Date(endOfDay))
+					.get();
 
-				for(const messageDoc of messagesSnapshot.docs){
+				for (const messageDoc of messagesSnapshot.docs) {
 					const message = messageDoc.data();
 
 					if (message.type === 'video_call' || message.type === 'voice_call') {
@@ -972,8 +991,8 @@ async function getStats({ user_id }) {
 							totalVoiceCallDuration += duration;
 						}
 					}
-				};
-			};
+				}
+			}
 		}
 
 		const reviewsData = await getReviewStats(user_id);

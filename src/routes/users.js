@@ -839,6 +839,7 @@ router.get(
 		try {
 			const result = await users.getStats({
 				user_id: user_id,
+				...request.query
 			});
 			return response.json({
 				success: true,
