@@ -281,6 +281,62 @@ Users.addScope('defaultScope', {
 	},
 });
 
+Users.addScope('includeBlurVideo', {
+	attributes: {
+		include: [
+			[
+				Sequelize.literal(`
+					CASE
+						WHEN is_video_intro_blur = TRUE THEN video_intro_blur
+						ELSE video_intro
+					END
+				`),
+				'video_intro'
+			],
+			[
+				Sequelize.literal(`
+					CASE
+						WHEN is_video_purpose_blur = TRUE THEN video_purpose_blur
+						ELSE video_purpose
+					END
+				`),
+				'video_purpose'
+			]
+		]
+	}
+});
+
+
+Users.addScope('blurVideo', {
+	attributes: [
+		[
+			Sequelize.literal(`
+				CASE
+					WHEN is_video_intro_blur = TRUE THEN video_intro_blur
+					ELSE video_intro
+				END
+			`),
+			'video_intro'
+		],
+		[
+			Sequelize.literal(`
+				CASE
+					WHEN is_video_purpose_blur = TRUE THEN video_purpose_blur
+					ELSE video_purpose
+				END
+			`),
+			'video_purpose'
+		],
+	],
+});
+
+Users.addScope('simpleProfile', {
+	attributes: [
+		'id', 'full_name', 'avatar', 'location', 'birthday', 
+					'referral_id', 'last_active_time', 'online_status'
+	]
+});
+
 Users.addScope('withPassword', {
 	attributes: {
 		include: ['password'],
