@@ -67,31 +67,35 @@ function sleep(ms) {
 }
 
 async function syncOnesignalUsers(page = 0, limit = 100) {
-	console.log(`Syncing database users page ${page} with onesignal...`);
+	try {
+		console.log(`Syncing database users page ${page} with onesignal...`);
 
-	const users = await Users.findAll({
-		limit,
-		offset: page * limit,
-		include: [{ model: Journeys }, {model: JourneyCategories}, { model: Interests }, { model: Tags }],
-	});
+		const users = await Users.findAll({
+			limit,
+			offset: page * limit,
+			include: [{ model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
+		});
 
-	const promies = users.map(async (u) => {
-		const onesignalUser = await getOnesignalUser(u.id);
-		if (!onesignalUser.errors?.length) {
-			// 'Do not create if already exists'
-			// (await deleteOnesignalUser(u.id));
-			return;
+		const promies = users.map(async (u) => {
+			const onesignalUser = await getOnesignalUser(u.id);
+			if (!onesignalUser.errors?.length) {
+				// 'Do not create if already exists'
+				// (await deleteOnesignalUser(u.id));
+				return;
+			}
+			return createOnesignalUser(u);
+		});
+		await Promise.all(promies);
+
+		await sleep(1000);
+
+		if (users.length === limit) {
+			return syncOnesignalUsers(page + 1, limit);
+		} else {
+			console.log('Onesignal user sync finished!');
 		}
-		return createOnesignalUser(u);
-	});
-	await Promise.all(promies);
-
-	await sleep(1000);
-
-	if (users.length === limit) {
-		return syncOnesignalUsers(page + 1, limit);
-	} else {
-		console.log('Onesignal user sync finished!');
+	} catch (error) {
+		console.log({ error })
 	}
 }
 

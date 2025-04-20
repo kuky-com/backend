@@ -136,6 +136,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	score_ranking: {
+		type: DataTypes.INTEGER,
+		defaultValue: 0
+	},
 	subtitle_purpose: {
 		type: DataTypes.STRING,
 		allowNull: true,

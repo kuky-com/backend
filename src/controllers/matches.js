@@ -2000,7 +2000,12 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 			attributes: ['id', 'journey_id'],
 			limit: parseInt(limit.toString()),
 			offset: parseInt(offset.toString()),
-			order: [['last_active_time', 'DESC'], ['id', 'DESC']],
+			order: [
+				['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC']
+			],
 			raw: true,
 		})
 
@@ -2044,7 +2049,12 @@ async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 		const nextUser = await Users.findOne({
 			where: whereFilter,
 			attributes: ['id', 'journey_id'],
-			order: [['last_active_time', 'DESC'], ['id', 'DESC']],
+			order: [
+				['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC']
+			],
 			raw: true,
 		})
 

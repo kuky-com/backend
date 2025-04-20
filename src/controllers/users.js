@@ -1001,6 +1001,7 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		let totalVideoCallDuration = 0;
 		let totalVoiceCallDuration = 0;
+		let totalCall = 0
 
 		if (conversationIds.length > 0) {
 			const conversations = await db
@@ -1021,6 +1022,10 @@ async function getStats({ user_id, start_date, end_date }) {
 					if (message.type === 'video_call' || message.type === 'voice_call') {
 						const duration = parseFormattedCallSeconds(message.text);
 
+						if(duration > 0) {
+							totalCall += 1
+						}
+
 						if (message.type === 'video_call') {
 							totalVideoCallDuration += duration;
 						} else if (message.type === 'voice_call') {
@@ -1034,6 +1039,7 @@ async function getStats({ user_id, start_date, end_date }) {
 		const reviewsData = await getReviewStats(user_id);
 
 		const userInfo = {
+			total_call: totalCall,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
 			total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
@@ -1041,6 +1047,11 @@ async function getStats({ user_id, start_date, end_date }) {
 			total_voice_call_duration: totalVoiceCallDuration,
 			reviews_count: reviewsData.reviewsCount,
 			avg_rating: reviewsData.avgRating,
+			earning: {
+				bonuses: 0,
+				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
+				total: 0
+			}
 		};
 
 		return Promise.resolve({
