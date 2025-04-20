@@ -678,6 +678,22 @@ async function setModerator({ is_moderators, user_id }) {
 			}
 		);
 
+		if (is_moderators) {
+			try {
+				addNewPushNotification(
+					user_id,
+					null,
+					null,
+					'profile_upgrade',
+					'You are Moderator',
+					'Your account has been approved as moderator'
+				)
+			} catch (error) {
+				console.log({ error });
+			}
+		}
+
+
 		return Promise.resolve({
 			message: 'Profile updated!',
 		});
