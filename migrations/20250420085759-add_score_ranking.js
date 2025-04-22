@@ -10,7 +10,7 @@ module.exports = {
         'score_ranking',
         {
           type: DataTypes.INTEGER,
-          defaultValue: 0
+          defaultValue: 100
         },
     )
   },
