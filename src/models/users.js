@@ -138,7 +138,7 @@ const Users = sequelize.define('users', {
 	},
 	score_ranking: {
 		type: DataTypes.INTEGER,
-		defaultValue: 0
+		defaultValue: 100
 	},
 	subtitle_purpose: {
 		type: DataTypes.STRING,
