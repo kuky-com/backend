@@ -974,7 +974,7 @@ async function getStats({ user_id, start_date, end_date }) {
 						Sequelize.literal(`(
 							SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 							FROM session_logs AS sl
-							WHERE sl.user_id = users.id
+							WHERE sl.user_id = users.id and sl.user_id is not null
 							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 						)`),
 						'total_session_time',
