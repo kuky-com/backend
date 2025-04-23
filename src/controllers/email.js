@@ -153,11 +153,28 @@ async function sendApproveProfileEmail({ to_email, to_name}) {
     }
 }
 
+async function sendEmailCompleteProfile({ to_email, to_name }) {
+
+    try {
+        const result = await sendEmail(to_email, "Let's complete your profile", 'complete_profile', { to_email, to_name })
+
+        if (!result) {
+            return Promise.reject('Error sending connection request email')
+        } else {
+            return Promise.resolve({ message: 'Connection request email sent' })
+        }
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
 module.exports = {
     sendSuggestEmail,
     sendRequestEmail,
     sendWelcomeEmail,
     sendVerificationEmail,
     sendApproveProfileEmail,
-    sendRejectProfileEmail
+    sendRejectProfileEmail,
+    sendEmailCompleteProfile
 }

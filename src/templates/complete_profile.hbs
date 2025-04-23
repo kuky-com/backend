@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let's complete your profile!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: grid;
+            place-items: center;
+            width: 100%;
+            font-family: 'Comfortaa', sans-serif;
+            color: white;
+        }
+
+        .profile-card-container {
+            display: grid;
+            place-items: center;
+            width: 100%;
+        }
+
+        .email-container {
+            background-color: #6b45de;
+            color: #ffffff;
+            padding: 30px;
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+
+        .header img {
+            width: 50px;
+        }
+
+        .title {
+            color: #E8FF58;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .content {
+            text-align: center;
+            font-size: 16px;
+            color: #ffffff;
+            margin: 20px 0;
+        }
+
+        .profile-card {
+            background-color: #fff;
+            color: #333;
+            border-radius: 10px;
+            padding: 15px;
+            display: inline-block;
+            margin-bottom: 20px;
+            width: 40%;
+            margin: 0 auto;
+        }
+
+        .profile-card h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .profile-card p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .button-container {
+            margin-top: 32px;
+            text-align: center;
+        }
+
+        .button {
+            background-color: #333333;
+            color: #ffffff;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #ffffff;
+        }
+
+        .footer a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 0 5px;
+        }
+
+        .footer-links {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .footer-icons img {
+            width: 30px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: auto;
+        }
+
+        .footer-store {
+            width: 115px;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="email-container">
+        <div class="header">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
+        </div>
+
+        <div class="content">
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                Hi {{to_name}}!</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                I noticed you started creating your profile on Kuky — that’s awesome! We’re really excited to have you
+                as part of our early community.</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                Since you didn’t get a chance to finish setting up your profile or upload a video, I just wanted to
+                check in and see how your experience was. Was anything confusing or holding you back? Your feedback
+                would be incredibly helpful as we continue improving Kuky.</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                To say thanks for your time, we’d love to offer you a $10 gift card if you’re open to sharing a few
+                thoughts with us — even just a quick reply to this email would be amazing.</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                And of course, if you feel ready to jump back in and complete your profile, we’d love to see you on the
+                platform!</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                Regards,<br />
+                Armin Nehzat<br />
+                Founder</p>
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                <a href="https://cal.com/kuky.com/15min">[Book a Meeting]</a> | <a
+                    href="https://www.kuky.com/">[Website]</a> | <a
+                    href="https://www.youtube.com/channel/UC_FleO58OJacZz4EL55ssbw">[Youtube]</a>
+            </p>
+        </div>
+
+
+        
+        <div class="footer-icons">
+            <a href="https://www.instagram.com/kuky_app/"><img
+                    src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.png" alt="Instagram"></a>
+            <a href="https://x.com/kuky_app"><img
+                    src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.png" alt="Twitter"></a>
+            <a href="https://facebook.com/kukyapp"><img
+                    src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.png" alt="Facebook"></a>
+            <a href="https://wa.me/610491711556"><img
+                    src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.png" alt="Whatsapp"></a>
+            <a href="https://www.youtube.com/@kuky_app"><img
+                    src="https://firebasestorage.googleapis.com/v0/b/kuky-105e6.appspot.com/o/social%2Fyoutube.png?alt=media&token=671c4004-b59a-4ee9-b336-d704135c2264"
+                    alt="Youtube"></a>
+            <a href="https://www.tiktok.com/@kuky_app"><img
+                    src="https://firebasestorage.googleapis.com/v0/b/kuky-105e6.appspot.com/o/social%2Ftiktok.png?alt=media&token=c80c765c-c7d6-45a5-b475-cbb59d62feac"
+                    alt="Tiktok"></a>
+        </div>
+<div class="separator-line" />
+                <div class="footer-links">
+            <p
+                style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px; text-align: left;">
+                <a href="https://www.kuky.com/terms-and-service">Terms & Conditions</a> |
+                <a href="https://www.kuky.com/privacy-policy">Privacy Policy</a> |
+                <a href="#">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+
+</body>
+
+</html>

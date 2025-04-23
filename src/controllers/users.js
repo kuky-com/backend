@@ -1038,6 +1038,8 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		const reviewsData = await getReviewStats(user_id);
 
+		const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
+
 		const userInfo = {
 			total_call: totalCall,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
@@ -1050,7 +1052,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			earning: {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
-				total: 0
+				total: totalEarning.toFixed(2)
 			}
 		};
 
