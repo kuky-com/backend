@@ -655,6 +655,29 @@ async function profileAction({ status, reason, user_id }) {
 	}
 }
 
+async function requestCompleteProfileAction({ user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id,
+			},
+		});
+
+		if (!user) {
+			return Promise.reject('User not exist');
+		}
+
+		emailService.sendEmailCompleteProfile({ to_email: user.email, to_name: user?.full_name });
+
+		return Promise.resolve({
+			message: 'Profile updated!',
+		});
+	} catch (error) {
+		console.log('Profile update error:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function setModerator({ is_moderators, user_id }) {
 	try {
 		const user = await Users.findOne({
@@ -1000,5 +1023,6 @@ module.exports = {
 	botSendMessage,
 	getLandingPageAmbassadorsInfo,
 	getLandingPageContactUs,
-	setModerator
+	setModerator,
+	requestCompleteProfileAction
 };
