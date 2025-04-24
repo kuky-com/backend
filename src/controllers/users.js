@@ -1064,6 +1064,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			reviews_count: reviewsData.reviewsCount,
 			avg_rating: reviewsData.avgRating,
 			is_active: user.is_active,
+			created_at: user.createdAt,
 			earning: {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
