@@ -337,7 +337,7 @@ Users.addScope('blurVideo', {
 Users.addScope('simpleProfile', {
 	attributes: [
 		'id', 'full_name', 'avatar', 'location', 'birthday', 
-					'referral_id', 'last_active_time', 'online_status'
+					'referral_id', 'last_active_time', 'online_status', 'profile_approved'
 	]
 });
 
