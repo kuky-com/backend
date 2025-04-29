@@ -2062,6 +2062,212 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 	}
 }
 
+async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
+	try {
+		const suggestions = [];
+		let avoidUserIds = []
+
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+		}
+
+		const user = await Users.findOne({
+			where: {
+				id: profile_id
+			},
+			raw: true
+		})
+
+		if (user && user.journey_id) {
+			whereFilter.journey_id = user.journey_id
+		}
+
+		if (user_id) {
+			const blockedUsers = await BlockedUsers.findAll({
+				where: {
+					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+				},
+				raw: true,
+			});
+
+			const matchedUsers = await Matches.findAll({
+				where: {
+					[Op.or]: [
+						{
+							[Op.or]: [
+								{ sender_id: user_id, status: 'rejected' },
+								{ sender_id: user_id, status: 'accepted' },
+								{ sender_id: user_id, status: 'deleted' },
+								{ receiver_id: user_id, status: 'rejected' },
+								{ receiver_id: user_id, status: 'accepted' },
+								{ receiver_id: user_id, status: 'deleted' },
+							],
+						},
+						{ receiver_id: user_id, status: 'sent' },
+					],
+				},
+				raw: true,
+			});
+
+			const blockedUserIds = blockedUsers.map((item) =>
+				item.user_id === user_id ? item.blocked_id : item.user_id
+			);
+			const matchedUserIds = matchedUsers.map((item) =>
+				item.sender_id === user_id ? item.receiver_id : item.sender_id
+			);
+
+			avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+			whereFilter.id = {
+				[Op.notIn]: [user_id, profile_id, ...avoidUserIds]
+			}
+		} else {
+			whereFilter.id = {
+				[Op.notIn]: [profile_id]
+			}
+		}
+
+		const filterUsers = await Users.findAll({
+			where: whereFilter,
+			attributes: ['id', 'journey_id'],
+			limit: parseInt(limit.toString()),
+			order: [
+				['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC']
+			],
+			raw: true,
+		})
+
+		if (filterUsers.length < limit) {
+			const existUsers = filterUsers.map((user) => user.id)
+			const additionalUsers = await Users.findAll({
+				where: {
+					is_active: true,
+					is_hidden_users: false,
+					profile_approved: 'approved',
+					id: {
+						[Op.notIn]: [user_id, profile_id, ...avoidUserIds, ...existUsers],
+					},
+					journey_id: {
+						[Op.ne]: whereFilter.journey_id,
+					},
+				},
+				attributes: ['id', 'journey_id'],
+				limit: limit - filterUsers.length,
+				order: Sequelize.literal('RANDOM()'), // Randomize the order of users
+				raw: true,
+			});
+
+			filterUsers.push(...additionalUsers);
+		}
+
+		for (const rawuser of filterUsers) {
+			if (user_id) {
+				const userInfo = await getProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			} else {
+				const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Get other similar path',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+async function getRandomUserByJourneys({ journey_id, limit = 3, user_id }) {
+	try {
+		const suggestions = [];
+
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+		}
+
+		if (journey_id) {
+			whereFilter.journey_id = journey_id
+		}
+
+		if (user_id) {
+			const blockedUsers = await BlockedUsers.findAll({
+				where: {
+					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+				},
+				raw: true,
+			});
+
+			const matchedUsers = await Matches.findAll({
+				where: {
+					[Op.or]: [
+						{
+							[Op.or]: [
+								{ sender_id: user_id, status: 'rejected' },
+								{ sender_id: user_id, status: 'accepted' },
+								{ sender_id: user_id, status: 'deleted' },
+								{ receiver_id: user_id, status: 'rejected' },
+								{ receiver_id: user_id, status: 'accepted' },
+								{ receiver_id: user_id, status: 'deleted' },
+							],
+						},
+						{ receiver_id: user_id, status: 'sent' },
+					],
+				},
+				raw: true,
+			});
+
+			const blockedUserIds = blockedUsers.map((item) =>
+				item.user_id === user_id ? item.blocked_id : item.user_id
+			);
+			const matchedUserIds = matchedUsers.map((item) =>
+				item.sender_id === user_id ? item.receiver_id : item.sender_id
+			);
+
+			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+			whereFilter.id = {
+				[Op.notIn]: [user_id, ...avoidUserIds]
+			}
+		}
+
+		const highlightUsers = await Users.findAll({
+			where: whereFilter,
+			attributes: ['id', 'journey_id'],
+			order: Sequelize.literal('RANDOM()'), 
+			limit: limit,
+			raw: true,
+		});
+
+		for (const rawuser of highlightUsers) {
+			if (user_id) {
+				const userInfo = await getProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			} else {
+				const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Get matches by journey',
+			data: suggestions
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 	try {
 
@@ -2124,5 +2330,7 @@ module.exports = {
 	findMatchesByPurpose,
 	searchByJourney,
 	getMatchesByJourney,
-	getNextMatch
+	getNextMatch,
+	getOtherSimilarPath,
+	getRandomUserByJourneys
 };

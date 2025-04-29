@@ -462,6 +462,46 @@ router.get('/match-by-journey', optionAuthMiddleware, async (request, response, 
 		});
 });
 
+router.get('/random-by-journey', optionAuthMiddleware, async (request, response, next) => {
+    const { user_id } = request
+
+	return matches
+		.getRandomUserByJourneys({ ...request.query, user_id })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.get('/similar-by-path', optionAuthMiddleware, async (request, response, next) => {
+    const { user_id } = request
+
+	return matches
+		.getOtherSimilarPath({ ...request.query, user_id })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.get('/next-match', authMiddleware, async (request, response, next) => {
     const { user_id } = request
 
