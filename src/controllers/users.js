@@ -34,12 +34,18 @@ const JourneyCategories = require('../models/journey_categories');
 const JPFAnswers = require('../models/jpf_answers');
 const JPFUserAnswer = require('../models/jpf_user_answers');
 const dayjs = require('dayjs');
+const { default: OpenAI } = require('openai');
+const { updateLikes, updateDislikes } = require('./interests');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
 });
 const db = admin.firestore();
+
+const openai = new OpenAI({
+	apiKey: process.env.OPENAI_API_KEY,
+});
 
 async function updateProfile({
 	user_id,
@@ -80,39 +86,41 @@ async function updateProfile({
 		}
 
 		if (restParams.video_intro) {
-			updateSubtitle(user_id, restParams.video_intro, 'subtitle_intro')
+			updateSubtitle(user_id, restParams.video_intro, 'intro')
+			updateLikeDislike(user_id, restParams.video_intro)
 		} else if (restParams.audio_intro) {
-			updateSubtitle(user_id, restParams.audio_intro, 'subtitle_intro')
+			updateSubtitle(user_id, restParams.audio_intro, 'intro')
+			updateLikeDislike(user_id, restParams.audio_intro)
 		}
 
 		if (restParams.video_purpose) {
-			updateSubtitle(user_id, restParams.video_purpose, 'subtitle_purpose')
+			updateSubtitle(user_id, restParams.video_purpose, 'purpose')
 		} else if (restParams.audio_purpose) {
-			updateSubtitle(user_id, restParams.audio_purpose, 'subtitle_purpose')
+			updateSubtitle(user_id, restParams.audio_purpose, 'purpose')
 		}
 
-		if (restParams.video_challenge) {
-			updateSubtitle(user_id, restParams.video_challenge, 'subtitle_challenge')
-		} else if (restParams.audio_challenge) {
-			updateSubtitle(user_id, restParams.audio_challenge, 'subtitle_challenge')
-		}
+		// if (restParams.video_challenge) {
+		// 	updateSubtitle(user_id, restParams.video_challenge, 'subtitle_challenge')
+		// } else if (restParams.audio_challenge) {
+		// 	updateSubtitle(user_id, restParams.audio_challenge, 'subtitle_challenge')
+		// }
 
-		if (restParams.video_why) {
-			updateSubtitle(user_id, restParams.video_why, 'subtitle_why')
-		} else if (restParams.audio_why) {
-			updateSubtitle(user_id, restParams.audio_why, 'subtitle_why')
-		}
+		// if (restParams.video_why) {
+		// 	updateSubtitle(user_id, restParams.video_why, 'subtitle_why')
+		// } else if (restParams.audio_why) {
+		// 	updateSubtitle(user_id, restParams.audio_why, 'subtitle_why')
+		// }
 
 		if (restParams.video_interests) {
-			updateSubtitle(user_id, restParams.video_interests, 'subtitle_interests')
+			updateSubtitle(user_id, restParams.video_interests, 'interests')
 		} else if (restParams.audio_interests) {
-			updateSubtitle(user_id, restParams.audio_interests, 'subtitle_interests')
+			updateSubtitle(user_id, restParams.audio_interests, 'interests')
 		}
 
-		if(restParams.is_video_intro_blur && restParams.video_intro) {
+		if (restParams.is_video_intro_blur && restParams.video_intro) {
 			updateBlurVideo(user_id, restParams.video_intro, 'video_intro_blur')
 		}
-		if(restParams.is_video_purpose_blur && restParams.video_purpose) {
+		if (restParams.is_video_purpose_blur && restParams.video_purpose) {
 			updateBlurVideo(user_id, restParams.video_purpose, 'video_purpose_blur')
 		}
 
@@ -128,6 +136,8 @@ async function updateProfile({
 			await sendbird.updateSendbirdUser(user_id, sendbirdPayload);
 		}
 
+		createSummary(user_id);
+
 		const userInfo = await getUser(user_id);
 
 		return Promise.resolve({
@@ -135,7 +145,46 @@ async function updateProfile({
 			message: 'Update successfully',
 		});
 	} catch (error) {
+		console.log('Profile update error:', error);
 		return Promise.reject(error);
+	}
+}
+
+async function createSummary(user_id) {
+	try {
+		const userInfo = await getUser(user_id);
+
+		const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
+		const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
+
+		const prompt = `With the following information, create a summary of the user, it should very impressive to other people and make the user feel good about themselves. 
+	The summary should has less than 50 words. There is may some empty information so just ignore it.
+	Full name: ${userInfo.full_name}
+	Interested journey: ${userInfo.journey?.name ?? ''}
+	Interesting: ${interests}
+	Dislikes: ${dislikes}
+	What he/she said in the video intro: ${userInfo.video_intro_transcript ?? ''}
+	What he/she said in the video journey: ${userInfo.video_purpose_transcript ?? ''}
+	What he/she said in the video interests: ${userInfo.video_interests_transcript ?? ''}
+	`;
+
+		try {
+			const response = await openai.chat.completions.create({
+				model: 'gpt-4o',
+				messages: [{ role: 'system', content: prompt }],
+			});
+
+			const summary = response.choices[0]?.message?.content?.trim()
+
+			await Users.update(
+				{ summary: summary },
+				{ where: { id: user_id } }
+			);
+		} catch (error) {
+			console.log({ error });
+		}
+	} catch (error) {
+		console.log({ error })
 	}
 }
 
@@ -147,11 +196,40 @@ async function updateSubtitle(user_id, media_url, type) {
 		})
 
 		if (response && response.data && response.data.s3_url) {
-			await Users.update({ [type]: response.data.s3_url }, {
+			await Users.update({
+				[`subtitle_${type}`]: response.data.s3_url,
+				[`video_${type}_transcript`]: response.data.transcript_text ?? ''
+			}, {
 				where: { id: user_id },
 				returning: true,
 				plain: true,
 			});
+		}
+
+		createSummary(user_id);
+
+		return Promise.resolve({
+			message: 'Update successfully',
+		});
+	} catch (error) {
+
+	}
+}
+
+async function updateLikeDislike(user_id, media_url) {
+	try {
+		const response = await axios.post('https://ugfgxk4hudtff26aeled4u3h3u0buuhr.lambda-url.ap-southeast-1.on.aws', {
+			s3_uri: media_url
+		})
+
+		if (response && response.data) {
+			if (response.data.like) {
+				updateLikes({ user_id, likes: response.data.like })
+			}
+
+			if (response.data.dislike) {
+				updateDislikes({ user_id, dislikes: response.data.dislike })
+			}
 		}
 
 		return Promise.resolve({
@@ -234,7 +312,7 @@ async function getSimpleProfile({ user_id }) {
 				return Promise.reject('User not found');
 			}
 
-			console.log({user})
+			console.log({ user })
 
 			const reviewsData = await getReviewStats(user_id);
 
@@ -405,7 +483,7 @@ async function getUser(user_id) {
 			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
 		});
 
-		console.log({user})
+		console.log({ user })
 
 		if (!user) {
 			return Promise.reject('User not found');
@@ -935,12 +1013,23 @@ async function scanImage({ image }) {
 
 async function getStats({ user_id, start_date, end_date }) {
 	try {
-		const startOfDay = start_date 
-			? dayjs(start_date, 'DD/MM/YYYY').startOf('day').toISOString() 
+		const startOfDay = start_date
+			? dayjs(start_date, 'DD/MM/YYYY').startOf('day').toISOString()
 			: dayjs().startOf('month').toISOString();
-		const endOfDay = end_date 
-			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString() 
+		const endOfDay = end_date
+			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
 			: dayjs().endOf('month').toISOString();
+
+		await Sequelize.query(
+			`UPDATE session_logs
+				 SET end_time = start_time + interval '90 minutes'
+				 WHERE user_id = :user_id
+				 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 5400`,
+			{
+				replacements: { user_id },
+				type: Sequelize.QueryTypes.UPDATE,
+			}
+		);
 
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
@@ -1017,18 +1106,18 @@ async function getStats({ user_id, start_date, end_date }) {
 					.where('createdAt', '>=', new Date(startOfDay))
 					.where('createdAt', '<=', new Date(endOfDay))
 					.get();
-					const participants = new Set();
+				const participants = new Set();
 
 				for (const messageDoc of messagesSnapshot.docs) {
 					const message = messageDoc.data();
 
-					if(message.user && message.user._id != 0)
+					if (message.user && message.user._id != 0)
 						participants.add(message.user._id);
 
 					if (message.type === 'video_call' || message.type === 'voice_call') {
 						const duration = parseFormattedCallSeconds(message.text);
 
-						if(duration > 0) {
+						if (duration > 0) {
 							totalCall += 1
 						}
 
@@ -1040,7 +1129,7 @@ async function getStats({ user_id, start_date, end_date }) {
 					}
 				}
 
-				if(participants.size > 1) 
+				if (participants.size > 1)
 					conversationsWithMessagesFromBoth += 1
 			}
 
@@ -1108,5 +1197,6 @@ module.exports = {
 	getSimpleProfile,
 	scanImage,
 	getStats,
+	createSummary,
 	db
 };

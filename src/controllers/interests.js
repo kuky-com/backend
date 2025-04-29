@@ -14,6 +14,7 @@ const {
 	getProfileTagFilter,
 } = require('./onesignal');
 const sequelize = require('../config/database');
+const {createSummary} = require('./users')
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -337,6 +338,9 @@ async function updateLikes({ user_id, likes }) {
 		// sonesignaluser.properties.tags = tags;
 		// update the onesignal tags
 		// updateOnesignalUser(onesignaluser, user_id);
+
+		createSummary(user_id)
+
 		return Promise.resolve({
 			message:
 				newUserLikes.length < likes.length
@@ -416,6 +420,8 @@ async function updateDislikes({ user_id, dislikes }) {
 				},
 			],
 		});
+
+		createSummary(user_id)
 
 		return Promise.resolve({
 			message:

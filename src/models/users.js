@@ -235,6 +235,22 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	summary: {
+		type: DataTypes.TEXT,
+		allowNull: true,
+	},
+	video_intro_transcript: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_purpose_transcript: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	video_interests_transcript: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	is_video_intro_blur: {
 		type: DataTypes.BOOLEAN,
 		defaultValue: false
