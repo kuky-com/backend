@@ -150,6 +150,26 @@ async function updateProfile({
 	}
 }
 
+async function forceUpdateSummary() {
+	try {
+		const approvedUsers = await Users.findAll({
+			where: { profile_approved: 'approved' },
+		});
+
+		for (const user of approvedUsers) {
+			await createSummary(user.id);
+			console.log(`Summary updated for user ID: ${user.id}`);
+		}
+
+		return Promise.resolve({
+			message: 'Summaries updated for all approved users',
+		});
+	} catch (error) {
+		console.error('Error updating summaries:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function createSummary(user_id) {
 	try {
 		const userInfo = await getUser(user_id);
@@ -1198,5 +1218,6 @@ module.exports = {
 	scanImage,
 	getStats,
 	createSummary,
+	forceUpdateSummary,
 	db
 };
