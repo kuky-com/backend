@@ -409,4 +409,28 @@ router.post('/test/match/interests', authAdminMiddleware, async (request, respon
 	}
 });
 
+router.get(
+	'/update-all-summary',
+	authAdminMiddleware,
+	async (request, response, next) => {
+		const { user_id } = request;
+
+		try {
+			const result = await users.forceUpdateSummary({
+				user_id: user_id,
+				...request.query
+			});
+			return response.json({
+				success: true,
+				data: result,
+			});
+		} catch (err) {
+			return response.json({
+				success: false,
+				message: `${err}`,
+			});
+		}
+	}
+);
+
 module.exports = router;
