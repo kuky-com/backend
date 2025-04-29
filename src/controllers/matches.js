@@ -884,20 +884,30 @@ async function getMatchesWithPreminum({ user_id }) {
 		const freeMatchesIds = freeMatches.map((item) => item.id);
 
 		const finalMatches = [];
+		const unverifyMatches = []
 		for (const match of matches) {
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				if (userInfo.data && userInfo.data.is_active)
-					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+				if (userInfo.data && userInfo.data.is_active) {
+					if (userInfo.data.profile_approved === 'approved') {
+						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					} else {
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					}
+				}
 			} else {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
-
-				if (userInfo.data && userInfo.data.is_active)
-					finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+				if (userInfo.data && userInfo.data.is_active) {
+					if (userInfo.data.profile_approved === 'approved') {
+						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					} else {
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					}
+				}
 			}
 		}
 
@@ -905,6 +915,7 @@ async function getMatchesWithPreminum({ user_id }) {
 			message: 'Matches list',
 			data: {
 				matches: finalMatches,
+				unverifyMatches: unverifyMatches,
 				freeTotal: 3,
 				freeCount: freeCount //Math.min(freeCount, 3),
 			}
@@ -1027,6 +1038,17 @@ async function getRecentMatches({ user_id }) {
 
 async function getUnverifiedMatches({ user_id }) {
 	try {
+		const freeCount = await Matches.count({
+			where: {
+				[Op.or]: [
+					{ sender_id: user_id, status: 'sent' },
+					{ sender_id: user_id, status: 'accepted' },
+					{ receiver_id: user_id, status: 'sent' },
+					{ receiver_id: user_id, status: 'accepted' },
+				],
+			}
+		});
+
 		const matches = await Matches.findAll({
 			where: {
 				[Op.or]: [
@@ -1036,38 +1058,42 @@ async function getUnverifiedMatches({ user_id }) {
 					{ receiver_id: user_id, status: 'accepted' },
 				],
 			},
-			include: [
-				{
-					model: Users,
-					as: 'sender',
-					where: { profile_approved: { [Op.ne]: 'approved' } },
-				},
-				{
-					model: Users,
-					as: 'receiver',
-					where: { profile_approved: { [Op.ne]: 'approved' } },
-				},
-			],
+			// include: [
+			// 	{ model: Users, as: 'sender' },
+			// 	{ model: Users, as: 'receiver' },
+			// ],
 			order: [['last_message_date', 'DESC']],
 		});
-		const finalMatches = [];
+
+		const freeMatches = await freeMatchesList({ user_id });
+		const freeMatchesIds = freeMatches.map((item) => item.id);
+
+		const unverifyMatches = []
 		for (const match of matches) {
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+				if (userInfo.data && userInfo.data.is_active) {
+					if (userInfo.data.profile_approved !== 'approved') {
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					}
+				}
 			} else {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+				if (userInfo.data && userInfo.data.is_active) {
+					if (userInfo.data.profile_approved !== 'approved') {
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+					}
+				}
 			}
 		}
 
 		return Promise.resolve({
 			message: 'Matches list',
-			data: finalMatches,
+			data: unverifyMatches,
 		});
 	} catch (error) {
 		console.log({ error });
@@ -1203,23 +1229,25 @@ async function acceptSuggestion({ user_id, friend_id }) {
 				updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
 
 				if (requestUser) {
-					addNewNotification(
-						friend_id,
-						user_id,
-						existMatch.id,
-						null,
-						'new_request',
-						'You get new connect request.',
-						`${requestUser.full_name} wants to connect with you!`
-					);
-					addNewPushNotification(
-						friend_id,
-						existMatch,
-						null,
-						'notification',
-						'New connect request!',
-						`${requestUser.full_name} wants to connect with you!`
-					);
+					if (requestUser.profile_approved === 'approved') {
+						addNewNotification(
+							friend_id,
+							user_id,
+							existMatch.id,
+							null,
+							'new_request',
+							'You get new connect request.',
+							`${requestUser.full_name} wants to connect with you!`
+						);
+						addNewPushNotification(
+							friend_id,
+							existMatch,
+							null,
+							'notification',
+							'New connect request!',
+							`${requestUser.full_name} wants to connect with you!`
+						);
+					}
 
 					try {
 						const senderPurposes = await UserPurposes.findAll({
@@ -1540,23 +1568,28 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 
 		try {
 			if (existMatch.sender_id === user_id) {
-				addNewPushNotification(
-					existMatch.receiver_id,
-					existMatch.toJSON(),
-					null,
-					'message',
-					existMatch.sender?.full_name ?? 'New message',
-					last_message
-				);
+				if (existMatch.sender?.profile_approved === 'approved') {
+					addNewPushNotification(
+						existMatch.receiver_id,
+						existMatch.toJSON(),
+						null,
+						'message',
+						existMatch.sender?.full_name ?? 'New message',
+						last_message
+					);
+				}
+
 			} else {
-				addNewPushNotification(
-					existMatch.sender_id,
-					existMatch.toJSON(),
-					null,
-					'message',
-					existMatch.receiver?.full_name ?? 'New message',
-					last_message
-				);
+				if (existMatch.receiver?.profile_approved === 'approved') {
+					addNewPushNotification(
+						existMatch.sender_id,
+						existMatch.toJSON(),
+						null,
+						'message',
+						existMatch.receiver?.full_name ?? 'New message',
+						last_message
+					);
+				}
 			}
 		} catch (error) {
 			console.log({ error });
