@@ -2151,7 +2151,7 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 					is_hidden_users: false,
 					profile_approved: 'approved',
 					id: {
-						[Op.notIn]: [user_id, profile_id, ...avoidUserIds, ...existUsers],
+						[Op.notIn]: user_id ? [user_id, profile_id, ...avoidUserIds, ...existUsers] : [profile_id, ...existUsers],
 					},
 					journey_id: {
 						[Op.ne]: whereFilter.journey_id,
