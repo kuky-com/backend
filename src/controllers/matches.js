@@ -20,7 +20,7 @@ const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
 
 // var serviceAccount = require("../config/serviceAccountKey.json");
-const { getProfile, getSimpleProfile, getFriendProfile, db } = require('./users');
+const { getSimpleProfile, getFriendProfile, db } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
@@ -31,6 +31,7 @@ const dayjs = require('dayjs');
 const { raw } = require('body-parser');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
+const { getProfile } = require('./common');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,

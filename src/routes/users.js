@@ -1,5 +1,6 @@
 const express = require('express');
 const users = require('@controllers/users');
+const common = require('@controllers/common');
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware');
 const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware');
@@ -73,7 +74,7 @@ router.get('/user-info', authMiddleware, (request, response, next) => {
 		});
 	}
 
-	return users
+	return common
 		.getProfile({ user_id })
 		.then(({ data, message }) => {
 			return response.json({
