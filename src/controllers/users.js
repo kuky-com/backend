@@ -36,6 +36,7 @@ const JPFUserAnswer = require('../models/jpf_user_answers');
 const dayjs = require('dayjs');
 const { default: OpenAI } = require('openai');
 const { updateLikes, updateDislikes } = require('./interests');
+const { getReviewStats, createSummary, getUser } = require('./common');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -123,6 +124,9 @@ async function updateProfile({
 		if (restParams.is_video_purpose_blur && restParams.video_purpose) {
 			updateBlurVideo(user_id, restParams.video_purpose, 'video_purpose_blur')
 		}
+		if (restParams.is_video_interests_blur && restParams.video_interests) {
+			updateBlurVideo(user_id, restParams.video_interests, 'video_interests_blur')
+		}
 
 		if (updates.avatar || updates.full_name) {
 			const sendbirdPayload = {};
@@ -139,6 +143,17 @@ async function updateProfile({
 		createSummary(user_id);
 
 		const userInfo = await getUser(user_id);
+
+		if (restParams.is_avatar_blur) {
+			const user = await Users.findOne({
+				where: {
+					id: user_id
+				},
+				raw: true
+			})
+			console.log({avatar: user.avatar})
+			updateBlurAvatar(user_id, user.avatar)
+		}
 
 		return Promise.resolve({
 			data: userInfo,
@@ -167,44 +182,6 @@ async function forceUpdateSummary() {
 	} catch (error) {
 		console.error('Error updating summaries:', error);
 		return Promise.reject(error);
-	}
-}
-
-async function createSummary(user_id) {
-	try {
-		const userInfo = await getUser(user_id);
-
-		const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
-		const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
-
-		const prompt = `With the following information, create a summary of the user, it should very impressive to other people and make the user feel good about themselves. 
-	The summary should has less than 50 words. There is may some empty information so just ignore it.
-	Full name: ${userInfo.full_name}
-	Interested journey: ${userInfo.journey?.name ?? ''}
-	Interesting: ${interests}
-	Dislikes: ${dislikes}
-	What he/she said in the video intro: ${userInfo.video_intro_transcript ?? ''}
-	What he/she said in the video journey: ${userInfo.video_purpose_transcript ?? ''}
-	What he/she said in the video interests: ${userInfo.video_interests_transcript ?? ''}
-	`;
-
-		try {
-			const response = await openai.chat.completions.create({
-				model: 'gpt-4o',
-				messages: [{ role: 'system', content: prompt }],
-			});
-
-			const summary = response.choices[0]?.message?.content?.trim()
-
-			await Users.update(
-				{ summary: summary },
-				{ where: { id: user_id } }
-			);
-		} catch (error) {
-			console.log({ error });
-		}
-	} catch (error) {
-		console.log({ error })
 	}
 }
 
@@ -289,37 +266,35 @@ async function updateBlurVideo(user_id, media_url, type) {
 	}
 }
 
-async function getReviewStats(user_id) {
-	const reviewsObj = await Users.findOne({
-		where: { id: user_id },
-		attributes: {
-			include: [
-				[
-					Sequelize.fn('COUNT', Sequelize.col('reviews.id')),
-					'reviewsCount',
-				],
-				[Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'avgRating'],
-			],
-		},
-		group: ['users.id'],
-		include: [
-			{
-				model: ReviewUsers,
-				attributes: [],
-				as: 'reviews',
-				where: {
-					status: 'approved',
-				},
-			},
-		],
-	});
-	const data = reviewsObj?.toJSON();
-	return {
-		reviewsCount: data?.reviewsCount || 0,
-		avgRating: data?.avgRating || 0,
-	};
-}
+async function updateBlurAvatar(user_id, media_url) {
+	try {
+		await Users.update({ avatar_blur: null }, {
+			where: { id: user_id },
+			returning: true,
+			plain: true,
+		});
 
+		const response = await axios.post('https://h73gkjldkyjxyc4ygsguvon35u0zncvs.lambda-url.ap-southeast-1.on.aws/', {
+			image_uri: media_url
+		})
+
+		console.log({ response: response.data })
+
+		if (response && response.data && response.data.blurred_image_url) {
+			await Users.update({ avatar_blur: response.data.blurred_image_url }, {
+				where: { id: user_id },
+				returning: true,
+				plain: true,
+			});
+		}
+
+		return Promise.resolve({
+			message: 'Update successfully',
+		});
+	} catch (error) {
+
+	}
+}
 async function getSimpleProfile({ user_id }) {
 	try {
 		try {
@@ -355,38 +330,7 @@ async function getSimpleProfile({ user_id }) {
 }
 
 
-async function getProfile({ user_id }) {
-	try {
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
-			where: { id: user_id },
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-				{ model: Journeys },
-				{ model: JourneyCategories }
-			],
-		});
 
-		if (!user) {
-			return Promise.reject('User not found');
-		}
-
-		const reviewsData = await getReviewStats(user_id);
-
-		return Promise.resolve({
-			message: 'User info retrieved successfully',
-			data: {
-				...user.toJSON(),
-				reviewsCount: reviewsData.reviewsCount,
-				avgRating: reviewsData.avgRating,
-			},
-		});
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
-}
 
 async function getReviews({ userId }) {
 	const reviews = await ReviewUsers.findAll({
@@ -489,27 +433,6 @@ async function getFriendProfile({ user_id, friend_id }) {
 				match,
 			},
 		});
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
-}
-
-async function getUser(user_id) {
-	try {
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
-			where: { id: user_id },
-			attributes: { exclude: ['password'] },
-			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
-		});
-
-		console.log({ user })
-
-		if (!user) {
-			return Promise.reject('User not found');
-		}
-
-		return Promise.resolve(user);
 	} catch (error) {
 		console.log('Error fetching user info:', error);
 		return Promise.reject(error);
@@ -1193,7 +1116,6 @@ async function getStats({ user_id, start_date, end_date }) {
 module.exports = {
 	updateProfile,
 	getUser,
-	getProfile,
 	blockUser,
 	unblockUser,
 	getBlockedUsers,
@@ -1217,7 +1139,6 @@ module.exports = {
 	getSimpleProfile,
 	scanImage,
 	getStats,
-	createSummary,
 	forceUpdateSummary,
 	db
 };

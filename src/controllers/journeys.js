@@ -6,7 +6,6 @@ const Interests = require('../models/interests');
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
-const { getProfile, getUser } = require('./users');
 const { categoryMap } = require('../config/categories');
 const {
     updateOnesignalUserTags,
@@ -23,6 +22,7 @@ const { is } = require('date-fns/locale');
 const BlockedUsers = require('../models/blocked_users');
 const Matches = require('../models/matches');
 const { findUnique } = require('../utils/utils');
+const { getUser } = require('./common');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,

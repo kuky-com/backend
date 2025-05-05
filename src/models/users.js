@@ -52,6 +52,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	avatar_blur: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	birthday: {
 		type: DataTypes.STRING,
 		allowNull: true,
@@ -192,6 +196,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	video_interests_blur: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	payment_type: {
 		type: DataTypes.STRING,
 		allowNull: true,
@@ -259,6 +267,14 @@ const Users = sequelize.define('users', {
 		type: DataTypes.BOOLEAN,
 		defaultValue: false,
 	},
+	is_video_interests_blur: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false,
+	},
+	is_avatar_blur: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false,
+	},
 	register_platform: {
 		type: DataTypes.STRING,
 		allowNull: true,
@@ -321,6 +337,24 @@ Users.addScope('includeBlurVideo', {
 					END
 				`),
 				'video_purpose'
+			],
+			[
+				Sequelize.literal(`
+					CASE
+						WHEN is_avatar_blur = TRUE THEN avatar_blur
+						ELSE avatar
+					END
+				`),
+				'avatar'
+			],
+			[
+				Sequelize.literal(`
+					CASE
+						WHEN is_video_interests_blur = TRUE THEN video_interests_blur
+						ELSE video_interests
+					END
+				`),
+				'video_interests'
 			]
 		]
 	}
@@ -347,13 +381,32 @@ Users.addScope('blurVideo', {
 			`),
 			'video_purpose'
 		],
+		[
+			Sequelize.literal(`
+				CASE
+					WHEN is_avatar_blur = TRUE THEN avatar_blur
+					ELSE avatar
+				END
+			`),
+			'avatar'
+		],
+		[
+			Sequelize.literal(`
+				CASE
+					WHEN is_video_interests_blur = TRUE THEN video_interests_blur
+					ELSE video_interests
+				END
+			`),
+			'video_interests'
+		],
 	],
 });
 
 Users.addScope('simpleProfile', {
 	attributes: [
 		'id', 'full_name', 'avatar', 'location', 'birthday', 
-					'referral_id', 'last_active_time', 'online_status', 'profile_approved'
+					'referral_id', 'last_active_time', 'online_status', 'profile_approved', 'summary',
+					'video_intro', 'video_purpose', 'video_interests'
 	]
 });
 

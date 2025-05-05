@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const Sessions = require('../models/sessions');
 const usersController = require('./users');
+const commonController = require('./common')
 const appleSigninAuth = require('apple-signin-auth');
 const LeadUsers = require('../models/lead_users');
 const { updatePurposes } = require('./interests');
@@ -247,7 +248,7 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 
 		const token = generateToken(newSession.id, user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
-		const userInfo = await usersController.getUser(user.id);
+		const userInfo = await commonController.getUser(user.id);
 
 		return Promise.resolve({
 			data: {
@@ -311,7 +312,7 @@ async function login({ email, password, session_token, device_id, platform }) {
 			await Users.update({ is_active: true }, { where: { email } });
 		}
 
-		const userInfo = await usersController.getUser(user.id);
+		const userInfo = await commonController.getUser(user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
 
 		return Promise.resolve({
@@ -393,7 +394,7 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 			await Users.update({ is_active: true }, { where: { email } });
 		}
 
-		const userInfo = await usersController.getUser(user.id);
+		const userInfo = await commonController.getUser(user.id);
 
 		return Promise.resolve({
 			data: {
@@ -476,7 +477,7 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 				await Users.update({ is_active: true }, { where: { email } });
 			}
 
-			const userInfo = await usersController.getUser(user.id);
+			const userInfo = await commonController.getUser(user.id);
 
 			return Promise.resolve({
 				data: {
@@ -592,7 +593,7 @@ async function useOnetimeAuth({ session_code, session_token, device_id, platform
 
 		const token = generateToken(newSession.id, user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
-		const userInfo = await usersController.getUser(user.id);
+		const userInfo = await commonController.getUser(user.id);
 
 		return Promise.resolve({
 			data: {

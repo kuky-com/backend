@@ -6,7 +6,6 @@ const Interests = require('../models/interests');
 const Tags = require('../models/tags');
 const { OpenAI } = require('openai');
 const { Op, Sequelize } = require('sequelize');
-const { getProfile } = require('./users');
 const { categoryMap } = require('../config/categories');
 const {
 	updateOnesignalUserTags,
@@ -14,7 +13,7 @@ const {
 	getProfileTagFilter,
 } = require('./onesignal');
 const sequelize = require('../config/database');
-const {createSummary} = require('./users')
+const { createSummary, getProfile } = require('./common');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
