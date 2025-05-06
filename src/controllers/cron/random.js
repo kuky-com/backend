@@ -2,7 +2,11 @@ const Users = require("../../models/users");
 
 async function updateUserRankings() {
     try {
-        const users = await Users.findAll({ profile_approved: 'approved' });
+        const users = await Users.findAll({
+            where: {
+                profile_approved: 'approved'
+            }
+        });
 
         for (const user of users) {
             const randomRanking = Math.floor(Math.random() * 900) + 101;

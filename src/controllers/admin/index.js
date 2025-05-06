@@ -17,11 +17,13 @@ const AppVersions = require('../../models/versions');
 const Tags = require('../../models/tags');
 const { updateRejectedDateTag } = require('../onesignal');
 const ReferralUsers = require('../../models/referral_users');
-const Messages = require('../../models/messages');
+const Messages = require('../../models/messages'); 
 const { db } = require('../users');
 const { v4: uuidv4 } = require('uuid');
 const JourneyCategories = require('../../models/journey_categories');
 const Journeys = require('../../models/journeys');
+const ModeratorPayments = require('../../models/moderator_payment')
+const sequelize = require('../../config/database');
 
 function generateToken(session_id, admin_id) {
 	return jwt.sign({ session_id, admin_id }, process.env.JWT_SECRET, {
@@ -838,6 +840,58 @@ async function getMatches({ page = 1, limit = 20, query = '', status = '' }) {
 	return { rows, count };
 }
 
+async function createModeratorPayment({ user_id, month, year, amount, transaction_id }) {
+	try {
+		const user = await Users.findOne({
+			where: { id: user_id, is_moderators: true },
+		});
+
+		if (!user) {
+			return Promise.reject('User is not a moderator or does not exist');
+		}
+
+		// Calculate total session time for the specified month and year
+		const startDate = new Date(`${year}-${month}-01`);
+		const endDate = new Date(startDate);
+		endDate.setMonth(startDate.getMonth() + 1);
+
+		const totalSessionTime = await sequelize.query(
+			`SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0) AS total_time
+			 FROM session_logs AS sl
+			 WHERE sl.user_id = :user_id
+			 AND sl.start_time BETWEEN :start_date AND :end_date`,
+			{
+				replacements: {
+					user_id,
+					start_date: startDate.toISOString(),
+					end_date: endDate.toISOString(),
+				},
+				type: Sequelize.QueryTypes.SELECT,
+			}
+		);
+
+		const paidAmount = (parseInt(totalSessionTime[0].total_time ?? '0') / 3600) * 15;
+
+		const lastDayOfMonth = new Date(endDate);
+		lastDayOfMonth.setDate(lastDayOfMonth.getDate() - 1);
+
+		const moderatorPayment = await ModeratorPayments.create({
+			user_id,
+			paid_date: lastDayOfMonth,
+			paid_amount: amount ? amount : paidAmount,
+			transaction_id
+		});
+
+		return Promise.resolve({
+			message: 'Moderator payment created successfully',
+			data: moderatorPayment,
+		});
+	} catch (error) {
+		console.log('Error creating moderator payment:', error);
+		return Promise.reject('Error creating moderator payment');
+	}
+}
+
 async function getReferrals({ page = 1, limit = 20 }) {
 	const offset = (page - 1) * limit;
 	const { rows, count } = await ReferralUsers.findAndCountAll({
@@ -1024,5 +1078,6 @@ module.exports = {
 	getLandingPageAmbassadorsInfo,
 	getLandingPageContactUs,
 	setModerator,
-	requestCompleteProfileAction
+	requestCompleteProfileAction,
+	createModeratorPayment
 };
