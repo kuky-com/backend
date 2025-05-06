@@ -883,6 +883,12 @@ async function getMatchesWithPreminum({ user_id }) {
 
 		const freeMatches = await freeMatchesList({ user_id });
 		const freeMatchesIds = freeMatches.map((item) => item.id);
+		const isModerator = await Users.count({
+			where: {
+				id: user_id,
+				is_moderators: true,
+			}
+		}) > 0;
 
 		const finalMatches = [];
 		const unverifyMatches = []
@@ -893,9 +899,9 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 				if (userInfo.data && userInfo.data.is_active) {
 					if (userInfo.data.profile_approved === 'approved') {
-						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
-						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator ||  freeMatchesIds.includes(match.id) });
 					}
 				}
 			} else {
@@ -904,9 +910,9 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 				if (userInfo.data && userInfo.data.is_active) {
 					if (userInfo.data.profile_approved === 'approved') {
-						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
-						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					}
 				}
 			}
