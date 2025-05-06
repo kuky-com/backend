@@ -137,10 +137,28 @@ async function getReviewStats(user_id) {
     };
 }
 
+async function getUserAvatar(user_id) {
+    try {
+        const user = await Users.findOne({
+            where: { id: user_id },
+            attributes: ['avatar'],
+        });
+
+        if (!user) {
+            return Promise.reject('User not found');
+        }
+
+        return Promise.resolve(user.avatar);
+    } catch (error) {
+        console.log('Error fetching user avatar:', error);
+        return Promise.reject(error);
+    }
+}
 
 module.exports = {
     createSummary,
     getProfile,
     getReviewStats,
-    getUser
+    getUser,
+    getUserAvatar
 };

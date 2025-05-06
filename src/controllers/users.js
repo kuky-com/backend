@@ -74,6 +74,12 @@ async function updateProfile({
 			updates.journey_id = null
 		}
 
+		if (updates.avatar === null) {
+			updates.avatar_blur = null
+			updates.is_avatar_blur = false
+		}
+
+
 		const updatedUser = await Users.update(updates, {
 			where: { id: user_id },
 			returning: true,
@@ -128,6 +134,12 @@ async function updateProfile({
 			updateBlurVideo(user_id, restParams.video_interests, 'video_interests_blur')
 		}
 
+		console.log({updates})
+
+		if (updates.avatar && updates.is_avatar_blur) {
+			updateBlurAvatar(user_id, updates.avatar)
+		}
+		
 		if (updates.avatar || updates.full_name) {
 			const sendbirdPayload = {};
 			if (updates.avatar) {
@@ -143,17 +155,6 @@ async function updateProfile({
 		createSummary(user_id);
 
 		const userInfo = await getUser(user_id);
-
-		if (restParams.is_avatar_blur) {
-			const user = await Users.findOne({
-				where: {
-					id: user_id
-				},
-				raw: true
-			})
-			console.log({avatar: user.avatar})
-			updateBlurAvatar(user_id, user.avatar)
-		}
 
 		return Promise.resolve({
 			data: userInfo,
@@ -268,6 +269,7 @@ async function updateBlurVideo(user_id, media_url, type) {
 
 async function updateBlurAvatar(user_id, media_url) {
 	try {
+		console.log({fjdslafkjdalksfjdfjakdslfjl: user_id, media_url})
 		await Users.update({ avatar_blur: null }, {
 			where: { id: user_id },
 			returning: true,
@@ -278,7 +280,7 @@ async function updateBlurAvatar(user_id, media_url) {
 			image_uri: media_url
 		})
 
-		console.log({ response: response.data })
+		console.log({ responsebluravatar: response.data })
 
 		if (response && response.data && response.data.blurred_image_url) {
 			await Users.update({ avatar_blur: response.data.blurred_image_url }, {
@@ -292,7 +294,7 @@ async function updateBlurAvatar(user_id, media_url) {
 			message: 'Update successfully',
 		});
 	} catch (error) {
-
+		console.log({error})
 	}
 }
 async function getSimpleProfile({ user_id }) {
@@ -1376,5 +1378,5 @@ module.exports = {
 	getStats,
 	forceUpdateSummary,
 	db,
-	getStatsByMonth
+	getStatsByMonth,
 };
