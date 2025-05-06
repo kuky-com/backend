@@ -855,4 +855,24 @@ router.get(
 	}
 );
 
+router.get('/avatar', authMiddleware, (request, response, next) => {
+	const { user_id } = request;
+
+	return common
+		.getUserAvatar(user_id)
+		.then((data) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: 'Get avatar success',
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 module.exports = router;
