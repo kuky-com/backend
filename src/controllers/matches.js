@@ -1251,13 +1251,13 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					}
 
 					try {
-						const senderPurposes = await UserPurposes.findAll({
-							where: { user_id: user_id },
+						const senderPurposes = await UserInterests.findAll({
+							where: { user_id: user_id, type: 'like' },
 							attributes: {
 								include: [
 									[
 										Sequelize.col(
-											'purpose.name'
+											'interests.name'
 										),
 										'name',
 									],
@@ -1265,12 +1265,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							},
 							include: [
 								{
-									model: Purposes,
+									model: Interests,
 									attributes: [
 										['name', 'name'],
 									],
 									where: {
-										normalized_purpose_id:
+										normalized_interest_id:
 										{
 											[Op.ne]:
 												null,
@@ -1285,14 +1285,14 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							(up) => up.name
 						);
 
-						const receiverPurposes = await UserPurposes.findAll(
+						const receiverPurposes = await UserInterests.findAll(
 							{
-								where: { user_id: user_id },
+								where: { user_id: user_id, type: 'like' },
 								attributes: {
 									include: [
 										[
 											Sequelize.col(
-												'purpose.name'
+												'interests.name'
 											),
 											'name',
 										],
@@ -1300,7 +1300,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 								},
 								include: [
 									{
-										model: Purposes,
+										model: Interests,
 										attributes: [
 											[
 												'name',
@@ -1308,7 +1308,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 											],
 										],
 										where: {
-											normalized_purpose_id:
+											normalized_interest_id:
 											{
 												[Op.ne]:
 													null,

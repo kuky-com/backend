@@ -9,66 +9,68 @@ const { Sequelize } = require('sequelize');
 const ReviewUsers = require('../models/review_users');
 
 const openai = new OpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 async function getUser(user_id) {
-	try {
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
-			where: { id: user_id },
-			attributes: { exclude: ['password'] },
-			include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
-		});
+    try {
+        const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
+            where: { id: user_id },
+            attributes: { exclude: ['password'] },
+            include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
+        });
 
-		console.log({ user })
+        console.log({ user })
 
-		if (!user) {
-			return Promise.reject('User not found');
-		}
+        if (!user) {
+            return Promise.reject('User not found');
+        }
 
-		return Promise.resolve(user);
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
+        return Promise.resolve(user);
+    } catch (error) {
+        console.log('Error fetching user info:', error);
+        return Promise.reject(error);
+    }
 }
 
 async function getProfile({ user_id }) {
-	try {
-		const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
-			where: { id: user_id },
-			include: [
-				{ model: Purposes },
-				{ model: Interests },
-				{ model: Tags },
-				{ model: Journeys },
-				{ model: JourneyCategories }
-			],
-		});
+    try {
+        const user = await Users.scope(['askJPFGeneral', 'askJPFSpecific', 'withInterestCount', 'includeBlurVideo']).findOne({
+            where: { id: user_id },
+            include: [
+                { model: Purposes },
+                { model: Interests },
+                { model: Tags },
+                { model: Journeys },
+                { model: JourneyCategories }
+            ],
+        });
 
-		if (!user) {
-			return Promise.reject('User not found');
-		}
+        if (!user) {
+            return Promise.reject('User not found');
+        }
 
-		const reviewsData = await getReviewStats(user_id);
+        const reviewsData = await getReviewStats(user_id);
 
-		return Promise.resolve({
-			message: 'User info retrieved successfully',
-			data: {
-				...user.toJSON(),
-				reviewsCount: reviewsData.reviewsCount,
-				avgRating: reviewsData.avgRating,
-			},
-		});
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
+        return Promise.resolve({
+            message: 'User info retrieved successfully',
+            data: {
+                ...user.toJSON(),
+                reviewsCount: reviewsData.reviewsCount,
+                avgRating: reviewsData.avgRating,
+            },
+        });
+    } catch (error) {
+        console.log('Error fetching user info:', error);
+        return Promise.reject(error);
+    }
 }
 
 async function createSummary(user_id) {
     try {
         const userInfo = await getUser(user_id);
+
+        if (!userInfo.video_intro_transcript) return
 
         const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
         const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
@@ -105,34 +107,34 @@ async function createSummary(user_id) {
 }
 
 async function getReviewStats(user_id) {
-	const reviewsObj = await Users.findOne({
-		where: { id: user_id },
-		attributes: {
-			include: [
-				[
-					Sequelize.fn('COUNT', Sequelize.col('reviews.id')),
-					'reviewsCount',
-				],
-				[Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'avgRating'],
-			],
-		},
-		group: ['users.id'],
-		include: [
-			{
-				model: ReviewUsers,
-				attributes: [],
-				as: 'reviews',
-				where: {
-					status: 'approved',
-				},
-			},
-		],
-	});
-	const data = reviewsObj?.toJSON();
-	return {
-		reviewsCount: data?.reviewsCount || 0,
-		avgRating: data?.avgRating || 0,
-	};
+    const reviewsObj = await Users.findOne({
+        where: { id: user_id },
+        attributes: {
+            include: [
+                [
+                    Sequelize.fn('COUNT', Sequelize.col('reviews.id')),
+                    'reviewsCount',
+                ],
+                [Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'avgRating'],
+            ],
+        },
+        group: ['users.id'],
+        include: [
+            {
+                model: ReviewUsers,
+                attributes: [],
+                as: 'reviews',
+                where: {
+                    status: 'approved',
+                },
+            },
+        ],
+    });
+    const data = reviewsObj?.toJSON();
+    return {
+        reviewsCount: data?.reviewsCount || 0,
+        avgRating: data?.avgRating || 0,
+    };
 }
 
 
