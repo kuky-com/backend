@@ -12,6 +12,7 @@ const {
 const { updateUserNote, updateProfile, getStats } = require('@controllers/users');
 const router = express.Router();
 const { Sequelize } = require('sequelize');
+const { getStatsByMonth } = require('../../controllers/users');
 
 router.get('/', (request, response) => {
 	return admin
@@ -47,9 +48,8 @@ router.get(
 	'/:userId/stats',
 	async (request, response, next) => {
 		try {
-			const result = await getStats({
-				user_id: request.params.userId,
-				...request.query
+			const result = await getStatsByMonth({
+				user_id: request.params.userId
 			});
 			return response.json({
 				success: true,

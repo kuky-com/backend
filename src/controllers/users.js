@@ -1015,6 +1015,54 @@ async function getStats({ user_id, start_date, end_date }) {
 			},
 		});
 
+		const moderatorPayments = await Sequelize.query(
+			`SELECT * FROM moderator_payments WHERE user_id = :user_id ORDER BY paid_date ASC`,
+			{
+				replacements: { user_id },
+				type: Sequelize.QueryTypes.SELECT,
+			}
+		);
+
+		const startMonth = dayjs('2025-04-01');
+		const currentMonth = dayjs().startOf('month');
+		const monthlyReport = [];
+
+		let current = startMonth;
+
+		while (current.isBefore(currentMonth) || current.isSame(currentMonth)) {
+			const payment = moderatorPayments.find((payment) =>
+				dayjs(payment.payment_date).isSame(current, 'month')
+			);
+
+			// Calculate total session time for the current month
+			const totalSessionTime = await Sequelize.query(
+				`SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0) AS total_time
+				 FROM session_logs AS sl
+				 WHERE sl.user_id = :user_id
+				 AND sl.start_time BETWEEN :start_date AND :end_date`,
+				{
+					replacements: {
+						user_id,
+						start_date: current.startOf('month').toISOString(),
+						end_date: current.endOf('month').toISOString(),
+					},
+					type: Sequelize.QueryTypes.SELECT,
+				}
+			);
+
+			const amountToPay = (parseInt(totalSessionTime[0].total_time ?? '0') / 3600) * 15;
+
+			monthlyReport.push({
+				month: current.format('MMM YYYY'),
+				payment: payment || null,
+				amountToPay: amountToPay.toFixed(2),
+			});
+
+			current = current.add(1, 'month');
+		}
+
+		const payment_reports = monthlyReport ?? [];
+
 		const matches = await Matches.findAll({
 			where: {
 				[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
@@ -1101,7 +1149,8 @@ async function getStats({ user_id, start_date, end_date }) {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
 				total: totalEarning.toFixed(2)
-			}
+			},
+			payment_reports
 		};
 
 		return Promise.resolve({
@@ -1109,6 +1158,192 @@ async function getStats({ user_id, start_date, end_date }) {
 			message: 'Get stats successfully',
 		});
 	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
+async function getStatsByMonth({ user_id }) {
+	try {
+		const startMonth = dayjs('2025-04-01');
+		const currentMonth = dayjs().startOf('month');
+		const monthlyStats = [];
+
+		let current = startMonth;
+
+		// Fetch moderator payments for the user
+		const moderatorPayments = await Sequelize.query(
+			`SELECT * FROM moderator_payments WHERE user_id = :user_id ORDER BY paid_date ASC`,
+			{
+				replacements: { user_id },
+				type: Sequelize.QueryTypes.SELECT,
+			}
+		);
+
+		while (current.isBefore(currentMonth) || current.isSame(currentMonth)) {
+			const startOfDay = current.startOf('month').toISOString();
+			const endOfDay = current.endOf('month').toISOString();
+
+			await Sequelize.query(
+				`UPDATE session_logs
+					 SET end_time = start_time + interval '90 minutes'
+					 WHERE user_id = :user_id
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 5400`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			const user = await Users.scope(['includeBlurVideo']).findOne({
+				where: {
+					id: user_id
+				},
+				attributes: {
+					include: [
+						[
+							Sequelize.literal(`(
+								SELECT COUNT(*)
+								FROM matches AS m
+								WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
+								AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
+							)`),
+							'matches_count',
+						],
+						[
+							Sequelize.literal(`(
+								SELECT COUNT(*)
+								FROM messages AS msg
+								WHERE msg."matchId" IN (
+									SELECT id
+									FROM matches AS m
+									WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
+									AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
+								)
+							)`),
+							'messages_count',
+						],
+						[
+							Sequelize.literal(`(
+								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
+								FROM session_logs AS sl
+								WHERE sl.user_id = users.id and sl.user_id is not null
+								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+							)`),
+							'total_session_time',
+						],
+					],
+				},
+			});
+
+			const matches = await Matches.findAll({
+				where: {
+					[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
+					conversation_id: {
+						[Op.ne]: null
+					},
+					createdAt: {
+						[Op.between]: [startOfDay, endOfDay]
+					}
+				},
+				attributes: ['conversation_id'],
+				raw: true,
+			});
+
+			const conversationIds = matches.map((match) => match.conversation_id);
+
+			let totalVideoCallDuration = 0;
+			let totalVoiceCallDuration = 0;
+			let totalCall = 0;
+			let responseRate = 0;
+
+			if (conversationIds.length > 0) {
+				const conversations = await db
+					.collection('conversations')
+					.where('id', 'in', conversationIds)
+					.get();
+
+				let conversationsWithMessagesFromBoth = 0;
+				for (const conversation of conversations.docs) {
+					const messagesCollection = conversation.ref.collection('messages');
+					const messagesSnapshot = await messagesCollection
+						.where('createdAt', '>=', new Date(startOfDay))
+						.where('createdAt', '<=', new Date(endOfDay))
+						.get();
+					const participants = new Set();
+
+					for (const messageDoc of messagesSnapshot.docs) {
+						const message = messageDoc.data();
+
+						if (message.user && message.user._id != 0)
+							participants.add(message.user._id);
+
+						if (message.type === 'video_call' || message.type === 'voice_call') {
+							const duration = parseFormattedCallSeconds(message.text);
+
+							if (duration > 0) {
+								totalCall += 1;
+							}
+
+							if (message.type === 'video_call') {
+								totalVideoCallDuration += duration;
+							} else if (message.type === 'voice_call') {
+								totalVoiceCallDuration += duration;
+							}
+						}
+					}
+
+					if (participants.size > 1)
+						conversationsWithMessagesFromBoth += 1;
+				}
+
+				responseRate = conversationIds.length > 0 ? (conversationsWithMessagesFromBoth / conversationIds.length) * 100 : 0;
+			}
+
+			const reviewsData = await getReviewStats(user_id);
+
+			const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
+
+			// Find payment for the current month
+			const payment = moderatorPayments.find((payment) =>
+				dayjs(payment.paid_date).isSame(current, 'month')
+			);
+
+			const userInfo = {
+				month: current.format('MMM YYYY'),
+				total_call: totalCall,
+				total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
+				avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
+				matches_count: parseInt(user.toJSON().matches_count ?? '0'),
+				messages_count: parseInt(user.toJSON().messages_count ?? '0'),
+				total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
+				response_rate: Math.round(responseRate),
+				total_video_call_duration: totalVideoCallDuration,
+				total_voice_call_duration: totalVoiceCallDuration,
+				reviews_count: reviewsData.reviewsCount,
+				avg_rating: reviewsData.avgRating,
+				is_active: user.is_active,
+				created_at: user.createdAt,
+				earning: {
+					bonuses: 0,
+					total: totalEarning.toFixed(2)
+				},
+				payment: payment || null, // Attach payment information if available
+			};
+
+			monthlyStats.push(userInfo);
+
+			current = current.add(1, 'month');
+		}
+
+		// Reorder stats from latest to oldest
+		monthlyStats.reverse();
+
+		return Promise.resolve({
+			data: monthlyStats,
+			message: 'Get stats by month successfully',
+		});
+	} catch (error) {
+		console.log({error})
 		return Promise.reject(error);
 	}
 }
@@ -1140,5 +1375,6 @@ module.exports = {
 	scanImage,
 	getStats,
 	forceUpdateSummary,
-	db
+	db,
+	getStatsByMonth
 };
