@@ -5,6 +5,7 @@ const auth = require('@controllers/auth');
 const router = express.Router();
 const authMiddleware = require('../milddleware/authMiddleware');
 const sendbird = require('@controllers/sendbird');
+const multer = require('multer');
 
 router.post('/register', (request, response, next) => {
 	const { full_name, email, password } = request.body;

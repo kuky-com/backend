@@ -41,12 +41,49 @@ const { getReviewStats, createSummary, getUser } = require('./common');
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
+	storageBucket: 'kuky-105e6.appspot.com'
 });
 const db = admin.firestore();
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
 });
+
+async function updateAvatar({ user_id, avatarFile }) {
+	try {
+		// Upload image to Firebase Storage
+		const bucket = admin.storage().bucket();
+		const fileName = `avatars/${user_id}_${Date.now()}`;
+		const file = bucket.file(fileName);
+
+		await file.save(avatarFile.buffer, {
+			metadata: {
+				contentType: avatarFile.mimetype,
+			},
+		});
+
+		await file.makePublic();
+
+		const url = file.publicUrl();
+
+		await Users.update(
+			{ avatar: url },
+			{
+				where: { id: user_id },
+				returning: true,
+				plain: true,
+			}
+		);
+
+		return Promise.resolve({
+			message: 'Avatar updated successfully',
+			data: { avatar: url },
+		});
+	} catch (error) {
+		console.log('Error updating avatar:', error);
+		return Promise.reject(error);
+	}
+}
 
 async function updateProfile({
 	user_id,
@@ -64,6 +101,7 @@ async function updateProfile({
 		if (location) updates.location = location;
 		if (pronouns) updates.pronouns = pronouns;
 		if (birthday) updates.birthday = birthday;
+		if (restParams.user_note) updates.user_note = restParams.user_note.trim();
 		// if (publicGender) updates.publicGender = publicGender;
 		// if (publicPronouns) updates.publicPronouns = publicPronouns;
 		// if (notificationEnable) updates.notificationEnable = notificationEnable;
@@ -1381,4 +1419,5 @@ module.exports = {
 	forceUpdateSummary,
 	db,
 	getStatsByMonth,
+	updateAvatar
 };

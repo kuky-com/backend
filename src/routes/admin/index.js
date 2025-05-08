@@ -326,6 +326,33 @@ router.post('/pay-moderator', authAdminMiddleware, (request, response, next) => 
 		});
 });
 
+router.post('/delete-payment', authAdminMiddleware, (request, response, next) => {
+	const { payment_id } = request.body;
+
+	if (!payment_id) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: payment_id',
+		});
+	}
+
+	return admin
+		.deleteModeratorPayment({ ...request.body })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.post('/add-version', authAdminMiddleware, (request, response, next) => {
 	const { version_ios, version_android, is_required, description, version_title } =
 		request.body;

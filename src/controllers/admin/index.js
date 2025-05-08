@@ -892,6 +892,29 @@ async function createModeratorPayment({ user_id, month, year, amount, transactio
 	}
 }
 
+async function deleteModeratorPayment({ payment_id }) {
+	try {
+		const payment = await ModeratorPayments.findOne({
+			where: { id: payment_id },
+		});
+
+		if (!payment) {
+			return Promise.reject('Payment record not found');
+		}
+
+		await ModeratorPayments.destroy({
+			where: { id: payment_id },
+		});
+
+		return Promise.resolve({
+			message: 'Moderator payment deleted successfully',
+		});
+	} catch (error) {
+		console.log('Error deleting moderator payment:', error);
+		return Promise.reject('Error deleting moderator payment');
+	}
+}
+
 async function getReferrals({ page = 1, limit = 20 }) {
 	const offset = (page - 1) * limit;
 	const { rows, count } = await ReferralUsers.findAndCountAll({
@@ -1079,5 +1102,6 @@ module.exports = {
 	getLandingPageContactUs,
 	setModerator,
 	requestCompleteProfileAction,
-	createModeratorPayment
+	createModeratorPayment,
+	deleteModeratorPayment
 };
