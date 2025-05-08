@@ -23,7 +23,7 @@ function loadTemplate(templateName, data) {
     return template(data);
 }
 
-async function sendEmail(toAddress, subject, templateName, templateData) {
+async function sendEmail(toAddress, subject, templateName, templateData, Source = 'Kuky <noreply@kuky.com>') {
     const htmlContent = loadTemplate(templateName, templateData);
 
     const params = {
@@ -42,7 +42,7 @@ async function sendEmail(toAddress, subject, templateName, templateData) {
                 Data: subject,
             },
         },
-        Source: 'Kuky <noreply@kuky.com>',
+        Source: Source,
     };
 
     try {
@@ -156,8 +156,8 @@ async function sendApproveProfileEmail({ to_email, to_name}) {
 async function sendEmailCompleteProfile({ to_email, to_name }) {
 
     try {
-        const result = await sendEmail(to_email, "Let's complete your profile", 'complete_profile', { to_email, to_name })
-
+        const result = await sendEmail(to_email, "We’d love your thoughts on Kuky 💙", 'complete_profile', { to_email, to_name }, 'Kristijan Bugaric <kristijan@kuky.com>')
+        console.log({result, to_email, to_name})
         if (!result) {
             return Promise.reject('Error sending connection request email')
         } else {

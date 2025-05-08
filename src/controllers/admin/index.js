@@ -672,7 +672,7 @@ async function requestCompleteProfileAction({ user_id }) {
 		emailService.sendEmailCompleteProfile({ to_email: user.email, to_name: user?.full_name });
 
 		return Promise.resolve({
-			message: 'Profile updated!',
+			message: 'Test done',
 		});
 	} catch (error) {
 		console.log('Profile update error:', error);
