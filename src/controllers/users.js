@@ -965,16 +965,17 @@ async function getStats({ user_id, start_date, end_date }) {
 			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
 			: dayjs().endOf('month').toISOString();
 
-		await Sequelize.query(
-			`UPDATE session_logs
-				 SET end_time = start_time + interval '90 minutes'
-				 WHERE user_id = :user_id
-				 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 5400`,
-			{
-				replacements: { user_id },
-				type: Sequelize.QueryTypes.UPDATE,
-			}
-		);
+			await Sequelize.query(
+				`UPDATE session_logs
+					 SET end_time = start_time + interval '30 minutes'
+					 WHERE user_id = :user_id
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
+					 AND start_time > '2025-05-08 10:00:00+00'`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
 
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
@@ -1187,9 +1188,10 @@ async function getStatsByMonth({ user_id }) {
 
 			await Sequelize.query(
 				`UPDATE session_logs
-					 SET end_time = start_time + interval '90 minutes'
+					 SET end_time = start_time + interval '30 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 5400`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
+					 AND start_time > '2025-05-08 10:00:00+00'`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
