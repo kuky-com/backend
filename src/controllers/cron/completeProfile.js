@@ -7,7 +7,7 @@ const { default: axios } = require("axios");
 const { scanImage } = require("../users");
 
 const letCompleteProfile = async (req, res) => {
-    const pendingUsers = await Users.scope('withInterestCount').findAll({
+    const pendingUsers = await Users.findAll({
         where: {
             is_active: true,
             email_verified: true,
@@ -20,8 +20,8 @@ const letCompleteProfile = async (req, res) => {
                 }
             ],
             createdAt: {
-                [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
-                [Op.gt]: new Date(new Date() - 24 * 60 * 60 * 1000),
+                [Op.gt]: new Date(new Date() - 48 * 60 * 60 * 1000),
+                [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
             }
         }
     });

@@ -20,7 +20,7 @@ cron.schedule('0 */3 * * *', async () => {
         await autoRejectProfile()
 });
 
-cron.schedule('0 22 * * *', async () => {
+cron.schedule('0 10 * * *', async () => {
     if (process.env.NODE_ENV === 'production')
         await letCompleteProfile();
 });
