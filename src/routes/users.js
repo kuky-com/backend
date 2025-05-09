@@ -8,7 +8,6 @@ const { blockedUserMiddleware } = require('../milddleware/blockedUserMiddleware'
 const interests = require('@controllers/interests');
 const SessionLog = require('../models/session_logs');
 const { v4: uuidv4 } = require('uuid');
-const { requestCompleteProfileAction } = require('../controllers/admin');
 
 router.post('/update', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
@@ -888,18 +887,6 @@ router.get('/avatar', authMiddleware, (request, response, next) => {
 				message: `${error}`,
 			});
 		});
-});
-
-router.get('/test', (request, response, next) => {
-	// requestCompleteProfileAction({user_id: 4})
-	requestCompleteProfileAction({user_id: 5})
-	requestCompleteProfileAction({user_id: 8})
-
-	return response.json({
-		success: true,
-		data: 'dfasdf',
-		message: 'Test done',
-	});
 });
 
 module.exports = router;
