@@ -1008,7 +1008,7 @@ async function getStats({ user_id, start_date, end_date }) {
 					 SET end_time = start_time + interval '30 minutes'
 					 WHERE user_id = :user_id
 					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
-					 AND start_time > '2025-05-08 10:00:00+00'`,
+					 AND start_time > '2025-05-07 10:00:00+00'`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
@@ -1189,7 +1189,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			earning: {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
-				total: totalEarning.toFixed(2)
+				total: '--'
 			},
 			payment_reports
 		};
@@ -1229,7 +1229,7 @@ async function getStatsByMonth({ user_id }) {
 					 SET end_time = start_time + interval '30 minutes'
 					 WHERE user_id = :user_id
 					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
-					 AND start_time > '2025-05-08 10:00:00+00'`,
+					 AND start_time > '2025-05-07 10:00:00+00'`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
