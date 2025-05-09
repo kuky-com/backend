@@ -765,7 +765,7 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 			order: [['start_time', 'DESC']],
 		});
 
-		if (latestSession && new Date() - new Date(latestSession.start_time) < 2 * 60 * 1000) {
+		if (latestSession && new Date() - new Date(latestSession.start_time) < 3 * 1000) {
 			return res.status(200).json({
 				message: 'Session already exists',
 				data: {
@@ -779,7 +779,7 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 		}
 
 		await SessionLog.update(
-			{ end_time: new Date(new Date(start_time).getTime() + 60 * 1000) },
+			{ end_time: new Date(new Date(start_time).getTime() + 1000) },
 			{
 				where: {
 					user_id,
@@ -814,16 +814,30 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 });
 
 router.put('/sessions/:session_id', authMiddleware, async (req, res) => {
+	const { user_id } = req;
 	const { session_id } = req.params;
 	const { end_time } = req.body;
 
 	try {
-		const session = await SessionLog.findByPk(session_id);
+		const session = await SessionLog.findOne({
+			where: {
+				session_id,
+				user_id,
+			},
+		});
 		if (!session) {
-			return res.status(404).json({ error: 'Session not found' });
+			return res.status(404).json({ error: 'Session not found or does not belong to the user' });
 		}
 
-		session.end_time = end_time;
+		const startTime = new Date(session.start_time);
+		const endTime = new Date(end_time);
+
+		if (endTime - startTime > 60 * 60 * 1000) {
+			session.end_time = new Date(startTime.getTime() + 60 * 60 * 1000);
+		} else {
+			session.end_time = endTime;
+		}
+
 		await session.save();
 
 		res.json({ message: 'Session updated' });
