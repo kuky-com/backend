@@ -172,12 +172,12 @@ async function updateProfile({
 			updateBlurVideo(user_id, restParams.video_interests, 'video_interests_blur')
 		}
 
-		console.log({updates})
+		console.log({ updates })
 
 		if (updates.avatar && updates.is_avatar_blur) {
 			updateBlurAvatar(user_id, updates.avatar)
 		}
-		
+
 		if (updates.avatar || updates.full_name) {
 			const sendbirdPayload = {};
 			if (updates.avatar) {
@@ -307,7 +307,7 @@ async function updateBlurVideo(user_id, media_url, type) {
 
 async function updateBlurAvatar(user_id, media_url) {
 	try {
-		console.log({fjdslafkjdalksfjdfjakdslfjl: user_id, media_url})
+		console.log({ fjdslafkjdalksfjdfjakdslfjl: user_id, media_url })
 		await Users.update({ avatar_blur: null }, {
 			where: { id: user_id },
 			returning: true,
@@ -332,7 +332,7 @@ async function updateBlurAvatar(user_id, media_url) {
 			message: 'Update successfully',
 		});
 	} catch (error) {
-		console.log({error})
+		console.log({ error })
 	}
 }
 async function getSimpleProfile({ user_id }) {
@@ -710,25 +710,50 @@ async function getIapProducts({ user_id, platform }) {
 			},
 		})
 
+		let products = []
+		let title = 'Includes 1 Month free trial'
+
 		if (existReferral) {
-			const products = platform === 'ios' ? ["com.kuky.ios.1month_pro", "com.kuky.ios.6month_pro", "com.kuky.ios.12month_pro"] : ["com.kuky.android.1month_pro", "com.kuky.android.6month_pro", "com.kuky.android.12month_pro"];
-			return Promise.resolve({
-				message: 'IAP products',
-				data: {
-					products,
-					title: 'Includes 3 Months free trial',
-				},
-			});
+			switch (platform) {
+				case 'ios':
+					products = ["com.kuky.ios.1month_pro", "com.kuky.ios.6month_pro", "com.kuky.ios.12month_pro"]
+					break;
+				case 'android':
+					products = ["com.kuky.android.1month_pro", "com.kuky.android.6month_pro", "com.kuky.android.12month_pro"]
+					break;
+				case 'web':
+					products = ["com.kuky.web.1month_pro", "com.kuky.web.6month_pro", "com.kuky.web.12month_pro"]
+					break;
+				default:
+					products = ["com.kuky.ios.1month_pro", "com.kuky.ios.6month_pro", "com.kuky.ios.12month_pro"]
+					break;
+			}
+			title = 'Includes 3 Months free trial'
 		} else {
-			const products = platform === 'ios' ? ["com.kuky.ios.1month", "com.kuky.ios.6month", "com.kuky.ios.12month"] : ["com.kuky.android.1month", "com.kuky.android.6month", "com.kuky.android.12month"];
-			return Promise.resolve({
-				message: 'IAP products',
-				data: {
-					products,
-					title: 'Includes 1 Month free trial',
-				}
-			});
+			switch (platform) {
+				case 'ios':
+					products = ["com.kuky.ios.1month", "com.kuky.ios.6month", "com.kuky.ios.12month"]
+					break;
+				case 'android':
+					products = ["com.kuky.android.1month", "com.kuky.android.6month", "com.kuky.android.12month"]
+					break;
+				case 'web':
+					products = ["com.kuky.web.1month", "com.kuky.web.6month", "com.kuky.web.12month"]
+					break;
+				default:
+					products = ["com.kuky.ios.1month", "com.kuky.ios.6month", "com.kuky.ios.12month"]
+					break;
+			}
+			title = 'Includes 1 Month free trial'
 		}
+
+		return Promise.resolve({
+			message: 'IAP products',
+			data: {
+				products,
+				title: title,
+			}
+		});
 	} catch (error) {
 		console.log('Error use referral code:', error);
 		return Promise.reject(error);
@@ -1003,16 +1028,16 @@ async function getStats({ user_id, start_date, end_date }) {
 			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
 			: dayjs().endOf('month').toISOString();
 
-			await Sequelize.query(
-				`UPDATE session_logs
+		await Sequelize.query(
+			`UPDATE session_logs
 					 SET end_time = start_time + interval '45 minutes'
 					 WHERE user_id = :user_id
 					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 2700`,
-				{
-					replacements: { user_id },
-					type: Sequelize.QueryTypes.UPDATE,
-				}
-			);
+			{
+				replacements: { user_id },
+				type: Sequelize.QueryTypes.UPDATE,
+			}
+		);
 
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
@@ -1383,7 +1408,7 @@ async function getStatsByMonth({ user_id }) {
 			message: 'Get stats by month successfully',
 		});
 	} catch (error) {
-		console.log({error})
+		console.log({ error })
 		return Promise.reject(error);
 	}
 }
