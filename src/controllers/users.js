@@ -1005,10 +1005,9 @@ async function getStats({ user_id, start_date, end_date }) {
 
 			await Sequelize.query(
 				`UPDATE session_logs
-					 SET end_time = start_time + interval '30 minutes'
+					 SET end_time = start_time + interval '45 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
-					 AND start_time > '2025-05-07 10:00:00+00'`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 2700`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
@@ -1226,10 +1225,9 @@ async function getStatsByMonth({ user_id }) {
 
 			await Sequelize.query(
 				`UPDATE session_logs
-					 SET end_time = start_time + interval '30 minutes'
+					 SET end_time = start_time + interval '45 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1800
-					 AND start_time > '2025-05-07 10:00:00+00'`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 2700`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
