@@ -831,8 +831,8 @@ router.put('/sessions/:session_id', authMiddleware, async (req, res) => {
 		const startTime = new Date(session.start_time);
 		const endTime = new Date(end_time);
 
-		if (endTime - startTime > 45 * 60 * 1000) {
-			session.end_time = new Date(startTime.getTime() + 45 * 60 * 1000);
+		if (endTime - startTime > 20 * 60 * 1000) {
+			session.end_time = new Date(startTime.getTime() + 20 * 60 * 1000);
 		} else {
 			session.end_time = endTime;
 		}
