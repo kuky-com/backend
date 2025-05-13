@@ -1030,9 +1030,9 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		await Sequelize.query(
 			`UPDATE session_logs
-					 SET end_time = start_time + interval '45 minutes'
+					 SET end_time = start_time + interval '20 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 2700`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1200`,
 			{
 				replacements: { user_id },
 				type: Sequelize.QueryTypes.UPDATE,
@@ -1194,7 +1194,7 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		const reviewsData = await getReviewStats(user_id);
 
-		const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
+		const totalEarning = Math.round(((parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15) * 100) / 100;
 
 		const userInfo = {
 			total_call: totalCall,
@@ -1202,7 +1202,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
-			total_session_time: 0,//parseInt(user.toJSON().total_session_time ?? '0'),
+			total_session_time: null,//parseInt(user.toJSON().total_session_time ?? '0'),
 			response_rate: Math.round(responseRate),
 			total_video_call_duration: totalVideoCallDuration,
 			total_voice_call_duration: totalVoiceCallDuration,
@@ -1250,9 +1250,9 @@ async function getStatsByMonth({ user_id }) {
 
 			await Sequelize.query(
 				`UPDATE session_logs
-					 SET end_time = start_time + interval '45 minutes'
+					 SET end_time = start_time + interval '20 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 2700`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1200`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
