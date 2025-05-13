@@ -1213,7 +1213,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			earning: {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
-				total: '--'
+				total: totalEarning
 			},
 			payment_reports
 		};
