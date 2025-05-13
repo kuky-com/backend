@@ -1202,7 +1202,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
-			total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
+			total_session_time: 0,//parseInt(user.toJSON().total_session_time ?? '0'),
 			response_rate: Math.round(responseRate),
 			total_video_call_duration: totalVideoCallDuration,
 			total_voice_call_duration: totalVoiceCallDuration,
@@ -1213,7 +1213,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			earning: {
 				bonuses: 0,
 				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
-				total: '--'
+				total: totalEarning
 			},
 			payment_reports
 		};
