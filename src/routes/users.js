@@ -889,4 +889,29 @@ router.get('/avatar', authMiddleware, (request, response, next) => {
 		});
 });
 
+router.get('/:userId/analyze-user', authMiddleware, (request, response, next) => {
+    const user_id = request.params.userId
+
+    if (!user_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id"
+        })
+    }
+
+    return common.analyzeUser(user_id).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;

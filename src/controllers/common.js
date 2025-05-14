@@ -5,8 +5,9 @@ const Interests = require('../models/interests');
 const Tags = require('../models/tags');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
-const { Sequelize } = require('sequelize');
+const { Sequelize, where } = require('sequelize');
 const ReviewUsers = require('../models/review_users');
+const { raw } = require('body-parser');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -20,7 +21,7 @@ async function getUser(user_id) {
             include: [{ model: Purposes }, { model: Interests }, { model: Tags }, { model: Journeys }, { model: JourneyCategories }],
         });
 
-        console.log({ user })
+        // console.log({ user })
 
         if (!user) {
             return Promise.reject('User not found');
@@ -155,10 +156,71 @@ async function getUserAvatar(user_id) {
     }
 }
 
+async function analyzeUser(user_id) {
+    try {
+        let userInfo = await getUser(user_id);
+        const journeys = await Journeys.findAll({
+            attributes: ['id', 'name'],
+            raw: true
+        })
+
+        const journeyList = journeys.map((journey) => `${journey.name} - ${journey.id}`).join('\n')
+
+        if (!userInfo.video_intro_transcript) return
+
+        const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
+        const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
+
+        const prompt = `We have following information and list of journeys, please analyze the user and give us best matching journey for the user.
+                        Full name: ${userInfo.full_name}
+                        Interested journey: ${userInfo.journey?.name ?? ''}
+                        Interesting: ${interests}
+                        Dislikes: ${dislikes}
+                        What he/she said in the video intro: ${userInfo.video_intro_transcript ?? ''}
+                        What he/she said in the video journey: ${userInfo.video_purpose_transcript ?? ''}
+                        What he/she said in the video interests: ${userInfo.video_interests_transcript ?? ''}
+
+
+                        #List of journeys - format is name - id: 
+                        ${journeyList}
+
+                        #In the response return only journey id, no other text, no explanation, no other information.
+                    `;
+
+        try {
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [{ role: 'system', content: prompt }],
+            });
+
+            console.log({response: response.choices[0]?.message?.content})
+            const journey_id = parseInt(response.choices[0]?.message?.content?.trim())
+            const journey = await Journeys.findOne({ where: { id: journey_id }, raw: true })
+
+            await Users.update(
+                { journey_id: journey.id, journey_category_id: journey.category },
+                { where: { id: user_id } }
+            );
+
+            userInfo = await getUser(user_id);
+
+            return Promise.resolve({
+                data: userInfo,
+                message: 'Update successfully',
+            });
+        } catch (error) {
+            console.log({ error });
+        }
+    } catch (error) {
+        console.log({ error })
+    }
+}
+
 module.exports = {
     createSummary,
     getProfile,
     getReviewStats,
     getUser,
-    getUserAvatar
+    getUserAvatar,
+    analyzeUser
 };

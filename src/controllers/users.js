@@ -130,35 +130,21 @@ async function updateProfile({
 			})
 		}
 
-		if (restParams.video_intro) {
+		if (restParams.video_intro && (!restParams.subtitle_intro || !restParams.video_intro_transcript)) {
 			updateSubtitle(user_id, restParams.video_intro, 'intro')
-			updateLikeDislike(user_id, restParams.video_intro)
-		} else if (restParams.audio_intro) {
+		} else if (restParams.audio_intro && (!restParams.subtitle_intro || !restParams.video_intro_transcript)) {
 			updateSubtitle(user_id, restParams.audio_intro, 'intro')
-			updateLikeDislike(user_id, restParams.audio_intro)
 		}
 
-		if (restParams.video_purpose) {
+		if (restParams.video_purpose && (!restParams.subtitle_purpose || !restParams.video_purpose_transcript)) {
 			updateSubtitle(user_id, restParams.video_purpose, 'purpose')
-		} else if (restParams.audio_purpose) {
+		} else if (restParams.audio_purpose	 && (!restParams.subtitle_purpose || !restParams.video_purpose_transcript)) {
 			updateSubtitle(user_id, restParams.audio_purpose, 'purpose')
 		}
 
-		// if (restParams.video_challenge) {
-		// 	updateSubtitle(user_id, restParams.video_challenge, 'subtitle_challenge')
-		// } else if (restParams.audio_challenge) {
-		// 	updateSubtitle(user_id, restParams.audio_challenge, 'subtitle_challenge')
-		// }
-
-		// if (restParams.video_why) {
-		// 	updateSubtitle(user_id, restParams.video_why, 'subtitle_why')
-		// } else if (restParams.audio_why) {
-		// 	updateSubtitle(user_id, restParams.audio_why, 'subtitle_why')
-		// }
-
-		if (restParams.video_interests) {
+		if (restParams.video_interests	 && (!restParams.subtitle_interests || !restParams.video_interests_transcript)) {
 			updateSubtitle(user_id, restParams.video_interests, 'interests')
-		} else if (restParams.audio_interests) {
+		} else if (restParams.audio_interests && (!restParams.subtitle_interests || !restParams.video_interests_transcript)) {
 			updateSubtitle(user_id, restParams.audio_interests, 'interests')
 		}
 
