@@ -1025,6 +1025,28 @@ async function getStats({ user_id, start_date, end_date }) {
 			}
 		);
 
+		await Sequelize.query(
+			`UPDATE session_logs AS sl1
+			 SET end_time = (
+				 SELECT MIN(sl2.start_time) - interval '1 second'
+				 FROM session_logs AS sl2
+				 WHERE sl2.user_id = sl1.user_id
+				 AND sl2.start_time > sl1.start_time
+			 )
+			 WHERE EXISTS (
+				 SELECT 1
+				 FROM session_logs AS sl2
+				 WHERE sl2.user_id = sl1.user_id
+				 AND sl2.start_time > sl1.start_time
+				 AND sl1.end_time > sl2.start_time
+			 )
+			 AND sl1.user_id = :user_id`,
+			{
+				replacements: { user_id },
+				type: Sequelize.QueryTypes.UPDATE,
+			}
+		);
+
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
 				id: user_id
@@ -1242,6 +1264,28 @@ async function getStatsByMonth({ user_id }) {
 					 SET end_time = start_time + interval '15 minutes'
 					 WHERE user_id = :user_id
 					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			await Sequelize.query(
+				`UPDATE session_logs AS sl1
+				 SET end_time = (
+					 SELECT MIN(sl2.start_time) - interval '1 second'
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+				 )
+				 WHERE EXISTS (
+					 SELECT 1
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+					 AND sl1.end_time > sl2.start_time
+				 )
+				 AND sl1.user_id = :user_id`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
