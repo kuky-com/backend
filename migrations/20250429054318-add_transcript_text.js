@@ -9,7 +9,7 @@ module.exports = {
       'users',
       'video_intro_transcript',
       {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true
       },
     )
@@ -18,7 +18,7 @@ module.exports = {
       'users',
       'video_purpose_transcript',
       {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true
       },
     )
@@ -27,7 +27,7 @@ module.exports = {
       'users',
       'video_interests_transcript',
       {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true
       },
     )

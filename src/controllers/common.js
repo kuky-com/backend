@@ -193,7 +193,6 @@ async function analyzeUser(user_id) {
                 messages: [{ role: 'system', content: prompt }],
             });
 
-            console.log({response: response.choices[0]?.message?.content})
             const journey_id = parseInt(response.choices[0]?.message?.content?.trim())
             const journey = await Journeys.findOne({ where: { id: journey_id }, raw: true })
 

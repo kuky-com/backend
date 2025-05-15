@@ -1016,9 +1016,9 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		await Sequelize.query(
 			`UPDATE session_logs
-					 SET end_time = start_time + interval '20 minutes'
+					 SET end_time = start_time + interval '15 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1200`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
 			{
 				replacements: { user_id },
 				type: Sequelize.QueryTypes.UPDATE,
@@ -1057,8 +1057,11 @@ async function getStats({ user_id, start_date, end_date }) {
 						Sequelize.literal(`(
 							SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 							FROM session_logs AS sl
-							WHERE sl.user_id = users.id and sl.user_id is not null
+							WHERE sl.user_id = users.id 
+							AND sl.user_id IS NOT NULL
 							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
+							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
 						)`),
 						'total_session_time',
 					],
@@ -1236,9 +1239,9 @@ async function getStatsByMonth({ user_id }) {
 
 			await Sequelize.query(
 				`UPDATE session_logs
-					 SET end_time = start_time + interval '20 minutes'
+					 SET end_time = start_time + interval '15 minutes'
 					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 1200`,
+					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
 				{
 					replacements: { user_id },
 					type: Sequelize.QueryTypes.UPDATE,
@@ -1277,8 +1280,11 @@ async function getStatsByMonth({ user_id }) {
 							Sequelize.literal(`(
 								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 								FROM session_logs AS sl
-								WHERE sl.user_id = users.id and sl.user_id is not null
+								WHERE sl.user_id = users.id 
+								AND sl.user_id IS NOT NULL
 								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+								AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
+								AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
 							)`),
 							'total_session_time',
 						],
