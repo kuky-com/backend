@@ -247,6 +247,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.TEXT,
 		allowNull: true,
 	},
+	moderator_note: {
+		type: DataTypes.TEXT,
+		allowNull: true,
+	},
 	video_intro_transcript: {
 		type: DataTypes.TEXT,
 		allowNull: true,
