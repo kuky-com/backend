@@ -1242,7 +1242,7 @@ async function getStatsByMonth({ user_id }) {
 	try {
 		const startMonth = dayjs('2025-04-01');
 		const currentMonth = dayjs().startOf('month');
-		const monthlyStats = [];
+		const halfMonthlyStats = [];
 
 		let current = startMonth;
 
@@ -1256,195 +1256,202 @@ async function getStatsByMonth({ user_id }) {
 		);
 
 		while (current.isBefore(currentMonth) || current.isSame(currentMonth)) {
-			const startOfDay = current.startOf('month').toISOString();
-			const endOfDay = current.endOf('month').toISOString();
+			const halfPeriods = [
+				{ start: current.startOf('month'), end: current.startOf('month').add(14, 'days') },
+				{ start: current.startOf('month').add(15, 'days'), end: current.endOf('month') },
+			];
 
-			await Sequelize.query(
-				`UPDATE session_logs
-					 SET end_time = start_time + interval '15 minutes'
-					 WHERE user_id = :user_id
-					 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
-				{
-					replacements: { user_id },
-					type: Sequelize.QueryTypes.UPDATE,
-				}
-			);
+			for (const period of halfPeriods) {
+				const startOfDay = period.start.toISOString();
+				const endOfDay = period.end.toISOString();
 
-			await Sequelize.query(
-				`UPDATE session_logs AS sl1
-				 SET end_time = (
-					 SELECT MIN(sl2.start_time) - interval '1 second'
-					 FROM session_logs AS sl2
-					 WHERE sl2.user_id = sl1.user_id
-					 AND sl2.start_time > sl1.start_time
-				 )
-				 WHERE EXISTS (
-					 SELECT 1
-					 FROM session_logs AS sl2
-					 WHERE sl2.user_id = sl1.user_id
-					 AND sl2.start_time > sl1.start_time
-					 AND sl1.end_time > sl2.start_time
-				 )
-				 AND sl1.user_id = :user_id`,
-				{
-					replacements: { user_id },
-					type: Sequelize.QueryTypes.UPDATE,
-				}
-			);
+				await Sequelize.query(
+					`UPDATE session_logs
+						 SET end_time = start_time + interval '15 minutes'
+						 WHERE user_id = :user_id
+						 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
+					{
+						replacements: { user_id },
+						type: Sequelize.QueryTypes.UPDATE,
+					}
+				);
 
-			const user = await Users.scope(['includeBlurVideo']).findOne({
-				where: {
-					id: user_id
-				},
-				attributes: {
-					include: [
-						[
-							Sequelize.literal(`(
-								SELECT COUNT(*)
-								FROM matches AS m
-								WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-								AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
-							)`),
-							'matches_count',
-						],
-						[
-							Sequelize.literal(`(
-								SELECT COUNT(*)
-								FROM messages AS msg
-								WHERE msg."matchId" IN (
-									SELECT id
+				await Sequelize.query(
+					`UPDATE session_logs AS sl1
+					 SET end_time = (
+						 SELECT MIN(sl2.start_time) - interval '1 second'
+						 FROM session_logs AS sl2
+						 WHERE sl2.user_id = sl1.user_id
+						 AND sl2.start_time > sl1.start_time
+					 )
+					 WHERE EXISTS (
+						 SELECT 1
+						 FROM session_logs AS sl2
+						 WHERE sl2.user_id = sl1.user_id
+						 AND sl2.start_time > sl1.start_time
+						 AND sl1.end_time > sl2.start_time
+					 )
+					 AND sl1.user_id = :user_id`,
+					{
+						replacements: { user_id },
+						type: Sequelize.QueryTypes.UPDATE,
+					}
+				);
+
+				const user = await Users.scope(['includeBlurVideo']).findOne({
+					where: {
+						id: user_id
+					},
+					attributes: {
+						include: [
+							[
+								Sequelize.literal(`(
+									SELECT COUNT(*)
 									FROM matches AS m
 									WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-									AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
-								)
-							)`),
-							'messages_count',
+									AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
+								)`),
+								'matches_count',
+							],
+							[
+								Sequelize.literal(`(
+									SELECT COUNT(*)
+									FROM messages AS msg
+									WHERE msg."matchId" IN (
+										SELECT id
+										FROM matches AS m
+										WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
+										AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
+									)
+								)`),
+								'messages_count',
+							],
+							[
+								Sequelize.literal(`(
+									SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
+									FROM session_logs AS sl
+									WHERE sl.user_id = users.id 
+									AND sl.user_id IS NOT NULL
+									AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+									AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
+									AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
+								)`),
+								'total_session_time',
+							],
 						],
-						[
-							Sequelize.literal(`(
-								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
-								FROM session_logs AS sl
-								WHERE sl.user_id = users.id 
-								AND sl.user_id IS NOT NULL
-								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
-								AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
-								AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
-							)`),
-							'total_session_time',
-						],
-					],
-				},
-			});
-
-			const matches = await Matches.findAll({
-				where: {
-					[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
-					conversation_id: {
-						[Op.ne]: null
 					},
-					createdAt: {
-						[Op.between]: [startOfDay, endOfDay]
-					}
-				},
-				attributes: ['conversation_id'],
-				raw: true,
-			});
+				});
 
-			const conversationIds = matches.map((match) => match.conversation_id);
+				const matches = await Matches.findAll({
+					where: {
+						[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
+						conversation_id: {
+							[Op.ne]: null
+						},
+						createdAt: {
+							[Op.between]: [startOfDay, endOfDay]
+						}
+					},
+					attributes: ['conversation_id'],
+					raw: true,
+				});
 
-			let totalVideoCallDuration = 0;
-			let totalVoiceCallDuration = 0;
-			let totalCall = 0;
-			let responseRate = 0;
+				const conversationIds = matches.map((match) => match.conversation_id);
 
-			if (conversationIds.length > 0) {
-				const conversations = await db
-					.collection('conversations')
-					.where('id', 'in', conversationIds)
-					.get();
+				let totalVideoCallDuration = 0;
+				let totalVoiceCallDuration = 0;
+				let totalCall = 0;
+				let responseRate = 0;
 
-				let conversationsWithMessagesFromBoth = 0;
-				for (const conversation of conversations.docs) {
-					const messagesCollection = conversation.ref.collection('messages');
-					const messagesSnapshot = await messagesCollection
-						.where('createdAt', '>=', new Date(startOfDay))
-						.where('createdAt', '<=', new Date(endOfDay))
+				if (conversationIds.length > 0) {
+					const conversations = await db
+						.collection('conversations')
+						.where('id', 'in', conversationIds)
 						.get();
-					const participants = new Set();
 
-					for (const messageDoc of messagesSnapshot.docs) {
-						const message = messageDoc.data();
+					let conversationsWithMessagesFromBoth = 0;
+					for (const conversation of conversations.docs) {
+						const messagesCollection = conversation.ref.collection('messages');
+						const messagesSnapshot = await messagesCollection
+							.where('createdAt', '>=', new Date(startOfDay))
+							.where('createdAt', '<=', new Date(endOfDay))
+							.get();
+						const participants = new Set();
 
-						if (message.user && message.user._id != 0)
-							participants.add(message.user._id);
+						for (const messageDoc of messagesSnapshot.docs) {
+							const message = messageDoc.data();
 
-						if (message.type === 'video_call' || message.type === 'voice_call') {
-							const duration = parseFormattedCallSeconds(message.text);
+							if (message.user && message.user._id != 0)
+								participants.add(message.user._id);
 
-							if (duration > 0) {
-								totalCall += 1;
-							}
+							if (message.type === 'video_call' || message.type === 'voice_call') {
+								const duration = parseFormattedCallSeconds(message.text);
 
-							if (message.type === 'video_call') {
-								totalVideoCallDuration += duration;
-							} else if (message.type === 'voice_call') {
-								totalVoiceCallDuration += duration;
+								if (duration > 0) {
+									totalCall += 1;
+								}
+
+								if (message.type === 'video_call') {
+									totalVideoCallDuration += duration;
+								} else if (message.type === 'voice_call') {
+									totalVoiceCallDuration += duration;
+								}
 							}
 						}
+
+						if (participants.size > 1)
+							conversationsWithMessagesFromBoth += 1;
 					}
 
-					if (participants.size > 1)
-						conversationsWithMessagesFromBoth += 1;
+					responseRate = conversationIds.length > 0 ? (conversationsWithMessagesFromBoth / conversationIds.length) * 100 : 0;
 				}
 
-				responseRate = conversationIds.length > 0 ? (conversationsWithMessagesFromBoth / conversationIds.length) * 100 : 0;
+				const reviewsData = await getReviewStats(user_id);
+
+				const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
+
+				// Find payment for the current period
+				const payment = moderatorPayments.find((payment) =>
+					dayjs(payment.paid_date).isBetween(period.start, period.end, 'day', '[]')
+				);
+
+				const userInfo = {
+					period: `${period.start.format('DD/MM/YY')} - ${period.end.format('DD/MM/YY')}`,
+					total_call: totalCall,
+					total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
+					avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
+					matches_count: parseInt(user.toJSON().matches_count ?? '0'),
+					messages_count: parseInt(user.toJSON().messages_count ?? '0'),
+					total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
+					response_rate: Math.round(responseRate),
+					total_video_call_duration: totalVideoCallDuration,
+					total_voice_call_duration: totalVoiceCallDuration,
+					reviews_count: reviewsData.reviewsCount,
+					avg_rating: reviewsData.avgRating,
+					is_active: user.is_active,
+					created_at: user.createdAt,
+					earning: {
+						bonuses: 0,
+						total: totalEarning.toFixed(2)
+					},
+					payment: payment || null, // Attach payment information if available
+				};
+
+				halfMonthlyStats.push(userInfo);
 			}
-
-			const reviewsData = await getReviewStats(user_id);
-
-			const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
-
-			// Find payment for the current month
-			const payment = moderatorPayments.find((payment) =>
-				dayjs(payment.paid_date).isSame(current, 'month')
-			);
-
-			const userInfo = {
-				month: current.format('MMM YYYY'),
-				total_call: totalCall,
-				total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
-				avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
-				matches_count: parseInt(user.toJSON().matches_count ?? '0'),
-				messages_count: parseInt(user.toJSON().messages_count ?? '0'),
-				total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
-				response_rate: Math.round(responseRate),
-				total_video_call_duration: totalVideoCallDuration,
-				total_voice_call_duration: totalVoiceCallDuration,
-				reviews_count: reviewsData.reviewsCount,
-				avg_rating: reviewsData.avgRating,
-				is_active: user.is_active,
-				created_at: user.createdAt,
-				earning: {
-					bonuses: 0,
-					total: totalEarning.toFixed(2)
-				},
-				payment: payment || null, // Attach payment information if available
-			};
-
-			monthlyStats.push(userInfo);
 
 			current = current.add(1, 'month');
 		}
 
 		// Reorder stats from latest to oldest
-		monthlyStats.reverse();
+		halfMonthlyStats.reverse();
 
 		return Promise.resolve({
-			data: monthlyStats,
-			message: 'Get stats by month successfully',
+			data: halfMonthlyStats,
+			message: 'Get stats by half-month successfully',
 		});
 	} catch (error) {
-		console.log({ error })
+		console.log({ error });
 		return Promise.reject(error);
 	}
 }

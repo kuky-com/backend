@@ -852,6 +852,85 @@ async function freeMatchesList({ user_id }) {
 	return freeMathces;
 }
 
+async function supportSendRequest({ friend_id }) {
+	try {
+		let existMatch = await Matches.findOne({
+			where: {
+				[Op.or]: [
+					{ sender_id: 1, receiver_id: friend_id },
+					{ sender_id: friend_id, receiver_id: 1 },
+				],
+			},
+		});
+
+		if (!existMatch) {
+			const conversation_id = await createConversation(1, friend_id);
+			if (conversation_id) {
+				existMatch = await Matches.create({
+					sender_id: 1,
+					receiver_id: friend_id,
+					status: 'accepted',
+					conversation_id,
+					last_message_date: new Date(),
+				});
+			}
+		} 
+
+		return Promise.resolve({
+			message: 'Suggestion accepted',
+			data: existMatch,
+		});
+	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
+async function getAllUsersForSupport() {
+	try {
+		const users = await Users.findAll({
+			where: { 
+				profile_approved: 'approved',
+				is_active: true,
+				is_hidden_users: false,
+				is_support: false,
+			},
+			attributes: ['id', 'full_name', 'email', 'avatar'],
+			raw: true,
+		});
+
+		const matches = await Matches.findAll({
+			where: {
+				[Op.or]: [
+					{ sender_id: 1 },
+					{ receiver_id: 1 },
+				],
+			},
+			raw: true,
+		});
+
+		const result = users.map((user) => {
+			const match = matches.find(
+				(match) =>
+					(match.sender_id === 1 && match.receiver_id === user.id) ||
+					(match.receiver_id === 1 && match.sender_id === user.id)
+			);
+			return {
+				...user,
+				match_info: match || null,
+			};
+		});
+
+		return Promise.resolve({
+			message: 'All users list for support',
+			data: result
+		})
+	}
+	catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getMatchesWithPreminum({ user_id }) {
 	try {
 		const freeCount = await Matches.count({
@@ -2270,5 +2349,7 @@ module.exports = {
 	getMatchesByJourney,
 	getNextMatch,
 	getOtherSimilarPath,
-	getRandomUserByJourneys
+	getRandomUserByJourneys,
+	getAllUsersForSupport,
+	supportSendRequest
 };
