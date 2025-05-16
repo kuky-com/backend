@@ -1088,6 +1088,16 @@ async function getRecentMatches({ user_id }) {
 							[Op.lte]: 5,
 						},
 					},
+					{
+						sender_id: {
+							[Op.ne]: 1
+						}
+					},
+					{
+						receiver_id: {
+							[Op.ne]: 1
+						}
+					}
 				],
 			},
 			include: [
