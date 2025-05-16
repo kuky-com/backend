@@ -299,6 +299,34 @@ router.post('/set-moderator', authAdminMiddleware, (request, response, next) => 
 		});
 });
 
+router.post('/set-support', authAdminMiddleware, (request, response, next) => {
+	const { user_id } = request.body;
+
+	if (!user_id) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id',
+		});
+	}
+
+	return admin
+		.setSupport({ ...request.body })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+
 router.post('/pay-moderator', authAdminMiddleware, (request, response, next) => {
 	const { user_id, month, year } = request.body;
 

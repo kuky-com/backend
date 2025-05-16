@@ -106,6 +106,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.BOOLEAN,
 		defaultValue: false,
 	},
+	is_support: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: false,
+	},
 	profile_approved: {
 		type: DataTypes.ENUM('pending', 'rejected', 'approved', 'resubmitted'),
 		allowNull: false,

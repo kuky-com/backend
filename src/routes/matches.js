@@ -284,6 +284,50 @@ router.get('/matches-with-preminum', authMiddleware, (request, response, next) =
         })
 })
 
+router.get('/get-all-users', authMiddleware, (request, response, next) => {
+    return matches.getAllUsersForSupport().then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+
+router.post('/send-support-request', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+    const { friend_id } = request.body
+
+    if (!user_id || !friend_id) {
+        return response.json({
+            success: false,
+            message: "Missing required params: user_id, friend_id"
+        })
+    }
+
+    return matches.supportSendRequest({ friend_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
+
 router.get('/find-matches-by-purpose/:purposeId', authMiddleware, async (request, response, next) => {
     console.log({request: request.params.purposeId})
     const { user_id } = request
@@ -368,7 +412,7 @@ router.post('/last-message', authMiddleware, (request, response, next) => {
 
 router.post('/conversation', authMiddleware, (request, response, next) => {
     const { user_id } = request
-    const { conversation_id } = request.body
+    const { conversation_id, is_support } = request.body
 
     if (!user_id || !conversation_id) {
         return response.json({
@@ -377,7 +421,7 @@ router.post('/conversation', authMiddleware, (request, response, next) => {
         })
     }
 
-    return matches.getConversation({ user_id, conversation_id }).then(({ data, message }) => {
+    return matches.getConversation({ user_id: is_support ? 1 : user_id, conversation_id }).then(({ data, message }) => {
         return response.json({
             success: true,
             data: data,
