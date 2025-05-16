@@ -901,7 +901,7 @@ async function getMatchesWithPreminum({ user_id }) {
 					if (userInfo.data.profile_approved === 'approved') {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
-						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator ||  freeMatchesIds.includes(match.id) });
+						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					}
 				}
 			} else {
@@ -1195,7 +1195,11 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		const requestUser = await Users.findOne({
 			where: { id: user_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
+			include: [
+				{
+					model: Journeys
+				}
+			]
 		});
 
 		const receiveUser = await Users.findOne({
@@ -1257,85 +1261,12 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					}
 
 					try {
-						const senderPurposes = await UserInterests.findAll({
-							where: { user_id: user_id, type: 'like' },
-							attributes: {
-								include: [
-									[
-										Sequelize.col(
-											'interests.name'
-										),
-										'name',
-									],
-								],
-							},
-							include: [
-								{
-									model: Interests,
-									attributes: [
-										['name', 'name'],
-									],
-									where: {
-										normalized_interest_id:
-										{
-											[Op.ne]:
-												null,
-										},
-									},
-								},
-							],
-							raw: true,
-						});
-
-						const sender_purposes = senderPurposes.map(
-							(up) => up.name
-						);
-
-						const receiverPurposes = await UserInterests.findAll(
-							{
-								where: { user_id: user_id, type: 'like' },
-								attributes: {
-									include: [
-										[
-											Sequelize.col(
-												'interests.name'
-											),
-											'name',
-										],
-									],
-								},
-								include: [
-									{
-										model: Interests,
-										attributes: [
-											[
-												'name',
-												'name',
-											],
-										],
-										where: {
-											normalized_interest_id:
-											{
-												[Op.ne]:
-													null,
-											},
-										},
-									},
-								],
-								raw: true,
-							}
-						);
-
-						const receiver_purposes = receiverPurposes.map(
-							(up) => up.name
-						);
 
 						sendRequestEmail({
 							to_email: receiveUser.email,
 							to_name: receiveUser.full_name,
-							to_purposes: receiver_purposes,
 							sender_name: requestUser.full_name,
-							sender_purposes: sender_purposes,
+							sender_journey: requestUser?.journey?.name ?? '',
 							conversation_id,
 						});
 					} catch (error) { }
@@ -2250,7 +2181,7 @@ async function getRandomUserByJourneys({ journey_id, limit = 3, user_id }) {
 		const highlightUsers = await Users.findAll({
 			where: whereFilter,
 			attributes: ['id', 'journey_id'],
-			order: Sequelize.literal('RANDOM()'), 
+			order: Sequelize.literal('RANDOM()'),
 			limit: limit,
 			raw: true,
 		});

@@ -58,9 +58,9 @@ async function sendEmail(toAddress, subject, templateName, templateData, Source 
     }
 }
 
-async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, suggest_name, suggest_purposes }) {
+async function sendSuggestEmail({ to_email, to_name, suggest_id, suggest_name, suggest_journey }) {
     try {
-        const result = await sendEmail(to_email, `You and ${suggest_name} are on the same journey`, 'suggestion_email', { to_email, to_name, to_purposes: to_purposes.join(', '), suggest_id, suggest_name, suggest_purposes: suggest_purposes.join(', ') })
+        const result = await sendEmail(to_email, `You and ${suggest_name} are on the same journey`, 'suggestion_email', { to_email, to_name, suggest_id, suggest_name, suggest_journey })
 
         if (!result) {
             return Promise.reject('Error sending verification email')
@@ -73,10 +73,10 @@ async function sendSuggestEmail({ to_email, to_name, to_purposes, suggest_id, su
     }
 }
 
-async function sendRequestEmail({ to_email, to_name, to_purposes, conversation_id, sender_name, sender_purposes }) {
+async function sendRequestEmail({ to_email, to_name, conversation_id, sender_name, sender_journey }) {
 
     try {
-        const result = await sendEmail(to_email, 'You Have a New Connection on Kuky!', 'send_request', { to_email, to_name, to_purposes: to_purposes.join(', '), conversation_id, sender_name, sender_purposes: sender_purposes.join(', ') })
+        const result = await sendEmail(to_email, 'You Have a New Connection on Kuky!', 'send_request', { to_email, to_name, conversation_id, sender_name, sender_journey })
 
         if (!result) {
             return Promise.reject('Error sending connection request email')
