@@ -720,6 +720,54 @@ async function setModerator({ is_moderators, user_id }) {
 	}
 }
 
+async function setSupport({ is_support, user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id,
+			},
+		});
+
+		if (!user) {
+			return Promise.reject('User not exist');
+		}
+
+		const result = await Users.update(
+			{
+				is_support: is_support,
+			},
+			{
+				where: {
+					id: user_id,
+				},
+			}
+		);
+
+		if (is_support) {
+			try {
+				addNewPushNotification(
+					user_id,
+					null,
+					null,
+					'profile_upgrade',
+					'You are Supporter',
+					'Your account has been approved as supporter'
+				)
+			} catch (error) {
+				console.log({ error });
+			}
+		}
+
+
+		return Promise.resolve({
+			message: 'Profile updated!',
+		});
+	} catch (error) {
+		console.log('Profile update error:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function addVersion({
 	version_ios,
 	version_android,
@@ -1095,5 +1143,6 @@ module.exports = {
 	setModerator,
 	requestCompleteProfileAction,
 	createModeratorPayment,
-	deleteModeratorPayment
+	deleteModeratorPayment,
+	setSupport
 };
