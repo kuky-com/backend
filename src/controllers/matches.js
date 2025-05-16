@@ -852,6 +852,39 @@ async function freeMatchesList({ user_id }) {
 	return freeMathces;
 }
 
+async function startChatWithSupport({ user_id }) {
+	try {
+		let existMatch = await Matches.findOne({
+			where: {
+				[Op.or]: [
+					{ sender_id: 1, receiver_id: user_id },
+					{ sender_id: user_id, receiver_id: 1 },
+				],
+			},
+		});
+
+		if (!existMatch) {
+			const conversation_id = await createConversation(1, user_id);
+			if (conversation_id) {
+				existMatch = await Matches.create({
+					sender_id: 1,
+					receiver_id: user_id,
+					status: 'accepted',
+					conversation_id,
+					last_message_date: new Date(),
+				});
+			}
+		} 
+
+		return Promise.resolve({
+			message: 'Suggestion accepted',
+			data: existMatch,
+		});
+	} catch (error) {
+		return Promise.reject(error);
+	}
+}
+
 async function supportSendRequest({ friend_id }) {
 	try {
 		let existMatch = await Matches.findOne({
@@ -2000,7 +2033,7 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
-async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id }) {
+async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0, user_id }) {
 	try {
 		const suggestions = [];
 
@@ -2012,6 +2045,12 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 
 		if (journey_id) {
 			whereFilter.journey_id = journey_id
+		}
+
+		if (keyword) {
+			whereFilter.full_name = {
+				[Op.iLike]: `%${keyword}%`
+			}
 		}
 
 		if (user_id) {
@@ -2060,12 +2099,13 @@ async function getMatchesByJourney({ journey_id, limit = 20, offset = 0, user_id
 			attributes: ['id', 'journey_id'],
 			limit: parseInt(limit.toString()),
 			offset: parseInt(offset.toString()),
-			order: [
-				['score_ranking', 'DESC'],
-				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
-				['last_active_time', 'DESC'], // Most recent last_active_time first
-				['id', 'DESC']
-			],
+			order: Sequelize.literal('RANDOM()'),
+			// order: [
+			// 	['score_ranking', 'DESC'],
+			// 	[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+			// 	['last_active_time', 'DESC'], // Most recent last_active_time first
+			// 	['id', 'DESC']
+			// ],
 			raw: true,
 		})
 
@@ -2361,5 +2401,6 @@ module.exports = {
 	getOtherSimilarPath,
 	getRandomUserByJourneys,
 	getAllUsersForSupport,
-	supportSendRequest
+	supportSendRequest,
+	startChatWithSupport
 };
