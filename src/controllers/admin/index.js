@@ -224,30 +224,13 @@ async function sendSuggestion({ to_email, suggest_email }) {
 			where: {
 				email: to_email,
 			},
-		});
-
-		const suggestPurposes = await UserPurposes.findAll({
-			where: { user_id: suggestUser.id },
-			attributes: {
-				include: [[Sequelize.col('purpose.name'), 'name']],
-			},
 			include: [
-				{
-					model: Purposes,
-					attributes: [['name', 'name']],
-					where: {
-						normalized_purpose_id: {
-							[Op.ne]: null,
-						},
-					},
-				},
-			],
-			raw: true,
+				{ model: Journeys }
+			]
 		});
 
 		let to_email_purposes = [];
 		let to_full_name = '';
-		const suggest_email_purposes = suggestPurposes.map((up) => up.name);
 
 		if (user) {
 			let existMatch = await Matches.findOne({
@@ -330,7 +313,7 @@ async function sendSuggestion({ to_email, suggest_email }) {
 
 		await emailService.sendSuggestEmail({
 			to_email,
-			suggest_purposes: suggest_email_purposes,
+			suggest_journey: user?.journey?.name,
 			suggest_name: suggestUser.full_name,
 			to_purposes: to_email_purposes,
 			to_name: to_full_name,
@@ -531,6 +514,15 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 						)`),
 						'messages_count',
 					],
+					[
+						Sequelize.literal(`(
+							SELECT email
+							FROM inactive_users AS iu
+							WHERE iu.user_id = users.id
+							LIMIT 1
+						)`),
+						'inactive_user_email',
+					]
 				],
 			},
 		});
