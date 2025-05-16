@@ -110,6 +110,37 @@ async function addNewNotification(
 
 async function addNewPushNotification(user_id, match = null, suggest = null, type, title, content) {
 	try {
+		if (user_id === 1) {
+			const supportUsers = await Users.findAll({
+				where: { is_support: true },
+				attributes: ['id'],
+				raw: true,
+			});
+			for (const supportUser of supportUsers) {
+				await sendSinglePush(
+					supportUser.id,
+					match,
+					suggest,
+					type,
+					title,
+					content
+				);
+			}
+		} else {
+			await sendSinglePush(user_id, match, suggest, type, title, content);
+		}
+
+		return Promise.resolve({
+			message: 'Push notification sent successfully',
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+async function sendSinglePush(user_id, match = null, suggest = null, type, title, content) {
+	try {
 		const sessions = await Sessions.findAll({
 			where: {
 				user_id: user_id,
