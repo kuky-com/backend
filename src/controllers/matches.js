@@ -2099,13 +2099,13 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 			attributes: ['id', 'journey_id'],
 			limit: parseInt(limit.toString()),
 			offset: parseInt(offset.toString()),
-			order: Sequelize.literal('RANDOM()'),
-			// order: [
-			// 	['score_ranking', 'DESC'],
-			// 	[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
-			// 	['last_active_time', 'DESC'], // Most recent last_active_time first
-			// 	['id', 'DESC']
-			// ],
+			// order: Sequelize.literal('RANDOM()'),
+			order: [
+				['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC']
+			],
 			raw: true,
 		})
 
