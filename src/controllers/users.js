@@ -1047,6 +1047,15 @@ async function getStats({ user_id, start_date, end_date }) {
 			}
 		);
 
+		const currentDate = dayjs();
+		const isFirstHalf = currentDate.date() <= 15;
+
+		const startOfPeriod = isFirstHalf
+			? currentDate.startOf('month').toISOString()
+			: currentDate.date(16).startOf('day').toISOString();
+
+		const endOfPeriod = currentDate.endOf('day').toISOString();
+
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
 				id: user_id
@@ -1058,7 +1067,7 @@ async function getStats({ user_id, start_date, end_date }) {
 							SELECT COUNT(*)
 							FROM matches AS m
 							WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-							AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
+							AND m.sent_date BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
 						)`),
 						'matches_count',
 					],
@@ -1070,7 +1079,7 @@ async function getStats({ user_id, start_date, end_date }) {
 								SELECT id
 								FROM matches AS m
 								WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-								AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
+								AND m."createdAt" BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
 							)
 						)`),
 						'messages_count',
@@ -1081,7 +1090,7 @@ async function getStats({ user_id, start_date, end_date }) {
 							FROM session_logs AS sl
 							WHERE sl.user_id = users.id 
 							AND sl.user_id IS NOT NULL
-							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+							AND sl.start_time BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
 							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
 							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
 						)`),
@@ -1207,13 +1216,17 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		const totalEarning = Math.round(((parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15) * 100) / 100;
 
+		const nextPaymentDate = dayjs().date() <= 15 
+			? dayjs().date(16).format('MMM, DD') 
+			: dayjs().add(1, 'month').startOf('month').format('MMM, DD');
+
 		const userInfo = {
 			total_call: totalCall,
 			total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
 			avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
-			total_session_time: null,//parseInt(user.toJSON().total_session_time ?? '0'),
+			total_session_time: null, //parseInt(user.toJSON().total_session_time ?? '0'),
 			response_rate: Math.round(responseRate),
 			total_video_call_duration: totalVideoCallDuration,
 			total_voice_call_duration: totalVoiceCallDuration,
@@ -1223,7 +1236,7 @@ async function getStats({ user_id, start_date, end_date }) {
 			created_at: user.createdAt,
 			earning: {
 				bonuses: 0,
-				next_payment_date: dayjs().endOf('month').format('MMM, DD'),
+				next_payment_date: nextPaymentDate,
 				total: totalEarning
 			},
 			payment_reports
