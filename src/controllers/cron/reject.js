@@ -15,9 +15,9 @@ const autoRejectProfile = async (req, res) => {
                 {
                     profile_approved: 'pending',
                 },
-                {
-                    profile_approved: 'resubmitted',
-                }
+                // {
+                //     profile_approved: 'resubmitted',
+                // }
             ],
             createdAt: {
                 [Op.lt]: new Date(new Date() - 3 * 60 * 60 * 1000)
@@ -78,7 +78,7 @@ const autoRejectProfile = async (req, res) => {
                 audio_uri: user.video_intro,
             })
 
-            if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 10) {
+            if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 50) {
                 reasons.push('Your video is invalid, please reupload better video')
             }
         }
