@@ -158,8 +158,6 @@ async function updateProfile({
 			updateBlurVideo(user_id, restParams.video_interests, 'video_interests_blur')
 		}
 
-		console.log({ updates })
-
 		if (updates.avatar && updates.is_avatar_blur) {
 			updateBlurAvatar(user_id, updates.avatar)
 		}
