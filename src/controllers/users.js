@@ -1353,69 +1353,25 @@ async function getStatsByMonth({ user_id }) {
 					},
 				});
 
-				const matches = await Matches.findAll({
-					where: {
-						[Op.or]: [{ sender_id: user_id }, { receiver_id: user_id }],
-						conversation_id: {
-							[Op.ne]: null
-						},
-						createdAt: {
-							[Op.between]: [startOfDay, endOfDay]
-						}
-					},
-					attributes: ['conversation_id'],
-					raw: true,
-				});
+				const sendbird = require('./sendbird');
+				const callHistory = await sendbird.getCallHistory(user_id, period.start.valueOf(), period.end.valueOf());
 
-				const conversationIds = matches.map((match) => match.conversation_id);
-
-				let totalVideoCallDuration = 0;
-				let totalVoiceCallDuration = 0;
+				let totalCallDuration = 0;
 				let totalCall = 0;
-				let responseRate = 0;
+				let responseCall = 0;
 
-				if (conversationIds.length > 0) {
-					const conversations = await db
-						.collection('conversations')
-						.where('id', 'in', conversationIds)
-						.get();
-
-					let conversationsWithMessagesFromBoth = 0;
-					for (const conversation of conversations.docs) {
-						const messagesCollection = conversation.ref.collection('messages');
-						const messagesSnapshot = await messagesCollection
-							.where('createdAt', '>=', new Date(startOfDay))
-							.where('createdAt', '<=', new Date(endOfDay))
-							.get();
-						const participants = new Set();
-
-						for (const messageDoc of messagesSnapshot.docs) {
-							const message = messageDoc.data();
-
-							if (message.user && message.user._id != 0)
-								participants.add(message.user._id);
-
-							if (message.type === 'video_call' || message.type === 'voice_call') {
-								const duration = parseFormattedCallSeconds(message.text);
-
-								if (duration > 0) {
-									totalCall += 1;
-								}
-
-								if (message.type === 'video_call') {
-									totalVideoCallDuration += duration;
-								} else if (message.type === 'voice_call') {
-									totalVoiceCallDuration += duration;
-								}
-							}
-						}
-
-						if (participants.size > 1)
-							conversationsWithMessagesFromBoth += 1;
+				for (const call of callHistory) {
+					if(call.duration > 0) {
+						console.log(call.duration)
 					}
-
-					responseRate = conversationIds.length > 0 ? (conversationsWithMessagesFromBoth / conversationIds.length) * 100 : 0;
+					totalCallDuration += Math.round(call.duration / 1000);
+					totalCall += 1;
+					if(call.duration > 0) {
+						responseCall += 1;
+					}
 				}
+
+				const responseRate = totalCall > 0 ? (responseCall / totalCall) * 100 : 0;
 
 				const reviewsData = await getReviewStats(user_id);
 
@@ -1429,14 +1385,12 @@ async function getStatsByMonth({ user_id }) {
 				const userInfo = {
 					period: `${period.start.format('DD/MM/YY')} - ${period.end.format('DD/MM/YY')}`,
 					total_call: totalCall,
-					total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
-					avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
+					total_call_duration: totalCallDuration,
+					avg_call_duration: totalCall > 0 ? (totalCallDuration / totalCall) : 0,
 					matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 					messages_count: parseInt(user.toJSON().messages_count ?? '0'),
 					total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
 					response_rate: Math.round(responseRate),
-					total_video_call_duration: totalVideoCallDuration,
-					total_voice_call_duration: totalVoiceCallDuration,
 					reviews_count: reviewsData.reviewsCount,
 					avg_rating: reviewsData.avgRating,
 					is_active: user.is_active,

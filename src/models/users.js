@@ -144,6 +144,10 @@ const Users = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
+	skip_recording_count: {
+		type: DataTypes.INTEGER,
+		defaultValue: 0
+	},
 	score_ranking: {
 		type: DataTypes.INTEGER,
 		defaultValue: 100
