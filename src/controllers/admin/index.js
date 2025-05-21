@@ -17,7 +17,7 @@ const AppVersions = require('../../models/versions');
 const Tags = require('../../models/tags');
 const { updateRejectedDateTag } = require('../onesignal');
 const ReferralUsers = require('../../models/referral_users');
-const Messages = require('../../models/messages'); 
+const Messages = require('../../models/messages');
 const { db } = require('../users');
 const { v4: uuidv4 } = require('uuid');
 const JourneyCategories = require('../../models/journey_categories');
@@ -672,6 +672,40 @@ async function requestCompleteProfileAction({ user_id }) {
 	}
 }
 
+async function requestCompleteProfileActionPush({ user_id }) {
+	try {
+		const user = await Users.findOne({
+			where: {
+				id: user_id,
+			},
+		});
+
+		if (!user) {
+			return Promise.reject('User not exist');
+		}
+
+		try {
+			addNewPushNotification(
+				requestCompleteProfileActionPush,
+				null,
+				null,
+				'profile_upgrade',
+				'Complete your profile',
+				'Please complete your profile to get approved'
+			)
+		} catch (error) {
+			console.log({ error });
+		}
+
+		return Promise.resolve({
+			message: 'Test done',
+		});
+	} catch (error) {
+		console.log('Profile update error:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function setModerator({ is_moderators, user_id }) {
 	try {
 		const user = await Users.findOne({
@@ -1144,5 +1178,6 @@ module.exports = {
 	requestCompleteProfileAction,
 	createModeratorPayment,
 	deleteModeratorPayment,
-	setSupport
+	setSupport,
+	requestCompleteProfileActionPush
 };

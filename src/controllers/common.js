@@ -166,8 +166,6 @@ async function analyzeUser(user_id) {
 
         const journeyList = journeys.map((journey) => `${journey.name} - ${journey.id}`).join('\n')
 
-        if (!userInfo.video_intro_transcript) return
-
         const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
         const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
 

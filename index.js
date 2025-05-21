@@ -22,11 +22,12 @@ const JourneyCategories = require('./src/models/journey_categories');
 require('./src/controllers/cron')
 var customParseFormat = require("dayjs/plugin/customParseFormat");
 var utcTime = require("dayjs/plugin/utc");
+var isBetween = require("dayjs/plugin/isBetween");
 const dayjs = require('dayjs');
 
 dayjs.extend(customParseFormat);
 dayjs.extend(utcTime)
-
+dayjs.extend(isBetween)
 const app = express();
 
 app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
