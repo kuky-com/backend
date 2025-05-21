@@ -138,11 +138,11 @@ async function updateProfile({
 
 		if (restParams.video_purpose && (!restParams.subtitle_purpose || !restParams.video_purpose_transcript)) {
 			updateSubtitle(user_id, restParams.video_purpose, 'purpose')
-		} else if (restParams.audio_purpose	 && (!restParams.subtitle_purpose || !restParams.video_purpose_transcript)) {
+		} else if (restParams.audio_purpose && (!restParams.subtitle_purpose || !restParams.video_purpose_transcript)) {
 			updateSubtitle(user_id, restParams.audio_purpose, 'purpose')
 		}
 
-		if (restParams.video_interests	 && (!restParams.subtitle_interests || !restParams.video_interests_transcript)) {
+		if (restParams.video_interests && (!restParams.subtitle_interests || !restParams.video_interests_transcript)) {
 			updateSubtitle(user_id, restParams.video_interests, 'interests')
 		} else if (restParams.audio_interests && (!restParams.subtitle_interests || !restParams.video_interests_transcript)) {
 			updateSubtitle(user_id, restParams.audio_interests, 'interests')
@@ -1160,74 +1160,42 @@ async function getStats({ user_id, start_date, end_date }) {
 			raw: true,
 		});
 
-		const conversationIds = matches.map((match) => match.conversation_id);
+		const sendbird = require('./sendbird');
+		const callHistory = await sendbird.getCallHistory(user_id, dayjs(startOfDay).valueOf(), dayjs(endOfDay).valueOf());
 
-		let totalVideoCallDuration = 0;
-		let totalVoiceCallDuration = 0;
-		let totalCall = 0
-		let responseRate = 0
+		let totalCallDuration = 0;
+		let totalCall = 0;
+		let responseCall = 0;
 
-		if (conversationIds.length > 0) {
-			const conversations = await db
-				.collection('conversations')
-				.where('id', 'in', conversationIds)
-				.get();
-
-			let conversationsWithMessagesFromBoth = 0
-			for (const conversation of conversations.docs) {
-				const messagesCollection = conversation.ref.collection('messages');
-				const messagesSnapshot = await messagesCollection
-					.where('createdAt', '>=', new Date(startOfDay))
-					.where('createdAt', '<=', new Date(endOfDay))
-					.get();
-				const participants = new Set();
-
-				for (const messageDoc of messagesSnapshot.docs) {
-					const message = messageDoc.data();
-
-					if (message.user && message.user._id != 0)
-						participants.add(message.user._id);
-
-					if (message.type === 'video_call' || message.type === 'voice_call') {
-						const duration = parseFormattedCallSeconds(message.text);
-
-						if (duration > 0) {
-							totalCall += 1
-						}
-
-						if (message.type === 'video_call') {
-							totalVideoCallDuration += duration;
-						} else if (message.type === 'voice_call') {
-							totalVoiceCallDuration += duration;
-						}
-					}
-				}
-
-				if (participants.size > 1)
-					conversationsWithMessagesFromBoth += 1
+		for (const call of callHistory) {
+			if (call.duration > 0) {
+				console.log(call.duration)
 			}
-
-			responseRate = conversationIds.length > 0 ? (conversationsWithMessagesFromBoth / conversationIds.length) * 100 : 0;
+			totalCallDuration += Math.round(call.duration / 1000);
+			totalCall += 1;
+			if (call.duration > 0) {
+				responseCall += 1;
+			}
 		}
+
+		const responseRate = totalCall > 0 ? (responseCall / totalCall) * 100 : 0;
 
 		const reviewsData = await getReviewStats(user_id);
 
 		const totalEarning = Math.round(((parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15) * 100) / 100;
 
-		const nextPaymentDate = dayjs().date() <= 15 
-			? dayjs().date(16).format('MMM, DD') 
+		const nextPaymentDate = dayjs().date() <= 15
+			? dayjs().date(16).format('MMM, DD')
 			: dayjs().add(1, 'month').startOf('month').format('MMM, DD');
 
 		const userInfo = {
 			total_call: totalCall,
-			total_call_duration: totalVideoCallDuration + totalVoiceCallDuration,
-			avg_call_duration: totalCall > 0 ? ((totalVideoCallDuration + totalVoiceCallDuration) / totalCall) : 0,
+			total_call_duration: totalCallDuration,
+			avg_call_duration: totalCall > 0 ? (totalCallDuration / totalCall) : 0,
 			matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 			messages_count: parseInt(user.toJSON().messages_count ?? '0'),
 			total_session_time: null, //parseInt(user.toJSON().total_session_time ?? '0'),
 			response_rate: Math.round(responseRate),
-			total_video_call_duration: totalVideoCallDuration,
-			total_voice_call_duration: totalVoiceCallDuration,
 			reviews_count: reviewsData.reviewsCount,
 			avg_rating: reviewsData.avgRating,
 			is_active: user.is_active,
@@ -1361,12 +1329,12 @@ async function getStatsByMonth({ user_id }) {
 				let responseCall = 0;
 
 				for (const call of callHistory) {
-					if(call.duration > 0) {
+					if (call.duration > 0) {
 						console.log(call.duration)
 					}
 					totalCallDuration += Math.round(call.duration / 1000);
 					totalCall += 1;
-					if(call.duration > 0) {
+					if (call.duration > 0) {
 						responseCall += 1;
 					}
 				}

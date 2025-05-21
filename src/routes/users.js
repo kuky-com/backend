@@ -753,7 +753,7 @@ router.post(
 router.post('/sessions', authMiddleware, async (req, res) => {
 	const { user_id } = req;
 	const session_id = uuidv4()
-	const { device_id, platform, start_time } = req.body;
+	const { device_id, platform, start_time, screen_name } = req.body;
 
 	try {
 		const latestSession = await SessionLog.findOne({
@@ -794,6 +794,7 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 			device_id,
 			platform,
 			start_time,
+			screen_name: screen_name || 'index'
 		});
 
 		res.status(200).json({

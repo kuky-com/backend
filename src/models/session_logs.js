@@ -32,6 +32,10 @@ const SessionLog = sequelize.define('session_logs', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    screen_name: {
+        type: DataTypes.STRING,
+        defaultValue: 'index'
+    },
     createdAt: {
         allowNull: false,
         type: DataTypes.DATE,
