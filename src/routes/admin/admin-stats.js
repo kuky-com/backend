@@ -84,4 +84,21 @@ router.get('/journey-categories', async (req, res) => {
 	}
 });
 
+router.get('/profile-approval-stats', async (request, response) => {
+	try {
+		const result = await stats.getProfileApprovalStats();
+		return response.json({
+			success: true,
+			data: result,
+			message: 'Profile approval statistics retrieved successfully'
+		});
+	} catch (error) {
+		console.error('Error:', error);
+		return response.json({
+			success: false,
+			message: 'Failed to retrieve profile approval statistics'
+		});
+	}
+});
+
 module.exports = router;
