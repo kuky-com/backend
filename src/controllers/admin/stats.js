@@ -287,7 +287,7 @@ async function getCountJourneys() {
 					journey_id: journey.id
 				}
 			})
-			results.push({name: journey.name, id: journey.id, count: count})
+			results.push({ name: journey.name, id: journey.id, count: count })
 		});
 
 		const totalUsers = await Users.count({
@@ -297,12 +297,12 @@ async function getCountJourneys() {
 				}
 			}
 		})
-	
-		return {journeys: results, total: totalUsers}
-	  } catch (error) {
+
+		return { journeys: results, total: totalUsers }
+	} catch (error) {
 		console.error('Error fetching user counts by journey:', error);
-		return {journeys: [], total: 0}
-	  }
+		return { journeys: [], total: 0 }
+	}
 }
 
 async function getCountJourneyCategories() {
@@ -319,7 +319,7 @@ async function getCountJourneyCategories() {
 					journey_category_id: category.id
 				}
 			})
-			results.push({name: category.name, id: category.id, count: count})
+			results.push({ name: category.name, id: category.id, count: count })
 		});
 
 		const totalUsers = await Users.count({
@@ -329,12 +329,53 @@ async function getCountJourneyCategories() {
 				}
 			}
 		})
-	
-		return {categories: results, total: totalUsers}
-	  } catch (error) {
+
+		return { categories: results, total: totalUsers }
+	} catch (error) {
 		console.error('Error fetching user counts by journey:', error);
-		return {categories: [], total: 0}
-	  }
+		return { categories: [], total: 0 }
+	}
+}
+
+async function getProfileApprovalStats() {
+	try {
+		const stats = await Users.findAll({
+			where: {
+				is_active: true
+			},
+			attributes: [
+				'profile_approved',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['profile_approved'],
+			raw: true
+		});
+
+		// Initialize counts for all possible statuses
+		const result = []
+		let total = 0
+
+		// Update counts from database results
+		stats.forEach(stat => {
+			result.push({
+				name: stat.profile_approved,
+				count: parseInt(stat.count),
+				id: stat.profile_approved
+			})
+			total += parseInt(stat.count);
+		});
+
+		return {stats: result, total}
+	} catch (error) {
+		console.error('Error fetching profile approval stats:', error);
+		return {
+			approved: 0,
+			rejected: 0,
+			pending: 0,
+			resubmitted: 0,
+			total: 0
+		};
+	}
 }
 
 module.exports = {
@@ -344,5 +385,6 @@ module.exports = {
 	getCallsCount,
 	getProfileViewsCount,
 	getCountJourneys,
-	getCountJourneyCategories
+	getCountJourneyCategories,
+	getProfileApprovalStats
 };
