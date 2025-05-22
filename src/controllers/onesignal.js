@@ -381,6 +381,35 @@ async function updateRejectedDateTag(userId, status) {
 	return updateOnesignalUser(user, userId);
 }
 
+async function sendOnesignalEmail(toAddress, subject, htmlContent, fromAddress = 'noreply@kuky.com', fromName = 'Kuky') {
+	try {
+		const body = {
+			app_id: ONESISGNAL_APP_ID,
+			email_subject: subject,
+			email_body: htmlContent,
+			email_from_name: fromName,
+			email_from_address: fromAddress,
+			include_email_tokens: [toAddress],
+		};
+	
+		const res = await fetch('https://onesignal.com/api/v1/notifications', {
+			method: 'POST',
+			headers,
+			body: JSON.stringify(body),
+		});
+		
+		const r = await res.json();
+		if (r.errors?.length) {
+			console.log('Email sending errors: ', r.errors);
+			throw new Error(r.errors[0]);
+		}
+		return Promise.resolve(r)
+	} catch (error) {
+		console.log({ error })
+		return Promise.reject(error)
+	}
+}
+
 module.exports = {
 	createOnesignalUser,
 	updateOnesignalUserTags,
@@ -394,5 +423,6 @@ module.exports = {
 	getProfileTagFilter,
 	addMatchTagOnesignal,
 	updateRejectedDateTag,
-	updateMatchDateTag
+	updateMatchDateTag,
+	sendOnesignalEmail
 };
