@@ -55,8 +55,8 @@ const letCompleteProfilePushNotification = async (req, res) => {
                 }
             ],
             createdAt: {
-                [Op.gt]: new Date(new Date() - 96 * 60 * 60 * 1000),
-                [Op.lt]: new Date(new Date() - 72 * 60 * 60 * 1000),
+                [Op.gt]: new Date(new Date() - 72 * 60 * 60 * 1000),
+                [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
             }
         }
     });
