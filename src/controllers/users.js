@@ -1160,6 +1160,15 @@ async function getStats({ user_id, start_date, end_date }) {
 			raw: true,
 		});
 
+		const moderators = await Users.findAll({
+			where: {
+				is_moderators: true
+			},
+			attributes: ['id', 'full_name'],
+			raw: true
+		});
+		const moderatorIds = moderators.map((moderator) => `${process.env.NODE_ENV}_${moderator.id}`);
+
 		const sendbird = require('./sendbird');
 		const callHistory = await sendbird.getCallHistory(user_id, dayjs(startOfDay).valueOf(), dayjs(endOfDay).valueOf());
 
@@ -1168,12 +1177,17 @@ async function getStats({ user_id, start_date, end_date }) {
 		let responseCall = 0;
 
 		for (const call of callHistory) {
-			if (call.duration > 0) {
-				console.log(call.duration)
+			let otherNotModerator = false;
+			call.participants.forEach((participant) => {
+				if (!moderatorIds.includes(participant.user_id)) {
+					otherNotModerator = true;
+				}
+			});
+			if (call.duration > 0 && !otherNotModerator) {
+				totalCallDuration += Math.round(call.duration / 1000);
 			}
-			totalCallDuration += Math.round(call.duration / 1000);
 			totalCall += 1;
-			if (call.duration > 0) {
+			if (call.duration > 0 && !otherNotModerator) {
 				responseCall += 1;
 			}
 		}
@@ -1182,7 +1196,7 @@ async function getStats({ user_id, start_date, end_date }) {
 
 		const reviewsData = await getReviewStats(user_id);
 
-		const totalEarning = Math.round(((parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15) * 100) / 100;
+		const totalEarning = Math.round((((parseInt(user.toJSON().total_session_time ?? '0') + totalCallDuration) / 3600) * 15) * 100) / 100;
 
 		const nextPaymentDate = dayjs().date() <= 15
 			? dayjs().date(16).format('MMM, DD')
@@ -1321,6 +1335,14 @@ async function getStatsByMonth({ user_id }) {
 					},
 				});
 
+				const moderators = await Users.findAll({
+					where: {
+						is_moderators: true
+					},
+					attributes: ['id', 'full_name'],
+					raw: true
+				});
+				const moderatorIds = moderators.map((moderator) => `${process.env.NODE_ENV}_${moderator.id}`);
 				const sendbird = require('./sendbird');
 				const callHistory = await sendbird.getCallHistory(user_id, period.start.valueOf(), period.end.valueOf());
 
@@ -1329,12 +1351,17 @@ async function getStatsByMonth({ user_id }) {
 				let responseCall = 0;
 
 				for (const call of callHistory) {
-					if (call.duration > 0) {
-						console.log(call.duration)
+					let otherNotModerator = false;
+					call.participants.forEach((participant) => {
+						if (!moderatorIds.includes(participant.user_id)) {
+							otherNotModerator = true;
+						}
+					});
+					if (call.duration > 0 && !otherNotModerator) {
+						totalCallDuration += Math.round(call.duration / 1000);
 					}
-					totalCallDuration += Math.round(call.duration / 1000);
 					totalCall += 1;
-					if (call.duration > 0) {
+					if (call.duration > 0 && !otherNotModerator) {
 						responseCall += 1;
 					}
 				}
@@ -1343,7 +1370,7 @@ async function getStatsByMonth({ user_id }) {
 
 				const reviewsData = await getReviewStats(user_id);
 
-				const totalEarning = (parseInt(user.toJSON().total_session_time ?? '0') / 3600) * 15;
+				const totalEarning = Math.round((((parseInt(user.toJSON().total_session_time ?? '0') + totalCallDuration) / 3600) * 15) * 100) / 100;
 
 				// Find payment for the current period
 				const payment = moderatorPayments.find((payment) =>
@@ -1357,7 +1384,7 @@ async function getStatsByMonth({ user_id }) {
 					avg_call_duration: totalCall > 0 ? (totalCallDuration / totalCall) : 0,
 					matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 					messages_count: parseInt(user.toJSON().messages_count ?? '0'),
-					total_session_time: parseInt(user.toJSON().total_session_time ?? '0'),
+					total_session_time: parseInt(user.toJSON().total_session_time ?? '0') + totalCallDuration,
 					response_rate: Math.round(responseRate),
 					reviews_count: reviewsData.reviewsCount,
 					avg_rating: reviewsData.avgRating,
