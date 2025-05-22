@@ -3,7 +3,6 @@ const VerificationCode = require('@/models/verification_code');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const crypto = require('crypto')
 const bcrypt = require('bcrypt');
@@ -13,8 +12,7 @@ const appleSigninAuth = require('apple-signin-auth');
 const path = require('path');
 const fs = require('fs')
 const handlebars = require('handlebars')
-
-const sesClient = new SESClient({ region: process.env.AWS_REGION })
+const { sendOnesignalEmail } = require('./onesignal');
 
 function loadTemplate(templateName, data) {
     const templatePath = path.join(__dirname, '..', 'templates', `${templateName}.hbs`);
@@ -23,7 +21,7 @@ function loadTemplate(templateName, data) {
     return template(data);
 }
 
-async function sendEmail(toAddress, subject, templateName, templateData, Source = 'Kuky <noreply@kuky.com>') {
+async function sendEmail(toAddress, subject, templateName, templateData, fromName = 'Kuky', fromAddress = 'noreply@kuky.com') {
     const htmlContent = loadTemplate(templateName, templateData);
 
     if (/@privaterelay\.appleid\.com$/i.test(toAddress)) {
@@ -31,35 +29,12 @@ async function sendEmail(toAddress, subject, templateName, templateData, Source 
         return Promise.resolve({ message: 'Skipped sending email to Apple private relay address' });
     }
 
-    const params = {
-        Destination: {
-            ToAddresses: [toAddress],
-        },
-        Message: {
-            Body: {
-                Html: {
-                    Charset: 'UTF-8',
-                    Data: htmlContent,
-                },
-            },
-            Subject: {
-                Charset: 'UTF-8',
-                Data: subject,
-            },
-        },
-        Source: Source,
-    };
-
     try {
-        const command = new SendEmailCommand(params);
-        const result = await sesClient.send(command);
-
-        console.log(`Email sent! Message ID: ${result.MessageId}`);
-        return Promise.resolve(result)
+        const result = await sendOnesignalEmail(toAddress, subject, htmlContent, fromAddress, fromName);
+        console.log(`Email sent! Message ID: ${result}`);
+        return Promise.resolve(result);
     } catch (error) {
-
-        console.log(`Error sending email: ${error.message}`);
-        return Promise.reject(error)
+        return Promise.resolve({message: 'Error ' + error?.message});
     }
 }
 
@@ -161,7 +136,7 @@ async function sendApproveProfileEmail({ to_email, to_name}) {
 async function sendEmailCompleteProfile({ to_email, to_name }) {
 
     try {
-        const result = await sendEmail(to_email, "We’d love your thoughts on Kuky 💙", 'complete_profile', { to_email, to_name }, 'Kristijan Bugaric <kristijan@kuky.com>')
+        const result = await sendEmail(to_email, "We'd love your thoughts on Kuky 💙", 'complete_profile', { to_email, to_name }, 'Kristijan Bugaric', 'kristijan@kuky.com')
         console.log({result, to_email, to_name})
         if (!result) {
             return Promise.reject('Error sending connection request email')

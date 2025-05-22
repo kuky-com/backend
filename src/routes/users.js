@@ -6,6 +6,7 @@ const authMiddleware = require('../milddleware/authMiddleware');
 const optionAuthMiddleware = require('../milddleware/optionAuthMiddleware');
 const { blockedUserMiddleware } = require('../milddleware/blockedUserMiddleware');
 const interests = require('@controllers/interests');
+const { requestCompleteProfileAction } = require('@controllers/admin');
 const SessionLog = require('../models/session_logs');
 const { v4: uuidv4 } = require('uuid');
 
@@ -914,5 +915,22 @@ router.get('/:userId/analyze-user', authMiddleware, (request, response, next) =>
             })
         })
 })
+
+// router.get('/test-email', (request, response, next) => {
+
+//     return requestCompleteProfileAction({ user_id: 4 }).then(({ data, message }) => {
+//         return response.json({
+//             success: true,
+//             data: data,
+//             message: message
+//         })
+//     })
+//         .catch((error) => {
+//             return response.json({
+//                 success: false,
+//                 message: `${error}`
+//             })
+//         })
+// })
 
 module.exports = router;
