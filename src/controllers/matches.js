@@ -32,6 +32,7 @@ const { raw } = require('body-parser');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
 const { getProfile } = require('./common');
+const Configs = require('../models/configs');
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -874,7 +875,7 @@ async function startChatWithSupport({ user_id }) {
 					last_message_date: new Date(),
 				});
 			}
-		} 
+		}
 
 		return Promise.resolve({
 			message: 'Suggestion accepted',
@@ -907,7 +908,7 @@ async function supportSendRequest({ friend_id }) {
 					last_message_date: new Date(),
 				});
 			}
-		} 
+		}
 
 		return Promise.resolve({
 			message: 'Suggestion accepted',
@@ -921,7 +922,7 @@ async function supportSendRequest({ friend_id }) {
 async function getAllUsersForSupport() {
 	try {
 		const users = await Users.findAll({
-			where: { 
+			where: {
 				profile_approved: 'approved',
 				is_active: true,
 				is_hidden_users: false,
@@ -1004,12 +1005,24 @@ async function getMatchesWithPreminum({ user_id }) {
 
 		const finalMatches = [];
 		const unverifyMatches = []
+
+		const moderatorConfig = await Configs.findOne({
+			where: { key: 'moderators_see_others' },
+			raw: true
+		});
+
+		const currentUser = await Users.findOne({
+			where: { id: user_id },
+			raw: true
+		});
+
 		for (const match of matches) {
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				if (userInfo.data && userInfo.data.is_active) {
+
+				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
 					if (userInfo.data.profile_approved === 'approved') {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
@@ -1020,7 +1033,8 @@ async function getMatchesWithPreminum({ user_id }) {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
-				if (userInfo.data && userInfo.data.is_active) {
+
+				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
 					if (userInfo.data.profile_approved === 'approved') {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
@@ -1071,17 +1085,35 @@ async function getMatches({ user_id }) {
 			order: [['last_message_date', 'DESC']],
 		});
 		const finalMatches = [];
+		const moderatorConfig = await Configs.findOne({
+			where: { key: 'moderators_see_others' },
+			raw: true
+		});
+
+		const currentUser = await Users.findOne({
+			where: { id: user_id },
+			raw: true
+		});
+
 		for (const match of matches) {
+			
+
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
 					user_id: match.get('receiver_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+
+				if (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators) {
+					finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+				}
 			} else {
 				const userInfo = await getProfile({
 					user_id: match.get('sender_id'),
 				});
-				finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+
+				if (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators) {
+					finalMatches.push({ ...match.toJSON(), profile: userInfo.data });
+				}
 			}
 		}
 
@@ -2086,6 +2118,20 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 			const matchedUserIds = matchedUsers.map((item) =>
 				item.sender_id === user_id ? item.receiver_id : item.sender_id
 			);
+
+			const moderatorConfig = await Configs.findOne({
+				where: { key: 'moderators_see_others' },
+				raw: true
+			});
+
+			const currentUser = await Users.findOne({
+				where: { id: user_id },
+				raw: true
+			});
+
+			if (moderatorConfig?.value === "0" && !currentUser?.is_moderators) {
+				whereFilter.is_moderator = false;
+			}
 
 			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
 
