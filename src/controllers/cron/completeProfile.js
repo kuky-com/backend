@@ -20,13 +20,10 @@ const letCompleteProfile = async (req, res) => {
                     profile_approved: 'rejected',
                 }
             ],
-            // createdAt: {
-            //     [Op.gt]: new Date(new Date() - 48 * 60 * 60 * 1000),
-            //     [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
-            // },
-            id: {
-                [Op.in]: [1593]
-            }
+            createdAt: {
+                [Op.gt]: new Date(new Date() - 48 * 60 * 60 * 1000),
+                [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
+            },
         },
         attributes: ['id'],
         raw: true,
@@ -60,13 +57,10 @@ const letCompleteProfilePushNotification = async (req, res) => {
                     profile_approved: 'rejected',
                 }
             ],
-            // createdAt: {
-            //     [Op.gt]: new Date(new Date() - 72 * 60 * 60 * 1000),
-            //     [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
-            // },
-            id: {
-                [Op.in]: [1593]
-            }
+            createdAt: {
+                [Op.gt]: new Date(new Date() - 72 * 60 * 60 * 1000),
+                [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
+            },
         },
         attributes: ['id'],
         raw: true,
