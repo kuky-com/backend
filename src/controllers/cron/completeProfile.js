@@ -7,35 +7,37 @@ const { default: axios } = require("axios");
 const { scanImage } = require("../users");
 
 const letCompleteProfile = async (req, res) => {
-    const pendingUsers = await Users.findAll({
-        where: {
-            is_active: true,
-            email_verified: true,
-            [Op.or]: [
-                {
-                    profile_approved: 'pending',
-                },
-                {
-                    profile_approved: 'rejected',
-                }
-            ],
-            createdAt: {
-                [Op.gt]: new Date(new Date() - 48 * 60 * 60 * 1000),
-                [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
-            }
-        }
-    });
+    await requestCompleteProfileAction({ user_id: 4 })
 
-    for (let i = 0; i < pendingUsers.length; i++) {
-        const user = pendingUsers[i];
+    // const pendingUsers = await Users.findAll({
+    //     where: {
+    //         is_active: true,
+    //         email_verified: true,
+    //         [Op.or]: [
+    //             {
+    //                 profile_approved: 'pending',
+    //             },
+    //             {
+    //                 profile_approved: 'rejected',
+    //             }
+    //         ],
+    //         createdAt: {
+    //             [Op.gt]: new Date(new Date() - 48 * 60 * 60 * 1000),
+    //             [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000),
+    //         }
+    //     }
+    // });
 
-        try {
-            console.log({ letCompleteProfile: user.id })
-            // await requestCompleteProfileAction({ user_id: user.id })
-        } catch (error) {
-            console.log({ error })
-        }
-    }
+    // for (let i = 0; i < pendingUsers.length; i++) {
+    //     const user = pendingUsers[i];
+
+    //     try {
+    //         // console.log({ letCompleteProfile: user.id })
+    //         await requestCompleteProfileAction({ user_id: user.id })
+    //     } catch (error) {
+    //         console.log({ error })
+    //     }
+    // }
 
     return res.status(200).json({
         message: 'All profile processed',
@@ -43,35 +45,35 @@ const letCompleteProfile = async (req, res) => {
 }
 
 const letCompleteProfilePushNotification = async (req, res) => {
-    const pendingUsers = await Users.findAll({
-        where: {
-            is_active: true,
-            email_verified: true,
-            [Op.or]: [
-                {
-                    profile_approved: 'pending',
-                },
-                {
-                    profile_approved: 'rejected',
-                }
-            ],
-            createdAt: {
-                [Op.gt]: new Date(new Date() - 72 * 60 * 60 * 1000),
-                [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
-            }
-        }
-    });
+    await requestCompleteProfileActionPush({ user_id: 4 })
+    // const pendingUsers = await Users.findAll({
+    //     where: {
+    //         is_active: true,
+    //         email_verified: true,
+    //         [Op.or]: [
+    //             {
+    //                 profile_approved: 'pending',
+    //             },
+    //             {
+    //                 profile_approved: 'rejected',
+    //             }
+    //         ],
+    //         createdAt: {
+    //             [Op.gt]: new Date(new Date() - 72 * 60 * 60 * 1000),
+    //             [Op.lt]: new Date(new Date() - 48 * 60 * 60 * 1000),
+    //         }
+    //     }
+    // });
 
-    for (let i = 0; i < pendingUsers.length; i++) {
-        const user = pendingUsers[i];
+    // for (let i = 0; i < pendingUsers.length; i++) {
+    //     const user = pendingUsers[i];
 
-        try {
-            console.log({ letCompleteProfilePushNotification: user.id })
-            // await requestCompleteProfileActionPush({ user_id: user.id })
-        } catch (error) {
-            console.log({ error })
-        }
-    }
+    //     try {
+    //         await requestCompleteProfileActionPush({ user_id: user.id })
+    //     } catch (error) {
+    //         console.log({ error })
+    //     }
+    // }
 
     return res.status(200).json({
         message: 'All profile processed',
