@@ -7,7 +7,7 @@ const { default: axios } = require("axios");
 const { scanImage } = require("../users");
 
 const letCompleteProfile = async (req, res) => {
-    await requestCompleteProfileAction({ user_id: 4 })
+    await requestCompleteProfileAction({ user_id: 1593 })
 
     // const pendingUsers = await Users.findAll({
     //     where: {
@@ -45,7 +45,7 @@ const letCompleteProfile = async (req, res) => {
 }
 
 const letCompleteProfilePushNotification = async (req, res) => {
-    await requestCompleteProfileActionPush({ user_id: 4 })
+    await requestCompleteProfileActionPush({ user_id: 1593 })
     // const pendingUsers = await Users.findAll({
     //     where: {
     //         is_active: true,
