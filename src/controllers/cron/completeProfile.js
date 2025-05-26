@@ -26,15 +26,17 @@ const letCompleteProfile = async (req, res) => {
         }
     });
 
-    for (let i = 0; i < pendingUsers.length; i++) {
-        const user = pendingUsers[i];
+    console.log({ pendingUsers })
 
-        try {
-            await requestCompleteProfileAction({ user_id: user.id })
-        } catch (error) {
-            console.log({ error })
-        }
-    }
+    // for (let i = 0; i < pendingUsers.length; i++) {
+    //     const user = pendingUsers[i];
+
+    //     try {
+    //         await requestCompleteProfileAction({ user_id: user.id })
+    //     } catch (error) {
+    //         console.log({ error })
+    //     }
+    // }
 
     return res.status(200).json({
         message: 'All profile processed',
@@ -61,15 +63,17 @@ const letCompleteProfilePushNotification = async (req, res) => {
         }
     });
 
-    for (let i = 0; i < pendingUsers.length; i++) {
-        const user = pendingUsers[i];
+    console.log({ pendingUsers })
 
-        try {
-            await requestCompleteProfileActionPush({ user_id: user.id })
-        } catch (error) {
-            console.log({ error })
-        }
-    }
+    // for (let i = 0; i < pendingUsers.length; i++) {
+    //     const user = pendingUsers[i];
+
+    //     try {
+    //         await requestCompleteProfileActionPush({ user_id: user.id })
+    //     } catch (error) {
+    //         console.log({ error })
+    //     }
+    // }
 
     return res.status(200).json({
         message: 'All profile processed',
