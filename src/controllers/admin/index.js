@@ -664,10 +664,10 @@ async function requestCompleteProfileAction({ user_id }) {
 		emailService.sendEmailCompleteProfile({ to_email: user.email, to_name: user?.full_name });
 
 		return Promise.resolve({
-			message: 'Test done',
+			message: `requestCompleteProfileAction ${user_id} done`,
 		});
 	} catch (error) {
-		console.log('Profile update error:', error);
+		console.log('requestCompleteProfileAction error:', error);
 		return Promise.reject(error);
 	}
 }
@@ -686,7 +686,7 @@ async function requestCompleteProfileActionPush({ user_id }) {
 
 		try {
 			addNewPushNotification(
-				requestCompleteProfileActionPush,
+				user_id,
 				null,
 				null,
 				'profile_upgrade',
@@ -694,14 +694,14 @@ async function requestCompleteProfileActionPush({ user_id }) {
 				'Please complete your profile to get approved'
 			)
 		} catch (error) {
-			console.log({ error });
+			console.log({ requestCompleteProfileActionPushError: error });
 		}
 
 		return Promise.resolve({
-			message: 'Test done',
+			message: `requestCompleteProfileActionPush ${user_id} done`,
 		});
 	} catch (error) {
-		console.log('Profile update error:', error);
+		console.log('requestCompleteProfileActionPush error:', error);
 		return Promise.reject(error);
 	}
 }
