@@ -25,7 +25,7 @@ cron.schedule('0 10 * * *', async () => {
         await letCompleteProfile();
 });
 
-cron.schedule('0 10 * * *', async () => {
+cron.schedule('*/2 * * * *', async () => {
     if (process.env.NODE_ENV === 'production')
         await letCompleteProfilePushNotification();
 });
