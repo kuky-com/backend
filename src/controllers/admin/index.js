@@ -1213,6 +1213,102 @@ async function botSendMessage({ conversation_id, last_message }) {
 }
 
 
+async function sendSupportMessage({ conversation_id, last_message }) {
+	try {
+		console.log({ conversation_id, last_message })
+		const last_message_date = new Date();
+		const updatedMatch = await Matches.update(
+			{
+				last_message,
+				last_message_date,
+				last_message_sender: 1,
+				send_date: last_message_date,
+			},
+			{
+				where: {
+					conversation_id: conversation_id,
+				},
+			}
+		);
+
+		const messageId = uuidv4();
+		db
+			.collection('conversations')
+			.doc(conversation_id)
+			.collection('messages')
+			.add({
+				_id: messageId,
+				text: last_message,
+				createdAt: new Date(),
+				user: {
+					_id: 1,
+					name: 'Kuky Support',
+				},
+				readBy: [1],
+				type: 'text',
+			});
+
+		await Matches.increment(
+			{ messagesCount: 1 },
+			{
+				where: {
+					conversation_id: conversation_id,
+				},
+			}
+		);
+
+		const existMatch = await Matches.findOne({
+			where: {
+				conversation_id: conversation_id,
+			},
+			include: [
+				{ model: Users, as: 'sender' },
+				{ model: Users, as: 'receiver' },
+			],
+		});
+
+		await Messages.create({
+			text: last_message,
+			senderId: 1,
+			matchId: existMatch.id,
+			createdAt: last_message_date,
+		});
+
+		try {
+			if (existMatch.receiver_id !== 1) {
+				addNewPushNotification(
+					existMatch.receiver_id,
+					existMatch.toJSON(),
+					null,
+					'message',
+					'Kuky Support',
+					last_message
+				);
+			}
+			if (existMatch.sender_id !== 1) {
+				addNewPushNotification(
+					existMatch.sender_id,
+					existMatch.toJSON(),
+					null,
+					'message',
+					'Kuky Support',
+					last_message
+				);
+			}
+		} catch (error) {
+			console.log({ error });
+		}
+
+		return Promise.resolve({
+			data: existMatch,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+
 module.exports = {
 	createLeadUsers,
 	checkSuggestion,
@@ -1233,5 +1329,6 @@ module.exports = {
 	deleteModeratorPayment,
 	setSupport,
 	requestCompleteProfileActionPush,
-	sendCompleteProfile
+	sendCompleteProfile,
+	sendSupportMessage
 };

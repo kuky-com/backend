@@ -20,7 +20,7 @@ const adminStats = require('./admin-stats');
 const adminLandings = require('./admin-landing');
 const adminConfigs = require('./admin-configs');
 const interests = require('@controllers/interests');
-const { botSendMessage } = require('../../controllers/admin');
+const { botSendMessage, sendSupportMessage } = require('../../controllers/admin');
 const { getAllJourneys } = require('../../controllers/journeys');
 
 router.use('/users', authAdminMiddleware, adminUsers);
@@ -459,6 +459,23 @@ router.post('/conversations/:conversationId/send-bot-message', authAdminMiddlewa
 		}
 
 		const res = await botSendMessage({ conversation_id: conversationId, last_message: message })
+		return response.json({ ...res, success: true });
+	} catch (err) {
+		console.log(err);
+		return response.status(500).send(`Error while fetching matches: ${err}`);
+	}
+});
+
+router.post('/conversations/:conversationId/send-support-message', authAdminMiddleware, async (request, response, next) => {
+	try {
+		const conversationId = request.params.conversationId;
+		const message = request.body.message;
+
+		if (!message || !conversationId) {
+			return response.status(400).send('Invalid message');
+		}
+
+		const res = await sendSupportMessage({ conversation_id: conversationId, last_message: message })
 		return response.json({ ...res, success: true });
 	} catch (err) {
 		console.log(err);
