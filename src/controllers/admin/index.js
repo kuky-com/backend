@@ -690,8 +690,8 @@ async function requestCompleteProfileActionPush({ user_id }) {
 				null,
 				null,
 				'profile_upgrade',
-				'Complete your profile',
-				`Complete your profile to get started! Once you're approved, you'll be able to join the community.`
+				'One last step to activate your account',
+				`Complete your profile to join the Kuky community.`
 			)
 		} catch (error) {
 			console.log({ requestCompleteProfileActionPushError: error });
