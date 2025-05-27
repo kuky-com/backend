@@ -24,9 +24,9 @@ function loadTemplate(templateName, data) {
 async function sendEmail(toAddress, subject, templateName, templateData, fromName = 'Kuky', fromAddress = 'noreply@kuky.com') {
     const htmlContent = loadTemplate(templateName, templateData);
 
-    if (/@privaterelay\.appleid\.com$/i.test(toAddress)) {
-        console.log('Not sending email to Apple private relay address:', toAddress);
-        return Promise.resolve({ message: 'Skipped sending email to Apple private relay address' });
+    if (/@privaterelay\.appleid\.com$/i.test(toAddress) || /@kuky\.com$/i.test(toAddress)) {
+        console.log('Not sending email to restricted address:', toAddress);
+        return Promise.resolve({ message: 'Skipped sending email to restricted address' });
     }
 
     try {
