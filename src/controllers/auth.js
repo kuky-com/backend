@@ -100,7 +100,8 @@ async function signUp({ full_name, email, password, platform, referral_code }) {
 				password: hashedPassword,
 				email_verified: false,
 				login_type: 'email',
-				referral_id: referral_id
+				referral_id: referral_id,
+				register_platform: platform === 'web' ? 'web' : 'app'
 			});
 
 			if (referral_code && referral_code.length > 0) {
