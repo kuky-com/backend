@@ -691,7 +691,7 @@ async function requestCompleteProfileActionPush({ user_id }) {
 				null,
 				'profile_upgrade',
 				'Complete your profile',
-				'Please complete your profile to get approved'
+				`Complete your profile to get started! Once you're approved, you'll be able to join the community.`
 			)
 		} catch (error) {
 			console.log({ requestCompleteProfileActionPushError: error });
