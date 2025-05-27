@@ -1838,7 +1838,7 @@ async function getMessages(conversationId, pageSize = 10, nextPageToken) {
 		.doc(conversationId)
 		.collection('messages');
 
-	let query = messagesRef.orderBy('createdAt', 'asc').limit(parseInt(pageSize));
+	let query = messagesRef.orderBy('createdAt', 'desc').limit(parseInt(pageSize));
 
 	if (nextPageToken && nextPageToken !== '') {
 		const snapshot = await messagesRef.doc(nextPageToken).get();

@@ -116,6 +116,7 @@ async function addNewPushNotification(user_id, match = null, suggest = null, typ
 				attributes: ['id'],
 				raw: true,
 			});
+			console.log({ supportUsers })
 			for (const supportUser of supportUsers) {
 				await sendSinglePush(
 					supportUser.id,
@@ -123,11 +124,12 @@ async function addNewPushNotification(user_id, match = null, suggest = null, typ
 					suggest,
 					type,
 					title,
-					content
+					content,
+					true
 				);
 			}
 		} else {
-			await sendSinglePush(user_id, match, suggest, type, title, content);
+			await sendSinglePush(user_id, match, suggest, type, title, content, false);
 		}
 
 		return Promise.resolve({
@@ -139,7 +141,7 @@ async function addNewPushNotification(user_id, match = null, suggest = null, typ
 	}
 }
 
-async function sendSinglePush(user_id, match = null, suggest = null, type, title, content) {
+async function sendSinglePush(user_id, match = null, suggest = null, type, title, content, is_support = false) {
 	try {
 		const sessions = await Sessions.findAll({
 			where: {
@@ -185,6 +187,7 @@ async function sendSinglePush(user_id, match = null, suggest = null, type, title
 				matchId: match?.id,
 				suggestUserId: suggest?.id,
 				conversationId: match?.conversation_id,
+				is_support: is_support
 			},
 			user_id
 		);
