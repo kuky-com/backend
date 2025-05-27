@@ -957,8 +957,8 @@ async function getAllUsersForSupport() {
 
 		result.sort((a, b) => {
 			if (b.match_info?.last_message_date || a.match_info?.last_message_date) {
-				const dateA = a.match_info?.last_message_date ? new Date(a.match_info.last_message_date) : new Date(0);
-				const dateB = b.match_info?.last_message_date ? new Date(b.match_info.last_message_date) : new Date(0);
+				const dateA = a.match_info?.last_message_date && a.match_info.last_message !== null ? new Date(a.match_info.last_message_date) : new Date(0);
+				const dateB = b.match_info?.last_message_date && b.match_info.last_message !== null ? new Date(b.match_info.last_message_date) : new Date(0);
 				return dateB - dateA;
 			}
 			return 0;
