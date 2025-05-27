@@ -516,4 +516,23 @@ router.get(
 	}
 );
 
+router.post('/send-complete-profile', authAdminMiddleware, (request, response, next) => {
+	const { start_time, end_time, type } = request.body;
+
+	if (!start_time || !end_time || !type) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: start_time, end_time, type',
+		});
+	}
+
+	return admin.sendCompleteProfile({ start_time, end_time, type }).then(({ data, message }) => {
+		return response.json({
+			success: true,
+			data: data,
+			message: message,
+		});
+	});
+});
+
 module.exports = router;

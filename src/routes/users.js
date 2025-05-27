@@ -892,28 +892,54 @@ router.get('/avatar', authMiddleware, (request, response, next) => {
 });
 
 router.get('/:userId/analyze-user', authMiddleware, (request, response, next) => {
-    const user_id = request.params.userId
+	const user_id = request.params.userId
 
-    if (!user_id) {
-        return response.json({
-            success: false,
-            message: "Missing required params: user_id"
-        })
-    }
+	if (!user_id) {
+		return response.json({
+			success: false,
+			message: "Missing required params: user_id"
+		})
+	}
 
-    return common.analyzeUser(user_id).then(({ data, message }) => {
-        return response.json({
-            success: true,
-            data: data,
-            message: message
-        })
-    })
-        .catch((error) => {
-            return response.json({
-                success: false,
-                message: `${error}`
-            })
-        })
+	return common.analyzeUser(user_id).then(({ data, message }) => {
+		return response.json({
+			success: true,
+			data: data,
+			message: message
+		})
+	})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`
+			})
+		})
+})
+
+router.post('/send-user-invitation', authMiddleware, (request, response, next) => {
+	const { user_id } = request;
+	const { recipients } = request.body;
+
+	if (!user_id || !recipients) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id, recipients',
+		});
+	}
+
+	return users.sendUserInvitation({user_id, recipients}).then(({ data, message }) => {
+		return response.json({
+			success: true,
+			data: data,
+			message: message
+		})
+	})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`
+			})
+		})
 })
 
 // router.get('/test-email', (request, response, next) => {

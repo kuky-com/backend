@@ -37,6 +37,7 @@ const dayjs = require('dayjs');
 const { default: OpenAI } = require('openai');
 const { updateLikes, updateDislikes } = require('./interests');
 const { getReviewStats, createSummary, getUser } = require('./common');
+const { sendUserInvitationEmail } = require('./email');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
@@ -1418,6 +1419,32 @@ async function getStatsByMonth({ user_id }) {
 	}
 }
 
+async function sendUserInvitation({ user_id, recipients }) {
+	try {
+		const user = await Users.findOne({ 
+			where: { id: user_id },
+			include: [{ model: Journeys }],
+		});
+
+		console.log({user: user.toJSON()})
+		if (!user || !user.toJSON().journey) {
+			return Promise.reject('User not found');
+		}
+
+		const sender_full_name = user.toJSON().full_name;
+		const sender_journey = user.toJSON().journey.name;
+
+		await sendUserInvitationEmail({ sender_full_name, sender_journey, recipients });
+
+		return Promise.resolve({
+			message: 'User invitation sent successfully',
+		});	
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -1447,5 +1474,6 @@ module.exports = {
 	forceUpdateSummary,
 	db,
 	getStatsByMonth,
-	updateAvatar
+	updateAvatar,
+	sendUserInvitation
 };

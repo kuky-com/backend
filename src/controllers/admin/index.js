@@ -706,6 +706,59 @@ async function requestCompleteProfileActionPush({ user_id }) {
 	}
 }
 
+async function sendCompleteProfile({ start_time, end_time, type }) {
+	try {
+		const pendingUsers = await Users.findAll({
+			where: {
+				is_active: true,
+				email_verified: true,
+				[Op.or]: [
+					{
+						profile_approved: 'pending',
+					},
+					{
+						profile_approved: 'rejected',
+					}
+				],
+				createdAt: {
+					[Op.gt]: new Date(start_time),
+					[Op.lt]: new Date(end_time),
+				},
+			},
+			attributes: ['id', 'email', 'full_name'],
+			raw: true,
+		});
+
+		if (type === 'email') {
+			for (const user of pendingUsers) {
+				await emailService.sendEmailCompleteProfile({ to_email: user.email, to_name: user?.full_name });
+			}
+		} else if (type === 'push') {
+			for (const user of pendingUsers) {
+				try {
+					addNewPushNotification(
+						user.id,
+						null,
+						null,
+						'profile_upgrade',
+						'Complete your profile',
+						'Please complete your profile to get approved'
+					)
+				} catch (error) {
+					console.log({ requestCompleteProfileActionPushError: error });
+				}
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Complete profile sent!',
+		});
+	} catch (error) {
+		console.log('sendEmailCompleteProfile error:', error);
+		return Promise.reject(error);
+	}
+}
+
 async function setModerator({ is_moderators, user_id }) {
 	try {
 		const user = await Users.findOne({
@@ -1179,5 +1232,6 @@ module.exports = {
 	createModeratorPayment,
 	deleteModeratorPayment,
 	setSupport,
-	requestCompleteProfileActionPush
+	requestCompleteProfileActionPush,
+	sendCompleteProfile
 };
