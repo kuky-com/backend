@@ -34,7 +34,7 @@ async function sendEmail(toAddress, subject, templateName, templateData, fromNam
         console.log(`Email sent! Message ID: ${result}`);
         return Promise.resolve(result);
     } catch (error) {
-        return Promise.resolve({message: 'Error ' + error?.message});
+        return Promise.resolve({ message: 'Error ' + error?.message });
     }
 }
 
@@ -117,7 +117,7 @@ async function sendRejectProfileEmail({ to_email, reasons, to_name }) {
     }
 }
 
-async function sendApproveProfileEmail({ to_email, to_name}) {
+async function sendApproveProfileEmail({ to_email, to_name }) {
 
     try {
         const result = await sendEmail(to_email, 'Your profile has been approved!', 'profile_approved', { to_email, to_name })
@@ -137,11 +137,31 @@ async function sendEmailCompleteProfile({ to_email, to_name }) {
 
     try {
         const result = await sendEmail(to_email, "We'd love your thoughts on Kuky 💙", 'complete_profile', { to_email, to_name }, 'Kristijan Bugaric', 'kristijan@kuky.com')
-        console.log({result, to_email, to_name})
+        console.log({ result, to_email, to_name })
         if (!result) {
             return Promise.reject('Error sending connection request email')
         } else {
             return Promise.resolve({ message: 'Connection request email sent' })
+        }
+    } catch (error) {
+        console.log({ error })
+        return Promise.reject(error)
+    }
+}
+
+async function sendUserInvitationEmail({ sender_full_name, sender_journey, recipients = [] }) {
+    try {
+        for (let i = 0; i < recipients.length; i++) {
+            try {
+                const recipient = recipients[i];
+                const result = await sendEmail(
+                    recipient.email,
+                    `${sender_full_name} has invited you to join them on Kuky`,
+                    'user_invitation',
+                    { recipient_full_name: recipient.name, sender_full_name, sender_journey })
+            } catch (error) {
+
+            }
         }
     } catch (error) {
         console.log({ error })
@@ -156,5 +176,6 @@ module.exports = {
     sendVerificationEmail,
     sendApproveProfileEmail,
     sendRejectProfileEmail,
-    sendEmailCompleteProfile
+    sendEmailCompleteProfile,
+    sendUserInvitationEmail
 }
