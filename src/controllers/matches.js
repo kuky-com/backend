@@ -926,7 +926,7 @@ async function getAllUsersForSupport() {
 				profile_approved: 'approved',
 				is_active: true,
 				is_hidden_users: false,
-				is_support: false,
+				// is_support: false,
 			},
 			attributes: ['id', 'full_name', 'email', 'avatar'],
 			raw: true,
@@ -942,16 +942,26 @@ async function getAllUsersForSupport() {
 			raw: true,
 		});
 
-		const result = users.map((user) => {
+		let result = users.map((user) => {
 			const match = matches.find(
 				(match) =>
 					(match.sender_id === 1 && match.receiver_id === user.id) ||
 					(match.receiver_id === 1 && match.sender_id === user.id)
 			);
+			console.log({ match })
 			return {
 				...user,
 				match_info: match || null,
 			};
+		});
+
+		result.sort((a, b) => {
+			if (b.match_info?.last_message_date || a.match_info?.last_message_date) {
+				const dateA = a.match_info?.last_message_date ? new Date(a.match_info.last_message_date) : new Date(0);
+				const dateB = b.match_info?.last_message_date ? new Date(b.match_info.last_message_date) : new Date(0);
+				return dateB - dateA;
+			}
+			return 0;
 		});
 
 		return Promise.resolve({

@@ -1013,6 +1013,8 @@ async function getStats({ user_id, start_date, end_date }) {
 			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
 			: dayjs().endOf('month').toISOString();
 
+		console.log({ startOfDay, endOfDay })
+
 		await Sequelize.query(
 			`UPDATE session_logs
 					 SET end_time = start_time + interval '15 minutes'
@@ -1046,15 +1048,6 @@ async function getStats({ user_id, start_date, end_date }) {
 			}
 		);
 
-		const currentDate = dayjs();
-		const isFirstHalf = currentDate.date() <= 15;
-
-		const startOfPeriod = isFirstHalf
-			? currentDate.startOf('month').toISOString()
-			: currentDate.date(16).startOf('day').toISOString();
-
-		const endOfPeriod = currentDate.endOf('day').toISOString();
-
 		const user = await Users.scope(['includeBlurVideo']).findOne({
 			where: {
 				id: user_id
@@ -1066,7 +1059,7 @@ async function getStats({ user_id, start_date, end_date }) {
 							SELECT COUNT(*)
 							FROM matches AS m
 							WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-							AND m.sent_date BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
+							AND m.sent_date BETWEEN '${startOfDay}' AND '${endOfDay}'
 						)`),
 						'matches_count',
 					],
@@ -1078,7 +1071,7 @@ async function getStats({ user_id, start_date, end_date }) {
 								SELECT id
 								FROM matches AS m
 								WHERE (m.sender_id = users.id OR m.receiver_id = users.id)
-								AND m."createdAt" BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
+								AND m."createdAt" BETWEEN '${startOfDay}' AND '${endOfDay}'
 							)
 						)`),
 						'messages_count',
@@ -1089,7 +1082,7 @@ async function getStats({ user_id, start_date, end_date }) {
 							FROM session_logs AS sl
 							WHERE sl.user_id = users.id 
 							AND sl.user_id IS NOT NULL
-							AND sl.start_time BETWEEN '${startOfPeriod}' AND '${endOfPeriod}'
+							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
 							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
 						)`),
