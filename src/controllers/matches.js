@@ -955,13 +955,16 @@ async function getAllUsersForSupport() {
 			};
 		});
 
+		result = result.filter(item => 
+			item.match_info && 
+			item.match_info.last_message_date && 
+			item.match_info.last_message
+		);
+
 		result.sort((a, b) => {
-			if (b.match_info?.last_message_date || a.match_info?.last_message_date) {
-				const dateA = a.match_info?.last_message_date && a.match_info.last_message !== null ? new Date(a.match_info.last_message_date) : new Date(0);
-				const dateB = b.match_info?.last_message_date && b.match_info.last_message !== null ? new Date(b.match_info.last_message_date) : new Date(0);
-				return dateB - dateA;
-			}
-			return 0;
+			const dateA = new Date(a.match_info.last_message_date);
+			const dateB = new Date(b.match_info.last_message_date);
+			return dateB - dateA;
 		});
 
 		return Promise.resolve({
