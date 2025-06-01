@@ -1083,8 +1083,11 @@ async function getStats({ user_id, start_date, end_date }) {
 							WHERE sl.user_id = users.id 
 							AND sl.user_id IS NOT NULL
 							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
-							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
-							AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
+							AND (
+								(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+									OR 
+								(sl.screen_name IN ('message', 'profile') AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 30 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+							)
 						)`),
 						'total_session_time',
 					],
@@ -1321,40 +1324,13 @@ async function getStatsByMonth({ user_id }) {
 									WHERE sl.user_id = users.id 
 									AND sl.user_id IS NOT NULL
 									AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
-									AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120
-									AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900
-								)`),
-								'total_session_time',
-							],
-							[
-								Sequelize.literal(`(
-									SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
-									FROM session_logs AS sl
-									WHERE sl.user_id = users.id 
-									AND sl.user_id IS NOT NULL
-									AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
-									AND (
-										(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
-										OR 
-										(sl.screen_name IN ('message', 'profile') AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 60 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
-									)
-								)`),
-								'total_session_time_new',
-							],
-							[
-								Sequelize.literal(`(
-									SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
-									FROM session_logs AS sl
-									WHERE sl.user_id = users.id 
-									AND sl.user_id IS NOT NULL
-									AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 									AND (
 										(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
 										OR 
 										(sl.screen_name IN ('message', 'profile') AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 30 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
 									)
 								)`),
-								'total_session_time_30s',
+								'total_session_time',
 							],
 						],
 					},
@@ -1396,8 +1372,6 @@ async function getStatsByMonth({ user_id }) {
 				const reviewsData = await getReviewStats(user_id);
 
 				const totalEarning = Math.round((((parseInt(user.toJSON().total_session_time ?? '0') + totalCallDurationGetPaid) / 3600) * 15) * 100) / 100;
-				const totalEarningNew = Math.round((((parseInt(user.toJSON().total_session_time_new ?? '0') + totalCallDurationGetPaid) / 3600) * 15) * 100) / 100;
-				const totalEarning30s = Math.round((((parseInt(user.toJSON().total_session_time_30s ?? '0') + totalCallDurationGetPaid) / 3600) * 15) * 100) / 100;
 
 				// Find payment for the current period
 				const payment = moderatorPayments.find((payment) =>
@@ -1413,8 +1387,6 @@ async function getStatsByMonth({ user_id }) {
 					matches_count: parseInt(user.toJSON().matches_count ?? '0'),
 					messages_count: parseInt(user.toJSON().messages_count ?? '0'),
 					total_session_time: parseInt(user.toJSON().total_session_time ?? '0') + totalCallDurationGetPaid,
-					total_session_time_new: parseInt(user.toJSON().total_session_time_new ?? '0') + totalCallDurationGetPaid,
-					total_session_time_30s: parseInt(user.toJSON().total_session_time_30s ?? '0') + totalCallDurationGetPaid,
 					response_rate: Math.round(responseRate),
 					reviews_count: reviewsData.reviewsCount,
 					avg_rating: reviewsData.avgRating,
@@ -1423,14 +1395,13 @@ async function getStatsByMonth({ user_id }) {
 					earning: {
 						bonuses: 0,
 						total: totalEarning.toFixed(2),
-						total_new: totalEarningNew.toFixed(2),
-						total_30s: totalEarning30s.toFixed(2),
 					},
 					payment: payment || null, // Attach payment information if available
 				};
 
 				halfMonthlyStats.push(userInfo);
 			}
+			Tung1991
 
 			current = current.add(1, 'month');
 		}
@@ -1450,12 +1421,12 @@ async function getStatsByMonth({ user_id }) {
 
 async function sendUserInvitation({ user_id, recipients }) {
 	try {
-		const user = await Users.findOne({ 
+		const user = await Users.findOne({
 			where: { id: user_id },
 			include: [{ model: Journeys }],
 		});
 
-		console.log({user: user.toJSON()})
+		console.log({ user: user.toJSON() })
 		if (!user || !user.toJSON().journey) {
 			return Promise.reject('User not found');
 		}
@@ -1467,7 +1438,7 @@ async function sendUserInvitation({ user_id, recipients }) {
 
 		return Promise.resolve({
 			message: 'User invitation sent successfully',
-		});	
+		});
 	} catch (error) {
 		console.log({ error });
 		return Promise.reject(error);
