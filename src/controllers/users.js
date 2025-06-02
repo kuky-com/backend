@@ -1401,7 +1401,6 @@ async function getStatsByMonth({ user_id }) {
 
 				halfMonthlyStats.push(userInfo);
 			}
-			Tung1991
 
 			current = current.add(1, 'month');
 		}
@@ -1432,9 +1431,10 @@ async function sendUserInvitation({ user_id, recipients }) {
 		}
 
 		const sender_full_name = user.toJSON().full_name;
+		const sender_referral_id= user.toJSON().referral_id;
 		const sender_journey = user.toJSON().journey.name;
 
-		await sendUserInvitationEmail({ sender_full_name, sender_journey, recipients });
+		await sendUserInvitationEmail({ sender_full_name, sender_referral_id, sender_journey, recipients });
 
 		return Promise.resolve({
 			message: 'User invitation sent successfully',
