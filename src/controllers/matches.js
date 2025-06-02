@@ -22,7 +22,7 @@ const sequelize = require('../config/database');
 // var serviceAccount = require("../config/serviceAccountKey.json");
 const { getSimpleProfile, getFriendProfile, db } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
-const { findUnique, getRandomElements, formatNamesWithType } = require('../utils/utils');
+const { findUnique, getRandomElements, formatNamesWithType, isStringInteger } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
 const { sendRequestEmail } = require('./email');
 const Messages = require('../models/messages');
@@ -1351,11 +1351,29 @@ async function disconnect({ id, user_id, friend_id }) {
 
 async function acceptSuggestion({ user_id, friend_id }) {
 	try {
+		const findCondition = isStringInteger(friend_id)
+			? { id: friend_id }
+			: Sequelize.where(
+				Sequelize.fn('LOWER', Sequelize.col('referral_id')),
+				friend_id.toString().trim().toLowerCase()
+			);
+
+		const receiveUser = await Users.findOne({
+			where: findCondition,
+			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
+		});
+
+		if (!receiveUser) {
+			return Promise.reject(
+				'User not found!'
+			);
+		}
+
 		let existMatch = await Matches.findOne({
 			where: {
 				[Op.or]: [
-					{ sender_id: user_id, receiver_id: friend_id },
-					{ sender_id: friend_id, receiver_id: user_id },
+					{ sender_id: user_id, receiver_id: receiveUser.id },
+					{ sender_id: receiveUser.id, receiver_id: user_id },
 				],
 			},
 		});
@@ -1369,10 +1387,11 @@ async function acceptSuggestion({ user_id, friend_id }) {
 			]
 		});
 
-		const receiveUser = await Users.findOne({
-			where: { id: friend_id },
-			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
-		});
+		if (!requestUser || !requestUser.is_active || !requestUser.email_verified) {
+			return Promise.reject(
+				'Your account had not actived yet!'
+			);
+		}
 
 		// if (requestUser && requestUser.profile_approved !== 'approved') {
 		// 	return Promise.reject(
@@ -1380,28 +1399,22 @@ async function acceptSuggestion({ user_id, friend_id }) {
 		// 	);
 		// }
 
-		if (!requestUser || !requestUser.is_active || !requestUser.email_verified) {
-			return Promise.reject(
-				'Your account had not actived yet!'
-			);
-		}
-
 		if (!existMatch) {
-			const conversation_id = await createConversation(user_id, friend_id);
+			const conversation_id = await createConversation(user_id, receiveUser.id);
 			try {
 				addMessageToConversation(conversation_id, requestUser, receiveUser);
 			} catch (error) { }
 			if (conversation_id) {
 				existMatch = await Matches.create({
 					sender_id: user_id,
-					receiver_id: friend_id,
+					receiver_id: receiveUser.id,
 					status: 'sent',
 					conversation_id,
 					last_message_date: new Date(),
 				});
 				const m = await existMatch.toJSON();
 
-				addMatchTagOnesignal(friend_id, m);
+				addMatchTagOnesignal(receiveUser.id, m);
 
 				const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
 				updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
@@ -1409,7 +1422,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 				if (requestUser) {
 					if (requestUser.profile_approved === 'approved') {
 						addNewNotification(
-							friend_id,
+							receiveUser.id,
 							user_id,
 							existMatch.id,
 							null,
@@ -1418,7 +1431,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 							`${requestUser.full_name} wants to connect with you!`
 						);
 						addNewPushNotification(
-							friend_id,
+							receiveUser.id,
 							existMatch,
 							null,
 							'notification',
@@ -1441,7 +1454,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 			}
 		} else {
 			if (existMatch.status === 'sent') {
-				// const conversation_id = await createConversation(user_id, friend_id)
+				// const conversation_id = await createConversation(user_id, receiveUser.id)
 				// if (conversation_id) {
 				//     const updatedMatches = await Matches.update({ status: 'accepted', conversation_id, response_date: new Date() }, {
 				//         where: {
@@ -1501,7 +1514,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 				addNewNotification(
 					user_id,
-					friend_id,
+					receiveUser.id,
 					existMatch.id,
 					null,
 					'new_match',
@@ -1509,7 +1522,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					'Congratulation! You get new match!'
 				);
 				addNewNotification(
-					friend_id,
+					receiveUser.id,
 					user_id,
 					existMatch.id,
 					null,
@@ -1527,7 +1540,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					'Congratulation! You get new match!'
 				);
 				addNewPushNotification(
-					friend_id,
+					receiveUser.id,
 					existMatch,
 					null,
 					'message',

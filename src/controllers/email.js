@@ -149,7 +149,7 @@ async function sendEmailCompleteProfile({ to_email, to_name }) {
     }
 }
 
-async function sendUserInvitationEmail({ sender_full_name, sender_journey, recipients = [] }) {
+async function sendUserInvitationEmail({ sender_full_name, sender_referral_id, sender_journey, recipients = [] }) {
     try {
         for (let i = 0; i < recipients.length; i++) {
             try {
@@ -158,7 +158,13 @@ async function sendUserInvitationEmail({ sender_full_name, sender_journey, recip
                     recipient.email,
                     `${sender_full_name} has invited you to join them on Kuky`,
                     'user_invitation',
-                    { recipient_full_name: recipient.name, sender_full_name, sender_journey })
+                    { 
+                        recipient_full_name: recipient.name, 
+                        sender_full_name, 
+                        sender_journey,
+                        recipient_email: recipient.email,
+                        sender_referral_id
+                     })
             } catch (error) {
 
             }
