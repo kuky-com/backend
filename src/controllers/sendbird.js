@@ -124,17 +124,21 @@ async function getDirectCalls(next = '', unixTimestamp, limit = 100) {
 }
 
 async function getCallHistory(userId, startTs, endTs) {
-	const response = await fetch(`${BASE_URL_V1}/users/${getUserId(userId)}/calls?start_ts=${startTs}&end_ts=${endTs}&limit=100`, {
-		method: 'GET',
-		headers,
-	});
+	try {
+		const response = await fetch(`${BASE_URL_V1}/users/${getUserId(userId)}/calls?start_ts=${startTs}&end_ts=${endTs}&limit=100`, {
+			method: 'GET',
+			headers,
+		});
 
-	if (!response.ok) {
-		return []
+		if (!response.ok) {
+			return []
+		}
+
+		const data = await response.json();
+		return data.calls || [];
+	} catch (error) {
+		return [];
 	}
-
-	const data = await response.json();
-	return data.calls || [];
 }
 
 module.exports = {
