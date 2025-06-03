@@ -10,7 +10,6 @@ const { updateUserRankings } = require('./cron/random');
 // });
 
 cron.schedule('0 0 * * *', async () => {
-
     if(process.env.NODE_ENV === 'production')
         await sendMatchNotification()
 });
