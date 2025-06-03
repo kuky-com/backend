@@ -21,7 +21,7 @@ const autoRejectProfile = async (req, res) => {
             ],
             createdAt: {
                 [Op.lt]: new Date(new Date() - 3 * 60 * 60 * 1000)
-            }
+            },
         }
     });
 
@@ -30,9 +30,9 @@ const autoRejectProfile = async (req, res) => {
 
         let reasons = []
 
-        // if (user.likeCount === 0) {
-        //     reasons.push('Missing interest/hobbies')
-        // }
+        if (user.likeCount === 0) {
+            reasons.push('Missing interest/hobbies')
+        }
 
         // if (!user.location) {
         //     reasons.push('Missing location address')
@@ -51,7 +51,7 @@ const autoRejectProfile = async (req, res) => {
         // }
 
         if (!user.journey_category_id || !user.journey_id) {
-            reasons.push('Missing selected journey')
+            reasons.push('Missing journey')
         }
 
         if (!user.avatar) {
