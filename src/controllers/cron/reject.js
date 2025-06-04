@@ -96,11 +96,11 @@ const autoRejectProfile = async (req, res) => {
                 }
             } else {
                 // console.log({status: 'approved', user_id: user.id})
-                try {
-                    await profileAction({ status: 'approved', user_id: user.id })
-                } catch (error) {
-                    console.log({ error })
-                }
+                // try {
+                //     await profileAction({ status: 'approved', user_id: user.id })
+                // } catch (error) {
+                //     console.log({ error })
+                // }
             }
         } catch (error) {
             console.log({ error })

@@ -19,6 +19,7 @@ const adminReviews = require('./admin-reviews');
 const adminStats = require('./admin-stats');
 const adminLandings = require('./admin-landing');
 const adminConfigs = require('./admin-configs');
+const adminFaqs = require('./admin-faqs');
 const interests = require('@controllers/interests');
 const { botSendMessage, sendSupportMessage } = require('../../controllers/admin');
 const { getAllJourneys } = require('../../controllers/journeys');
@@ -28,6 +29,7 @@ router.use('/reviews', authAdminMiddleware, adminReviews);
 router.use('/stats', adminStats);
 router.use('/landing', authAdminMiddleware, adminLandings);
 router.use('/configs', authAdminMiddleware, adminConfigs);
+router.use('/faqs', authAdminMiddleware, adminFaqs);
 
 router.post('/check-suggestion', authAdminMiddleware, (request, response, next) => {
 	const { to_email, suggest_email } = request.body;
