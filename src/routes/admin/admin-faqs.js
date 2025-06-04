@@ -76,7 +76,7 @@ router.post('/', (request, response) => {
 
 router.put('/:id', (request, response) => {
 	const { id } = request.params;
-	const { question, answer, is_active } = request.body;
+	const { question, answer, is_active, ranking } = request.body;
 
 	if (!id || isNaN(id) || parseInt(id) <= 0) {
 		return response.json({
@@ -85,10 +85,10 @@ router.put('/:id', (request, response) => {
 		});
 	}
 
-	if (!question && !answer && is_active === undefined) {
+	if (!question && !answer && is_active === undefined && !ranking) {
 		return response.json({
 			success: false,
-			message: 'At least one field (question, answer, or is_active) must be provided'
+			message: 'At least one field (question, answer, or is_active, ranking) must be provided'
 		});
 	}
 
@@ -127,6 +127,16 @@ router.put('/:id', (request, response) => {
 
 	if (is_active !== undefined) {
 		updateData.is_active = is_active;
+	}
+
+	if (ranking !== undefined) {
+		if (isNaN(ranking) || parseInt(ranking) < 0) {
+			return response.json({
+				success: false,
+				message: 'Ranking must be a non-negative integer'
+			});
+		}
+		updateData.ranking = parseInt(ranking);
 	}
 
 	return faqs

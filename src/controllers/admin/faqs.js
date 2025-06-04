@@ -5,8 +5,7 @@ const getAllFAQs = async () => {
     try {
         const faqs = await ModeratorFaqs.findAll({
             order: [
-                ['ranking', 'DESC'],
-                ['createdAt', 'DESC']
+                ['ranking', 'DESC']
             ]
         });
         return {
