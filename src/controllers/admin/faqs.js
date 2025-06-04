@@ -4,7 +4,10 @@ const ModeratorFaqs = require("../../models/moderator_faqs");
 const getAllFAQs = async () => {
     try {
         const faqs = await ModeratorFaqs.findAll({
-            order: [['createdAt', 'DESC']]
+            order: [
+                ['ranking', 'DESC'],
+                ['createdAt', 'DESC']
+            ]
         });
         return {
             data: faqs,
