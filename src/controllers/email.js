@@ -159,11 +159,11 @@ async function sendUserInvitationEmail({ sender_full_name, sender_referral_id, s
                     `${sender_full_name} has invited you to join them on Kuky`,
                     'user_invitation',
                     { 
-                        recipient_full_name: recipient.name, 
-                        sender_full_name, 
+                        recipient_full_name: encodeURIComponent(recipient.name), 
+                        sender_full_name: encodeURIComponent(sender_full_name), 
                         sender_journey,
-                        recipient_email: recipient.email,
-                        sender_referral_id
+                        recipient_email: encodeURIComponent(recipient.email),
+                        sender_referral_id: encodeURIComponent(sender_referral_id)
                      })
             } catch (error) {
 
