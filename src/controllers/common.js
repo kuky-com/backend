@@ -5,9 +5,21 @@ const Interests = require('../models/interests');
 const Tags = require('../models/tags');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
-const { Sequelize, where } = require('sequelize');
+const { Sequelize, where, Op } = require('sequelize');
 const ReviewUsers = require('../models/review_users');
 const { raw } = require('body-parser');
+const Matches = require('../models/matches');
+const ProfileViews = require('../models/profile_views');
+const BlockedUsers = require('../models/blocked_users');
+const { isStringInteger } = require('../utils/utils');
+var firebaseAdmin = require('firebase-admin');
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+firebaseAdmin.initializeApp({
+	credential: firebaseAdmin.credential.cert(serviceAccount),
+	storageBucket: 'kuky-105e6.appspot.com'
+});
+const db = firebaseAdmin.firestore();
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -213,11 +225,138 @@ async function analyzeUser(user_id) {
     }
 }
 
+async function getSimpleProfile({ user_id }) {
+	try {
+		try {
+			const user = await Users.scope(['simpleProfile', 'blurVideo']).findOne({
+				where: { id: user_id },
+				include: [{ model: Journeys }, { model: JourneyCategories }],
+			});
+
+			if (!user) {
+				return Promise.reject('User not found');
+			}
+
+			console.log({ user })
+
+			const reviewsData = await getReviewStats(user_id);
+
+			return Promise.resolve({
+				message: 'User info retrieved successfully',
+				data: {
+					...user.toJSON(),
+					reviewsCount: reviewsData.reviewsCount,
+					avgRating: reviewsData.avgRating,
+				},
+			});
+		} catch (error) {
+			console.log('Error fetching user info:', error);
+			return Promise.reject(error);
+		}
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
+}
+
+
+async function getFriendProfile({ user_id, friend_id }) {
+	try {
+		const findCondition = isStringInteger(friend_id)
+			? { id: friend_id }
+			: Sequelize.where(
+				Sequelize.fn('LOWER', Sequelize.col('referral_id')),
+				friend_id.toString().trim().toLowerCase()
+			);
+
+		const user = await Users.scope(['includeBlurVideo']).findOne({
+			where: findCondition,
+			include: [{ model: Purposes }, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
+		});
+
+		if (!user) {
+			return Promise.reject('User not found');
+		}
+
+		if (user_id) {
+			const blocked = await BlockedUsers.findOne({
+				where: {
+					[Op.or]: [
+						{
+							user_id: user_id,
+							blocked_id: user.id,
+						},
+						{
+							user_id: user.id,
+							blocked_id: user_id,
+						},
+					],
+				},
+			});
+
+			if (blocked) {
+				return Promise.resolve({
+					message: 'User info retrieved successfully',
+					data: {
+						blocked: true,
+						user: {},
+						match: null,
+					},
+				});
+			}
+		}
+
+
+		if (user_id) {
+			await ProfileViews.create({
+				userId: user.id,
+				viewerId: user_id,
+			});
+		}
+
+		let match = null
+
+		if (user_id) {
+			match = await Matches.scope({ method: ['withIsFree', user_id] }).findOne({
+				where: {
+					[Op.or]: [
+						{ sender_id: user_id, receiver_id: user.id },
+						{ sender_id: user.id, receiver_id: user_id },
+					],
+				},
+				order: [['id', 'desc']],
+			});
+		}
+
+		const reviewsData = await getReviewStats(user.id);
+
+		return Promise.resolve({
+			message: 'User info retrieved successfully',
+			data: {
+				user: {
+					...user.toJSON(),
+					reviewsCount: reviewsData.reviewsCount,
+					avgRating: reviewsData.avgRating,
+				},
+
+				match,
+			},
+		});
+	} catch (error) {
+		console.log('Error fetching user info:', error);
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
     createSummary,
     getProfile,
     getReviewStats,
     getUser,
     getUserAvatar,
-    analyzeUser
+    analyzeUser,
+    getSimpleProfile,
+    getFriendProfile,
+    db,
+    firebaseAdmin,
 };

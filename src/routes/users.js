@@ -103,7 +103,7 @@ router.post('/friend-info', optionAuthMiddleware, (request, response, next) => {
 		});
 	}
 
-	return users
+	return common
 		.getFriendProfile({ user_id, friend_id })
 		.then(({ data, message }) => {
 			return response.json({
@@ -211,7 +211,7 @@ router.get('/:userId/profile', authMiddleware, (request, response, next) => {
 		});
 	}
 
-	return users
+	return common
 		.getFriendProfile({ user_id, friend_id })
 		.then(({ data, message }) => {
 			return response.json({

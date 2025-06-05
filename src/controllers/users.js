@@ -25,7 +25,7 @@ const Sequelize = require('../config/database');
 const { isStringInteger, generateReferralCode, parseFormattedCallSeconds } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
 const { updateRejectedDateTag } = require('./onesignal');
-var admin = require('firebase-admin');
+const {acceptSuggestion} = require('./matches')
 
 const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { rekognitionClient } = require('../config/rekognitionClient');
@@ -36,15 +36,10 @@ const JPFUserAnswer = require('../models/jpf_user_answers');
 const dayjs = require('dayjs');
 const { default: OpenAI } = require('openai');
 const { updateLikes, updateDislikes } = require('./interests');
-const { getReviewStats, createSummary, getUser } = require('./common');
+const { getReviewStats, createSummary, getUser, firebaseAdmin } = require('./common');
 const { sendUserInvitationEmail } = require('./email');
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-admin.initializeApp({
-	credential: admin.credential.cert(serviceAccount),
-	storageBucket: 'kuky-105e6.appspot.com'
-});
-const db = admin.firestore();
+const db = firebaseAdmin.firestore();
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -53,7 +48,7 @@ const openai = new OpenAI({
 async function updateAvatar({ user_id, avatarFile }) {
 	try {
 		// Upload image to Firebase Storage
-		const bucket = admin.storage().bucket();
+		const bucket = firebaseAdmin.storage().bucket();
 		const fileName = `avatars/${user_id}_${Date.now()}`;
 		const file = bucket.file(fileName);
 
@@ -320,42 +315,6 @@ async function updateBlurAvatar(user_id, media_url) {
 		console.log({ error })
 	}
 }
-async function getSimpleProfile({ user_id }) {
-	try {
-		try {
-			const user = await Users.scope(['simpleProfile', 'blurVideo']).findOne({
-				where: { id: user_id },
-				include: [{ model: Journeys }, { model: JourneyCategories }],
-			});
-
-			if (!user) {
-				return Promise.reject('User not found');
-			}
-
-			console.log({ user })
-
-			const reviewsData = await getReviewStats(user_id);
-
-			return Promise.resolve({
-				message: 'User info retrieved successfully',
-				data: {
-					...user.toJSON(),
-					reviewsCount: reviewsData.reviewsCount,
-					avgRating: reviewsData.avgRating,
-				},
-			});
-		} catch (error) {
-			console.log('Error fetching user info:', error);
-			return Promise.reject(error);
-		}
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
-}
-
-
-
 
 async function getReviews({ userId }) {
 	const reviews = await ReviewUsers.findAll({
@@ -374,94 +333,6 @@ async function getReviews({ userId }) {
 	});
 	const reviewsData = await getReviewStats(userId);
 	return { reviews, ...reviewsData };
-}
-
-async function getFriendProfile({ user_id, friend_id }) {
-	try {
-		const findCondition = isStringInteger(friend_id)
-			? { id: friend_id }
-			: Sequelize.where(
-				Sequelize.fn('LOWER', Sequelize.col('referral_id')),
-				friend_id.toString().trim().toLowerCase()
-			);
-
-		const user = await Users.scope(['includeBlurVideo']).findOne({
-			where: findCondition,
-			include: [{ model: Purposes }, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
-		});
-
-		if (!user) {
-			return Promise.reject('User not found');
-		}
-
-		if (user_id) {
-			const blocked = await BlockedUsers.findOne({
-				where: {
-					[Op.or]: [
-						{
-							user_id: user_id,
-							blocked_id: user.id,
-						},
-						{
-							user_id: user.id,
-							blocked_id: user_id,
-						},
-					],
-				},
-			});
-
-			if (blocked) {
-				return Promise.resolve({
-					message: 'User info retrieved successfully',
-					data: {
-						blocked: true,
-						user: {},
-						match: null,
-					},
-				});
-			}
-		}
-
-
-		if (user_id) {
-			await ProfileViews.create({
-				userId: user.id,
-				viewerId: user_id,
-			});
-		}
-
-		let match = null
-
-		if (user_id) {
-			match = await Matches.scope({ method: ['withIsFree', user_id] }).findOne({
-				where: {
-					[Op.or]: [
-						{ sender_id: user_id, receiver_id: user.id },
-						{ sender_id: user.id, receiver_id: user_id },
-					],
-				},
-				order: [['id', 'desc']],
-			});
-		}
-
-		const reviewsData = await getReviewStats(user.id);
-
-		return Promise.resolve({
-			message: 'User info retrieved successfully',
-			data: {
-				user: {
-					...user.toJSON(),
-					reviewsCount: reviewsData.reviewsCount,
-					avgRating: reviewsData.avgRating,
-				},
-
-				match,
-			},
-		});
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
 }
 
 async function blockUser({ user_id, friend_id }) {
@@ -657,14 +528,21 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
 
 async function useReferral({ user_id, referral_code }) {
 	try {
-		console.log(user_id, referral_code);
 		const user = await Users.findOne({
-			where: { referral_id: referral_code },
+			where: { referral_id: {
+				[Op.iLike]: (referral_code??'').toLowerCase(), // Use iLike for case-insensitive matching
+			} },
 			attributes: { exclude: ['password'] },
 		});
 
 		if (!user) {
 			return Promise.reject('Referral code not found');
+		}
+
+		try {
+			await acceptSuggestion({user_id, friend_id: user.id})
+		} catch (error) {
+			console.log('Error accept suggestion:', error)
 		}
 
 		await ReferralUsers.create({
@@ -1229,6 +1107,154 @@ async function getStats({ user_id, start_date, end_date }) {
 	}
 }
 
+async function getAllModeratorsPayments({ start_date, end_date }) {
+	try {
+		const startOfDay = start_date
+			? dayjs(start_date, 'DD/MM/YYYY').startOf('day').toISOString()
+			: dayjs().startOf('month').toISOString();
+		const endOfDay = end_date
+			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
+			: dayjs().endOf('month').toISOString();
+
+		// Get all moderators
+		const moderators = await Users.findAll({
+			where: {
+				is_moderators: true
+			},
+			attributes: ['id', 'full_name', 'email', 'is_active', 'payment_type', 'payment_id'],
+			raw: true
+		});
+
+		const moderatorIds = moderators.map((moderator) => `${process.env.NODE_ENV}_${moderator.id}`);
+		const allModeratorsPayments = [];
+
+		for (const moderator of moderators) {
+			const user_id = moderator.id;
+
+			// Update session logs for the user
+			await Sequelize.query(
+				`UPDATE session_logs
+				 SET end_time = start_time + interval '15 minutes'
+				 WHERE user_id = :user_id
+				 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			await Sequelize.query(
+				`UPDATE session_logs AS sl1
+				 SET end_time = (
+					 SELECT MIN(sl2.start_time) - interval '1 second'
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+				 )
+				 WHERE EXISTS (
+					 SELECT 1
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+					 AND sl1.end_time > sl2.start_time
+				 )
+				 AND sl1.user_id = :user_id`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			// Get user session time data
+			const user = await Users.findOne({
+				where: {
+					id: user_id
+				},
+				attributes: {
+					include: [
+						[
+							Sequelize.literal(`(
+								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
+								FROM session_logs AS sl
+								WHERE sl.user_id = users.id 
+								AND sl.user_id IS NOT NULL
+								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+								AND (
+									(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+									OR 
+									(sl.screen_name IN ('message', 'profile') AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 30 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+								)
+							)`),
+							'total_session_time',
+						],
+					],
+				},
+			});
+
+			// Get call history
+			const sendbird = require('./sendbird');
+			const callHistory = await sendbird.getCallHistory(user_id, dayjs(startOfDay).valueOf(), dayjs(endOfDay).valueOf());
+
+			let totalCallDurationGetPaid = 0;
+
+			for (const call of callHistory) {
+				let otherNotModerator = false;
+				call.participants.forEach((participant) => {
+					if (!moderatorIds.includes(participant.user_id)) {
+						otherNotModerator = true;
+					}
+				});
+				if (call.duration > 0 && otherNotModerator) {
+					totalCallDurationGetPaid += Math.round(call.duration / 1000);
+				}
+			}
+
+			// Get payment information for the period
+			const payments = await Sequelize.query(
+				`SELECT * FROM moderator_payments 
+				 WHERE user_id = :user_id 
+				 AND paid_date BETWEEN :start_date AND :end_date
+				 ORDER BY paid_date ASC`,
+				{
+					replacements: { user_id, start_date: startOfDay, end_date: endOfDay },
+					type: Sequelize.QueryTypes.SELECT,
+				}
+			);
+
+			const totalSessionTime = parseInt(user.toJSON().total_session_time ?? '0');
+			const totalEarning = Math.round((((totalSessionTime + totalCallDurationGetPaid) / 3600) * 15) * 100) / 100;
+
+			const moderatorPaymentInfo = {
+				user_id: moderator.id,
+				full_name: moderator.full_name,
+				email: moderator.email,
+				is_active: moderator.is_active,
+				payment_type: moderator.payment_type,
+				payment_id: moderator.payment_id,
+				total_session_time: totalSessionTime,
+				total_call_duration_get_paid: totalCallDurationGetPaid,
+				total_earning: totalEarning.toFixed(2),
+				payments: payments,
+				earning: {
+					total: totalEarning.toFixed(2)
+				},
+				total_paid: payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0).toFixed(2),
+				pending_amount: (totalEarning - payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0)).toFixed(2)
+			};
+
+			allModeratorsPayments.push(moderatorPaymentInfo);
+		}
+
+		return Promise.resolve({
+			data: allModeratorsPayments,
+			message: 'Get all moderators payments successfully',
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getStatsByMonth({ user_id }) {
 	try {
 		const startMonth = dayjs('2025-04-01');
@@ -1378,6 +1404,8 @@ async function getStatsByMonth({ user_id }) {
 					dayjs(payment.paid_date).isBetween(period.start, period.end, 'day', '[]')
 				);
 
+				console.log({ period, payment })
+
 				const userInfo = {
 					period: `${period.start.format('DD/MM/YY')} - ${period.end.format('DD/MM/YY')}`,
 					total_call: totalCall,
@@ -1455,7 +1483,6 @@ module.exports = {
 	deleteAccount,
 	reportUser,
 	updateSessionToken,
-	getFriendProfile,
 	reviewUser,
 	getLatestVersion,
 	getVersionInfo,
@@ -1468,12 +1495,11 @@ module.exports = {
 	useReferral,
 	getIapProducts,
 	updateExistingUsersReferral,
-	getSimpleProfile,
 	scanImage,
 	getStats,
 	forceUpdateSummary,
-	db,
 	getStatsByMonth,
 	updateAvatar,
-	sendUserInvitation
+	sendUserInvitation,
+	getAllModeratorsPayments
 };

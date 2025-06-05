@@ -19,8 +19,6 @@ const { Op, Sequelize, or } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
 
-// var serviceAccount = require("../config/serviceAccountKey.json");
-const { getSimpleProfile, getFriendProfile, db } = require('./users');
 const BlockedUsers = require('../models/blocked_users');
 const { findUnique, getRandomElements, formatNamesWithType, isStringInteger } = require('../utils/utils');
 const { addNewNotification, addNewPushNotification } = require('./notifications');
@@ -31,8 +29,10 @@ const dayjs = require('dayjs');
 const { raw } = require('body-parser');
 const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
-const { getProfile } = require('./common');
+const { getProfile, getSimpleProfile, getFriendProfile, firebaseAdmin } = require('./common');
 const Configs = require('../models/configs');
+
+const db = firebaseAdmin.firestore()
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
