@@ -25,7 +25,7 @@ const Sequelize = require('../config/database');
 const { isStringInteger, generateReferralCode, parseFormattedCallSeconds } = require('../utils/utils');
 const ProfileViews = require('../models/profile_views');
 const { updateRejectedDateTag } = require('./onesignal');
-var admin = require('firebase-admin');
+const {acceptSuggestion} = require('./matches')
 
 const { DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { rekognitionClient } = require('../config/rekognitionClient');
@@ -36,15 +36,10 @@ const JPFUserAnswer = require('../models/jpf_user_answers');
 const dayjs = require('dayjs');
 const { default: OpenAI } = require('openai');
 const { updateLikes, updateDislikes } = require('./interests');
-const { getReviewStats, createSummary, getUser } = require('./common');
+const { getReviewStats, createSummary, getUser, firebaseAdmin } = require('./common');
 const { sendUserInvitationEmail } = require('./email');
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-admin.initializeApp({
-	credential: admin.credential.cert(serviceAccount),
-	storageBucket: 'kuky-105e6.appspot.com'
-});
-const db = admin.firestore();
+const db = firebaseAdmin.firestore();
 
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
@@ -53,7 +48,7 @@ const openai = new OpenAI({
 async function updateAvatar({ user_id, avatarFile }) {
 	try {
 		// Upload image to Firebase Storage
-		const bucket = admin.storage().bucket();
+		const bucket = firebaseAdmin.storage().bucket();
 		const fileName = `avatars/${user_id}_${Date.now()}`;
 		const file = bucket.file(fileName);
 
@@ -320,42 +315,6 @@ async function updateBlurAvatar(user_id, media_url) {
 		console.log({ error })
 	}
 }
-async function getSimpleProfile({ user_id }) {
-	try {
-		try {
-			const user = await Users.scope(['simpleProfile', 'blurVideo']).findOne({
-				where: { id: user_id },
-				include: [{ model: Journeys }, { model: JourneyCategories }],
-			});
-
-			if (!user) {
-				return Promise.reject('User not found');
-			}
-
-			console.log({ user })
-
-			const reviewsData = await getReviewStats(user_id);
-
-			return Promise.resolve({
-				message: 'User info retrieved successfully',
-				data: {
-					...user.toJSON(),
-					reviewsCount: reviewsData.reviewsCount,
-					avgRating: reviewsData.avgRating,
-				},
-			});
-		} catch (error) {
-			console.log('Error fetching user info:', error);
-			return Promise.reject(error);
-		}
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
-}
-
-
-
 
 async function getReviews({ userId }) {
 	const reviews = await ReviewUsers.findAll({
@@ -374,94 +333,6 @@ async function getReviews({ userId }) {
 	});
 	const reviewsData = await getReviewStats(userId);
 	return { reviews, ...reviewsData };
-}
-
-async function getFriendProfile({ user_id, friend_id }) {
-	try {
-		const findCondition = isStringInteger(friend_id)
-			? { id: friend_id }
-			: Sequelize.where(
-				Sequelize.fn('LOWER', Sequelize.col('referral_id')),
-				friend_id.toString().trim().toLowerCase()
-			);
-
-		const user = await Users.scope(['includeBlurVideo']).findOne({
-			where: findCondition,
-			include: [{ model: Purposes }, { model: Journeys }, { model: JourneyCategories }, { model: Interests }, { model: Tags }],
-		});
-
-		if (!user) {
-			return Promise.reject('User not found');
-		}
-
-		if (user_id) {
-			const blocked = await BlockedUsers.findOne({
-				where: {
-					[Op.or]: [
-						{
-							user_id: user_id,
-							blocked_id: user.id,
-						},
-						{
-							user_id: user.id,
-							blocked_id: user_id,
-						},
-					],
-				},
-			});
-
-			if (blocked) {
-				return Promise.resolve({
-					message: 'User info retrieved successfully',
-					data: {
-						blocked: true,
-						user: {},
-						match: null,
-					},
-				});
-			}
-		}
-
-
-		if (user_id) {
-			await ProfileViews.create({
-				userId: user.id,
-				viewerId: user_id,
-			});
-		}
-
-		let match = null
-
-		if (user_id) {
-			match = await Matches.scope({ method: ['withIsFree', user_id] }).findOne({
-				where: {
-					[Op.or]: [
-						{ sender_id: user_id, receiver_id: user.id },
-						{ sender_id: user.id, receiver_id: user_id },
-					],
-				},
-				order: [['id', 'desc']],
-			});
-		}
-
-		const reviewsData = await getReviewStats(user.id);
-
-		return Promise.resolve({
-			message: 'User info retrieved successfully',
-			data: {
-				user: {
-					...user.toJSON(),
-					reviewsCount: reviewsData.reviewsCount,
-					avgRating: reviewsData.avgRating,
-				},
-
-				match,
-			},
-		});
-	} catch (error) {
-		console.log('Error fetching user info:', error);
-		return Promise.reject(error);
-	}
 }
 
 async function blockUser({ user_id, friend_id }) {
@@ -657,14 +528,21 @@ async function reviewUser({ user_id, reviewer_id, rating, reason, note }) {
 
 async function useReferral({ user_id, referral_code }) {
 	try {
-		console.log(user_id, referral_code);
 		const user = await Users.findOne({
-			where: { referral_id: referral_code },
+			where: { referral_id: {
+				[Op.iLike]: (referral_code??'').toLowerCase(), // Use iLike for case-insensitive matching
+			} },
 			attributes: { exclude: ['password'] },
 		});
 
 		if (!user) {
 			return Promise.reject('Referral code not found');
+		}
+
+		try {
+			await acceptSuggestion({user_id, friend_id: user.id})
+		} catch (error) {
+			console.log('Error accept suggestion:', error)
 		}
 
 		await ReferralUsers.create({
@@ -1455,7 +1333,6 @@ module.exports = {
 	deleteAccount,
 	reportUser,
 	updateSessionToken,
-	getFriendProfile,
 	reviewUser,
 	getLatestVersion,
 	getVersionInfo,
@@ -1468,11 +1345,9 @@ module.exports = {
 	useReferral,
 	getIapProducts,
 	updateExistingUsersReferral,
-	getSimpleProfile,
 	scanImage,
 	getStats,
 	forceUpdateSummary,
-	db,
 	getStatsByMonth,
 	updateAvatar,
 	sendUserInvitation
