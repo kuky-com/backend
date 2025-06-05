@@ -331,9 +331,9 @@ router.post('/set-support', authAdminMiddleware, (request, response, next) => {
 
 
 router.post('/pay-moderator', authAdminMiddleware, (request, response, next) => {
-	const { user_id, month, year } = request.body;
+	const { user_id, startDate, month, year } = request.body;
 
-	if (!user_id || !month || !year) {
+	if (!user_id || !startDate || !month || !year) {
 		return response.json({
 			success: false,
 			message: 'Missing required params: user_id',
@@ -342,6 +342,33 @@ router.post('/pay-moderator', authAdminMiddleware, (request, response, next) => 
 
 	return admin
 		.createModeratorPayment({ ...request.body })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+router.get('/moderator-payments', authAdminMiddleware, (request, response, next) => {
+	const { start_date, end_date } = request.query;
+
+	if (!start_date || !end_date) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id',
+		});
+	}
+
+	return users
+		.getAllModeratorsPayments({ ...request.query })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,

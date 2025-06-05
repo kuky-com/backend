@@ -1107,6 +1107,154 @@ async function getStats({ user_id, start_date, end_date }) {
 	}
 }
 
+async function getAllModeratorsPayments({ start_date, end_date }) {
+	try {
+		const startOfDay = start_date
+			? dayjs(start_date, 'DD/MM/YYYY').startOf('day').toISOString()
+			: dayjs().startOf('month').toISOString();
+		const endOfDay = end_date
+			? dayjs(end_date, 'DD/MM/YYYY').endOf('day').toISOString()
+			: dayjs().endOf('month').toISOString();
+
+		// Get all moderators
+		const moderators = await Users.findAll({
+			where: {
+				is_moderators: true
+			},
+			attributes: ['id', 'full_name', 'email', 'is_active', 'payment_type', 'payment_id'],
+			raw: true
+		});
+
+		const moderatorIds = moderators.map((moderator) => `${process.env.NODE_ENV}_${moderator.id}`);
+		const allModeratorsPayments = [];
+
+		for (const moderator of moderators) {
+			const user_id = moderator.id;
+
+			// Update session logs for the user
+			await Sequelize.query(
+				`UPDATE session_logs
+				 SET end_time = start_time + interval '15 minutes'
+				 WHERE user_id = :user_id
+				 AND EXTRACT(EPOCH FROM (end_time - start_time)) > 900`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			await Sequelize.query(
+				`UPDATE session_logs AS sl1
+				 SET end_time = (
+					 SELECT MIN(sl2.start_time) - interval '1 second'
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+				 )
+				 WHERE EXISTS (
+					 SELECT 1
+					 FROM session_logs AS sl2
+					 WHERE sl2.user_id = sl1.user_id
+					 AND sl2.start_time > sl1.start_time
+					 AND sl1.end_time > sl2.start_time
+				 )
+				 AND sl1.user_id = :user_id`,
+				{
+					replacements: { user_id },
+					type: Sequelize.QueryTypes.UPDATE,
+				}
+			);
+
+			// Get user session time data
+			const user = await Users.findOne({
+				where: {
+					id: user_id
+				},
+				attributes: {
+					include: [
+						[
+							Sequelize.literal(`(
+								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
+								FROM session_logs AS sl
+								WHERE sl.user_id = users.id 
+								AND sl.user_id IS NOT NULL
+								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
+								AND (
+									(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+									OR 
+									(sl.screen_name IN ('message', 'profile') AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 30 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
+								)
+							)`),
+							'total_session_time',
+						],
+					],
+				},
+			});
+
+			// Get call history
+			const sendbird = require('./sendbird');
+			const callHistory = await sendbird.getCallHistory(user_id, dayjs(startOfDay).valueOf(), dayjs(endOfDay).valueOf());
+
+			let totalCallDurationGetPaid = 0;
+
+			for (const call of callHistory) {
+				let otherNotModerator = false;
+				call.participants.forEach((participant) => {
+					if (!moderatorIds.includes(participant.user_id)) {
+						otherNotModerator = true;
+					}
+				});
+				if (call.duration > 0 && otherNotModerator) {
+					totalCallDurationGetPaid += Math.round(call.duration / 1000);
+				}
+			}
+
+			// Get payment information for the period
+			const payments = await Sequelize.query(
+				`SELECT * FROM moderator_payments 
+				 WHERE user_id = :user_id 
+				 AND paid_date BETWEEN :start_date AND :end_date
+				 ORDER BY paid_date ASC`,
+				{
+					replacements: { user_id, start_date: startOfDay, end_date: endOfDay },
+					type: Sequelize.QueryTypes.SELECT,
+				}
+			);
+
+			const totalSessionTime = parseInt(user.toJSON().total_session_time ?? '0');
+			const totalEarning = Math.round((((totalSessionTime + totalCallDurationGetPaid) / 3600) * 15) * 100) / 100;
+
+			const moderatorPaymentInfo = {
+				user_id: moderator.id,
+				full_name: moderator.full_name,
+				email: moderator.email,
+				is_active: moderator.is_active,
+				payment_type: moderator.payment_type,
+				payment_id: moderator.payment_id,
+				total_session_time: totalSessionTime,
+				total_call_duration_get_paid: totalCallDurationGetPaid,
+				total_earning: totalEarning.toFixed(2),
+				payments: payments,
+				earning: {
+					total: totalEarning.toFixed(2)
+				},
+				total_paid: payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0).toFixed(2),
+				pending_amount: (totalEarning - payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0)).toFixed(2)
+			};
+
+			allModeratorsPayments.push(moderatorPaymentInfo);
+		}
+
+		return Promise.resolve({
+			data: allModeratorsPayments,
+			message: 'Get all moderators payments successfully',
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getStatsByMonth({ user_id }) {
 	try {
 		const startMonth = dayjs('2025-04-01');
@@ -1256,6 +1404,8 @@ async function getStatsByMonth({ user_id }) {
 					dayjs(payment.paid_date).isBetween(period.start, period.end, 'day', '[]')
 				);
 
+				console.log({ period, payment })
+
 				const userInfo = {
 					period: `${period.start.format('DD/MM/YY')} - ${period.end.format('DD/MM/YY')}`,
 					total_call: totalCall,
@@ -1350,5 +1500,6 @@ module.exports = {
 	forceUpdateSummary,
 	getStatsByMonth,
 	updateAvatar,
-	sendUserInvitation
+	sendUserInvitation,
+	getAllModeratorsPayments
 };
