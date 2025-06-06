@@ -942,6 +942,24 @@ router.post('/send-user-invitation', authMiddleware, (request, response, next) =
 		})
 })
 
+router.get('/moderator-faqs', authMiddleware, (request, response, next) => {
+
+	return users
+		.getModeratorFAQs()
+		.then((data) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: 'Get moderator faqs success',
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
 // router.get('/test-email', (request, response, next) => {
 
 //     return requestCompleteProfileAction({ user_id: 4 }).then(({ data, message }) => {

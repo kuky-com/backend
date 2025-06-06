@@ -14,7 +14,7 @@ cron.schedule('0 0 * * *', async () => {
         await sendMatchNotification()
 });
 
-cron.schedule('*/30 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
     if(process.env.NODE_ENV === 'production')
         await autoRejectProfile()
 });

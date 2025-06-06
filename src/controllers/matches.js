@@ -955,9 +955,9 @@ async function getAllUsersForSupport() {
 			};
 		});
 
-		result = result.filter(item => 
-			item.match_info && 
-			item.match_info.last_message_date && 
+		result = result.filter(item =>
+			item.match_info &&
+			item.match_info.last_message_date &&
 			item.match_info.last_message
 		);
 
@@ -1109,7 +1109,7 @@ async function getMatches({ user_id }) {
 		});
 
 		for (const match of matches) {
-			
+
 
 			if (match.get('sender_id') === user_id) {
 				const userInfo = await getProfile({
@@ -2093,12 +2093,13 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 
 async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0, user_id }) {
 	try {
+
+
 		const suggestions = [];
 
 		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
-			profile_approved: 'approved',
 		}
 
 		if (journey_id) {
@@ -2112,6 +2113,18 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 		}
 
 		if (user_id) {
+			const currentUser = await Users.findOne({
+				where: { id: user_id },
+				raw: true
+			});
+			if (currentUser?.is_moderators) {
+				whereFilter.profile_approved = {
+					[Op.in]: ['approved', 'partially_approved']
+				}
+			} else {
+				whereFilter.profile_approved = 'approved'
+			}
+
 			const blockedUsers = await BlockedUsers.findAll({
 				where: {
 					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
@@ -2150,11 +2163,6 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 				raw: true
 			});
 
-			const currentUser = await Users.findOne({
-				where: { id: user_id },
-				raw: true
-			});
-
 			if (moderatorConfig?.value === "0" && !currentUser?.is_moderators) {
 				whereFilter.is_moderator = false;
 			}
@@ -2164,6 +2172,8 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 			whereFilter.id = {
 				[Op.notIn]: [user_id, ...avoidUserIds]
 			}
+		} else {
+			whereFilter.profile_approved = 'approved'
 		}
 
 		const filterUsers = await Users.findAll({
@@ -2209,7 +2219,6 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
-			profile_approved: 'approved',
 		}
 
 		const user = await Users.findOne({
@@ -2224,6 +2233,18 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 		}
 
 		if (user_id) {
+			const currentUser = await Users.findOne({
+				where: { id: user_id },
+				raw: true
+			});
+			if (currentUser?.is_moderators) {
+				whereFilter.profile_approved = {
+					[Op.in]: ['approved', 'partially_approved']
+				}
+			} else {
+				whereFilter.profile_approved = 'approved'
+			}
+
 			const blockedUsers = await BlockedUsers.findAll({
 				where: {
 					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
@@ -2264,7 +2285,8 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 			}
 		} else {
 			whereFilter.id = {
-				[Op.notIn]: [profile_id]
+				[Op.notIn]: [profile_id],
+				profile_approved: 'approved'
 			}
 		}
 
