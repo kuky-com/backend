@@ -111,7 +111,7 @@ const Users = sequelize.define('users', {
 		defaultValue: false,
 	},
 	profile_approved: {
-		type: DataTypes.ENUM('pending', 'rejected', 'approved', 'resubmitted'),
+		type: DataTypes.ENUM('pending', 'rejected', 'approved', 'resubmitted', 'partially_approved'),
 		allowNull: false,
 		defaultValue: 'pending',
 	},

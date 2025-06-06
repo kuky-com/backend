@@ -75,32 +75,47 @@ const autoRejectProfile = async (req, res) => {
                 }
             }
 
-            if (!user.video_intro) {
-                reasons.push('Missing video intro')
-            } else {
-                const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
-                    audio_uri: user.video_intro,
-                })
-
-                if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 50) {
-                    reasons.push('Your video is invalid, please reupload better video')
-                }
-            }
-
-            if (reasons.length > 0) {
-                // console.log({status: 'rejected', reasons: reasons.join('\n'), user_id: user.id})
+            if (reasons.length === 0) {
                 try {
-                    await profileAction({ status: 'rejected', reason: reasons.join('\n'), user_id: user.id })
+                    await Users.update({
+                    profile_approved: 'partially_approved',
+                }, {
+                    where: {
+                        id: user.id
+                    }
+                })
                 } catch (error) {
-                    console.log({ error })
+                  console.log({ error })  
                 }
+
             } else {
-                // console.log({status: 'approved', user_id: user.id})
-                // try {
-                //     await profileAction({ status: 'approved', user_id: user.id })
-                // } catch (error) {
-                //     console.log({ error })
-                // }
+                if (!user.video_intro) {
+                    reasons.push('Missing video intro')
+                } else {
+                    const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
+                        audio_uri: user.video_intro,
+                    })
+
+                    if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 50) {
+                        reasons.push('Your video is invalid, please reupload better video')
+                    }
+                }
+
+                if (reasons.length > 0) {
+                    // console.log({status: 'rejected', reasons: reasons.join('\n'), user_id: user.id})
+                    try {
+                        await profileAction({ status: 'rejected', reason: reasons.join('\n'), user_id: user.id })
+                    } catch (error) {
+                        console.log({ error })
+                    }
+                } else {
+                    // console.log({status: 'approved', user_id: user.id})
+                    // try {
+                    //     await profileAction({ status: 'approved', user_id: user.id })
+                    // } catch (error) {
+                    //     console.log({ error })
+                    // }
+                }
             }
         } catch (error) {
             console.log({ error })

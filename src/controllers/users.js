@@ -38,6 +38,7 @@ const { default: OpenAI } = require('openai');
 const { updateLikes, updateDislikes } = require('./interests');
 const { getReviewStats, createSummary, getUser, firebaseAdmin } = require('./common');
 const { sendUserInvitationEmail } = require('./email');
+const ModeratorFaqs = require('../models/moderator_faqs');
 
 const db = firebaseAdmin.firestore();
 
@@ -1234,12 +1235,10 @@ async function getAllModeratorsPayments({ start_date, end_date }) {
 				total_session_time: totalSessionTime,
 				total_call_duration_get_paid: totalCallDurationGetPaid,
 				total_earning: totalEarning.toFixed(2),
-				payments: payments,
+				payment: payments && payments.length > 0 ? payments[payments.length - 1] : null,
 				earning: {
 					total: totalEarning.toFixed(2)
-				},
-				total_paid: payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0).toFixed(2),
-				pending_amount: (totalEarning - payments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0)).toFixed(2)
+				}
 			};
 
 			allModeratorsPayments.push(moderatorPaymentInfo);
@@ -1473,6 +1472,22 @@ async function sendUserInvitation({ user_id, recipients }) {
 	}
 }
 
+async function getModeratorFAQs () {
+	try {
+		const faqs = await ModeratorFaqs.findAll({
+			order: [['ranking', 'DESC']],
+		});
+
+		return Promise.resolve({
+			message: 'Moderator FAQs retrieved successfully',
+			data: faqs,
+		});
+	} catch (error) {
+		console.log('Error fetching moderator FAQs:', error);
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -1501,5 +1516,6 @@ module.exports = {
 	getStatsByMonth,
 	updateAvatar,
 	sendUserInvitation,
-	getAllModeratorsPayments
+	getAllModeratorsPayments,
+	getModeratorFAQs
 };
