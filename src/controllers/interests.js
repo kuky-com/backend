@@ -248,187 +248,238 @@ async function createGeneralInterest(name) {
 	}
 }
 
-async function updateLikes({ user_id, likes }) {
+async function updateLikes({ user_id, likes, reset = true }) {
 	try {
-		const currentUserLikes = await UserInterests.findAll({
-			where: { user_id, interest_type: 'like' },
-			include: [{ model: Interests }],
-		});
+		if (reset) {
+			// Existing flow when reset is true
+			const currentUserLikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'like' },
+				include: [{ model: Interests }],
+			});
 
-		const currentLikesIds = currentUserLikes.map((up) => up.interest_id);
+			const currentLikesIds = currentUserLikes.map((up) => up.interest_id);
 
-		const interestRecords = await Promise.all(
-			likes.map(async (name) => createGeneralInterest(name))
-		);
+			const interestRecords = await Promise.all(
+				likes.map(async (name) => createGeneralInterest(name))
+			);
 
-		const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
+			const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
 
-		// foramt onesignal tags with the deleted user interests
+			await UserInterests.destroy({
+				where: {
+					user_id,
+					interest_type: 'like',
+					interest_id: { [Op.notIn]: newInterestIds },
+				},
+			});
 
-		// const deletedInterests = await UserInterests.findAll({
-		// 	where: {
-		// 		user_id,
-		// 		interest_type: 'like',
-		// 		interest_id: { [Op.notIn]: newInterestIds },
-		// 	},
-		// 	include: [{ model: Interests }],
-		// });
+			await Promise.all(
+				newInterestIds.map(async (interest_id) => {
+					if (!currentLikesIds.includes(interest_id)) {
+						try {
+							await UserInterests.create({
+								user_id,
+								interest_type: 'like',
+								interest_id,
+							});
+						} catch (error) { }
+					}
+				})
+			);
 
-		// const onesignaluser = await getOnesignalUser(user_id);
-		// let tags = onesignaluser.properties.tags;
-
-		// for (const i of deletedInterests) {
-		// 	tags = await formatOnesignalTags(
-		// 		tags,
-		// 		'like',
-		// 		i.interest.normalized_interest_id,
-		// 		'delete'
-		// 	);
-		// }
-
-		await UserInterests.destroy({
-			where: {
-				user_id,
-				interest_type: 'like',
-				interest_id: { [Op.notIn]: newInterestIds },
-			},
-		});
-
-		await Promise.all(
-			newInterestIds.map(async (interest_id) => {
-				if (!currentLikesIds.includes(interest_id)) {
-					try {
-						await UserInterests.create({
-							user_id,
-							interest_type: 'like',
-							interest_id,
-						});
-					} catch (error) { }
-				}
-			})
-		);
-
-		const newUserLikes = await UserInterests.findAll({
-			where: { user_id, interest_type: 'like' },
-			include: [
-				{
-					model: Interests,
-					where: {
-						normalized_interest_id: {
-							[Op.ne]: null,
+			const newUserLikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'like' },
+				include: [
+					{
+						model: Interests,
+						where: {
+							normalized_interest_id: {
+								[Op.ne]: null,
+							},
 						},
 					},
-				},
-			],
-		});
+				],
+			});
 
-		// format onesignal like tags for new user
-		// for (const like of newUserLikes) {
-		// 	if (!currentLikesIds.includes(like.interest_id)) {
-		// 		tags = formatOnesignalTags(
-		// 			tags,
-		// 			'like',
-		// 			like.interest.normalized_interest_id,
-		// 			'add'
-		// 		);
-		// 	}
-		// }
+			createSummary(user_id)
 
-		// sonesignaluser.properties.tags = tags;
-		// update the onesignal tags
-		// updateOnesignalUser(onesignaluser, user_id);
+			return Promise.resolve({
+				message:
+					newUserLikes.length < likes.length
+						? `Oops! That doesn't look like an English word. Please try again.`
+						: 'User likes updated successfully.',
+				data: newUserLikes,
+			});
+		} else {
+			// Merge flow when reset is false
+			const currentUserLikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'like' },
+				include: [{ model: Interests }],
+			});
 
-		createSummary(user_id)
+			const currentLikesIds = currentUserLikes.map((up) => up.interest_id);
 
-		return Promise.resolve({
-			message:
-				newUserLikes.length < likes.length
-					? `Oops! That doesn't look like an English word. Please try again.`
-					: 'User likes updated successfully.',
-			data: newUserLikes,
-		});
+			const interestRecords = await Promise.all(
+				likes.map(async (name) => createGeneralInterest(name))
+			);
+
+			const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
+
+			// Only add new interests that don't already exist
+			await Promise.all(
+				newInterestIds.map(async (interest_id) => {
+					if (!currentLikesIds.includes(interest_id)) {
+						try {
+							await UserInterests.create({
+								user_id,
+								interest_type: 'like',
+								interest_id,
+							});
+						} catch (error) { }
+					}
+				})
+			);
+
+			const updatedUserLikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'like' },
+				include: [
+					{
+						model: Interests,
+						where: {
+							normalized_interest_id: {
+								[Op.ne]: null,
+							},
+						},
+					},
+				],
+			});
+
+			createSummary(user_id)
+
+			return Promise.resolve({
+				message: 'User likes merged successfully.',
+				data: updatedUserLikes,
+			});
+		}
 	} catch (error) {
 		console.log('Error user update likes:', error);
 		return Promise.reject(error);
 	}
 }
 
-async function updateDislikes({ user_id, dislikes }) {
+async function updateDislikes({ user_id, dislikes, reset = true  }) {
 	try {
-		const currentUserDislikes = await UserInterests.findAll({
-			where: { user_id, interest_type: 'dislike' },
-			include: [{ model: Interests }],
-		});
+		if (reset) {
+			// Existing flow when reset is true
+			const currentUserDislikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'dislike' },
+				include: [{ model: Interests }],
+			});
 
-		const currentDislikesIds = currentUserDislikes.map((up) => up.interest_id);
+			const currentDislikesIds = currentUserDislikes.map((up) => up.interest_id);
 
-		const interestRecords = await Promise.all(
-			dislikes.map(async (name) => {
-				if (name && name.length > 1) {
-					let interest = await Interests.findOne({
-						where: { name: name },
-					});
-					if (interest) {
-						return interest;
+			const interestRecords = await Promise.all(
+				dislikes.map(async (name) => createGeneralInterest(name))
+			);
+
+			const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
+
+			await UserInterests.destroy({
+				where: {
+					user_id,
+					interest_type: 'dislike',
+					interest_id: { [Op.notIn]: newInterestIds },
+				},
+			});
+
+			await Promise.all(
+				newInterestIds.map(async (interest_id) => {
+					if (!currentDislikesIds.includes(interest_id)) {
+						try {
+							await UserInterests.create({
+								user_id,
+								interest_type: 'dislike',
+								interest_id,
+							});
+						} catch (error) { }
 					}
-					interest = await Interests.create({
-						name: name,
-					});
-					await normalizeInterests(interest.id);
-					return interest;
-				} else {
-					return null;
-				}
-			})
-		);
+				})
+			);
 
-		const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
-
-		await UserInterests.destroy({
-			where: {
-				user_id,
-				interest_type: 'dislike',
-				interest_id: { [Op.notIn]: newInterestIds },
-			},
-		});
-
-		await Promise.all(
-			newInterestIds.map(async (interest_id) => {
-				if (!currentDislikesIds.includes(interest_id)) {
-					try {
-						await UserInterests.create({
-							user_id,
-							interest_type: 'dislike',
-							interest_id,
-						});
-					} catch (error) { }
-				}
-			})
-		);
-
-		const newUserDislikes = await UserInterests.findAll({
-			where: { user_id, interest_type: 'dislike' },
-			include: [
-				{
-					model: Interests,
-					where: {
-						normalized_interest_id: {
-							[Op.ne]: null,
+			const newUserDislikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'dislike' },
+				include: [
+					{
+						model: Interests,
+						where: {
+							normalized_interest_id: {
+								[Op.ne]: null,
+							},
 						},
 					},
-				},
-			],
-		});
+				],
+			});
 
-		createSummary(user_id)
+			createSummary(user_id)
 
-		return Promise.resolve({
-			message:
-				newUserDislikes.length < dislikes.length
-					? `Oops! That doesn't look like an English word. Please try again.`
-					: 'User dislikes updated successfully.',
-			data: newUserDislikes,
-		});
+			return Promise.resolve({
+				message:
+					newUserDislikes.length < dislikes.length
+						? `Oops! That doesn't look like an English word. Please try again.`
+						: 'User dislikes updated successfully.',
+				data: newUserDislikes,
+			});
+		} else {
+			// Merge flow when reset is false
+			const currentUserDislikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'dislike' },
+				include: [{ model: Interests }],
+			});
+
+			const currentDislikesIds = currentUserDislikes.map((up) => up.interest_id);
+
+			const interestRecords = await Promise.all(
+				dislikes.map(async (name) => createGeneralInterest(name))
+			);
+
+			const newInterestIds = interestRecords.filter((p) => p !== null).map((p) => p.id);
+
+			// Only add new interests that don't already exist
+			await Promise.all(
+				newInterestIds.map(async (interest_id) => {
+					if (!currentDislikesIds.includes(interest_id)) {
+						try {
+							await UserInterests.create({
+								user_id,
+								interest_type: 'dislike',
+								interest_id,
+							});
+						} catch (error) { }
+					}
+				})
+			);
+
+			const updatedUserDislikes = await UserInterests.findAll({
+				where: { user_id, interest_type: 'dislike' },
+				include: [
+					{
+						model: Interests,
+						where: {
+							normalized_interest_id: {
+								[Op.ne]: null,
+							},
+						},
+					},
+				],
+			});
+
+			createSummary(user_id)
+
+			return Promise.resolve({
+				message: 'User dislikes merged successfully.',
+				data: updatedUserDislikes,
+			});
+		}
 	} catch (error) {
 		console.log('Error user update dislikes:', error);
 		return Promise.reject(error);
