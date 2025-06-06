@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if is_single_friend}}{{friend_names}} is waiting for your reply on Kuky!{{else}}Your friends are waiting for your reply on Kuky!{{/if}}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: grid;
+            place-items: center;
+            width: 100%;
+            font-family: 'Comfortaa', sans-serif;
+            color: white;
+        }
+
+        .email-container {
+            background-color: #6b45de;
+            color: #ffffff;
+            padding: 30px;
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+
+        .header img {
+            width: 50px;
+        }
+
+        .title {
+            color: #E8FF58;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .content {
+            text-align: center;
+            font-size: 16px;
+            color: #ffffff;
+            margin: 20px 0;
+        }
+
+        .message-card {
+            background-color: #fff;
+            color: #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+        }
+
+        .message-card h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #6b45de;
+        }
+
+        .message-card p {
+            font-size: 14px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .button-container {
+            margin-top: 32px;
+            text-align: center;
+        }
+
+        .button {
+            background-color: #333333;
+            color: #ffffff;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #ffffff;
+        }
+
+        .footer a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 0 5px;
+        }
+
+        .footer-links {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .footer-icons img {
+            width: 30px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: auto;
+        }
+
+        .footer-store {
+            width: 115px;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="email-container">
+        <div class="header">
+            <img src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png" alt="Logo">
+            <h1 class="title" style="color: #E8FF58 !important; font-family: 'Comfortaa', sans-serif !important; font-size: 20px;">
+                {{#if is_single_friend}}
+                    Your Friend is Waiting for Your Reply!
+                {{else}}
+                    Your Friends are Waiting for Your Reply!
+                {{/if}}
+            </h1>
+        </div>
+
+        <div class="content">
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">Hi {{user_name}}!</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 13px;">
+                {{#if is_single_friend}}
+                    <span style="color: #E8FF58;">{{friend_names}}</span> sent you a message and is waiting for your reply.
+                {{else}}
+                    <span style="color: #E8FF58;">{{friend_names}}</span> sent you messages and are waiting for your reply.
+                {{/if}}
+            </p>
+        </div>
+
+        <div class="message-card">
+            <h3>💬 Unread Messages</h3>
+            <p>{{message}}</p>
+            <p style="font-size: 12px; color: #999;">Don't keep your friends waiting - reply now and keep the conversation going!</p>
+        </div>
+
+        <div class="button-container">
+            <a href="kuky://conversation/{{conversation_id}}" class="button">Open Kuky</a>
+        </div>
+
+        <div class="content">
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 11px;">We love seeing you connect with others who share your journey. <br>Keep the conversation alive!</p>
+            <p style="color: #ffffff !important; font-family: 'Comfortaa', sans-serif !important; font-size: 11px;">Best,<br>The Kuky Team</p>
+        </div>
+
+        <div class="footer">
+            <img class="footer-logo" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/kuky-logo.png"
+                alt="Logo">
+            <p>Download the KUKY app now!</p>
+            <a href="https://apps.apple.com/au/app/kuky/id6711341485">
+                <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/app-store.png"
+                    alt="App Store">
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=com.kuky.android">
+                <img class="footer-store" src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/play-store.png"
+                    alt="App Store">
+            </a>
+
+            <div class="footer-links">
+                <a href="https://www.kuky.com/terms-and-service">Terms & Conditions</a> |
+                <a href="https://www.kuky.com/privacy-policy">Privacy Policy</a> |
+                <a href="#">Unsubscribe</a>
+            </div>
+            <div class="separator-line" />
+            <div class="footer-icons">
+                <a href="https://www.instagram.com/kuky_app/"><img
+                        src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/instagram.png" alt="Instagram"></a>
+                <a href="https://x.com/kuky_app"><img
+                        src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/twitter.png" alt="Twitter"></a>
+                <a href="https://facebook.com/kukyapp"><img
+                        src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/facebook.png" alt="Facebook"></a>
+                <a href="https://wa.me/610491711556"><img
+                        src="https://s3.ap-southeast-2.amazonaws.com/media.kuky.com/whatsapp.png" alt="Whatsapp"></a>
+                <a href="https://www.youtube.com/@kuky_app"><img
+                        src="https://firebasestorage.googleapis.com/v0/b/kuky-105e6.appspot.com/o/social%2Fyoutube.png?alt=media&token=671c4004-b59a-4ee9-b336-d704135c2264"
+                        alt="Youtube"></a>
+                <a href="https://www.tiktok.com/@kuky_app"><img
+                        src="https://firebasestorage.googleapis.com/v0/b/kuky-105e6.appspot.com/o/social%2Ftiktok.png?alt=media&token=c80c765c-c7d6-45a5-b475-cbb59d62feac"
+                        alt="Tiktok"></a>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

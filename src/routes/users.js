@@ -9,6 +9,7 @@ const interests = require('@controllers/interests');
 const { requestCompleteProfileAction } = require('@controllers/admin');
 const SessionLog = require('../models/session_logs');
 const { v4: uuidv4 } = require('uuid');
+const { checkUnreadMessages, checkUnreadMessagesForUser } = require('../controllers/cron/unreadMessage');
 
 router.post('/update', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
@@ -976,5 +977,24 @@ router.get('/moderator-faqs', authMiddleware, (request, response, next) => {
 //             })
 //         })
 // })
+
+
+// router.get('/test-unread', (request, response, next) => {
+
+//     return checkUnreadMessagesForUser(4).then(({ data, message }) => {
+//         return response.json({
+//             success: true,
+//             data: data,
+//             message: message
+//         })
+//     })
+//         .catch((error) => {
+//             return response.json({
+//                 success: false,
+//                 message: `${error}`
+//             })
+//         })
+// })
+
 
 module.exports = router;

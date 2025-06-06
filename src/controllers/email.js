@@ -22,6 +22,7 @@ function loadTemplate(templateName, data) {
 }
 
 async function sendEmail(toAddress, subject, templateName, templateData, fromName = 'Kuky', fromAddress = 'noreply@kuky.com') {
+    console.log({toAddress, subject, templateName, templateData, fromName, fromAddress})
     const htmlContent = loadTemplate(templateName, templateData);
 
     if (/@privaterelay\.appleid\.com$/i.test(toAddress) || /@kuky\.com$/i.test(toAddress)) {
@@ -183,5 +184,6 @@ module.exports = {
     sendApproveProfileEmail,
     sendRejectProfileEmail,
     sendEmailCompleteProfile,
-    sendUserInvitationEmail
+    sendUserInvitationEmail,
+    sendEmail
 }
