@@ -34,7 +34,7 @@ cron.schedule('0 * * * *', async () => {
     await updateUserRankings()
 });
 
-cron.schedule('30 0 * * *', async () => {
+cron.schedule('0 2 * * *', async () => {
     if(process.env.NODE_ENV === 'production')
         await checkUnreadMessages()
 });
