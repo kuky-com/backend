@@ -1368,7 +1368,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 
 		const receiveUser = await Users.findOne({
 			where: findCondition,
-			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified'],
+			attributes: ['id', 'full_name', 'profile_approved', 'email', 'is_active', 'email_verified', 'is_moderators'],
 		});
 
 		if (!receiveUser) {
@@ -1428,7 +1428,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 				updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
 
 				if (requestUser) {
-					if (requestUser.profile_approved === 'approved') {
+					if ((requestUser.profile_approved === 'approved') || (requestUser.profile_approved === 'partially_approved' && receiveUser.is_moderators === true)) {
 						addNewNotification(
 							receiveUser.id,
 							user_id,
@@ -1694,7 +1694,7 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 
 		try {
 			if (existMatch.sender_id === user_id) {
-				if (existMatch.sender?.profile_approved === 'approved') {
+				if ((existMatch.sender?.profile_approved === 'approved') || (existMatch.sender?.profile_approved == 'partially_approved' && existMatch.receiver?.is_moderators)) {
 					addNewPushNotification(
 						existMatch.receiver_id,
 						existMatch.toJSON(),
@@ -1704,9 +1704,8 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 						last_message
 					);
 				}
-
 			} else {
-				if (existMatch.receiver?.profile_approved === 'approved') {
+				if ((existMatch.receiver?.profile_approved === 'approved') || (existMatch.receiver?.profile_approved == 'partially_approved' && existMatch.sender?.is_moderators)) {
 					addNewPushNotification(
 						existMatch.sender_id,
 						existMatch.toJSON(),
