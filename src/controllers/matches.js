@@ -1145,6 +1145,9 @@ async function getRecentMatches({ user_id }) {
 		const threeDaysAgo = new Date();
 		threeDaysAgo.setDate(threeDaysAgo.getDate() - 300);
 
+		const fiveDaysAgo = new Date();
+		fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
 		const matches = await Matches.findAll({
 			where: {
 				[Op.and]: [
@@ -1174,6 +1177,11 @@ async function getRecentMatches({ user_id }) {
 					{
 						receiver_id: {
 							[Op.ne]: 1
+						}
+					},
+					{
+						sent_date: {
+							[Op.gte]: fiveDaysAgo
 						}
 					}
 				],
