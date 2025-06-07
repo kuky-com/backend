@@ -58,8 +58,7 @@ async function getAllActiveUsers() {
             is_hidden_users: false,
             profile_approved: {
                 [Op.in]: ['approved', 'partially_approved']
-            },
-            is_moderators: true
+            }
         },
         attributes: ['id', 'full_name', 'email']
     });
