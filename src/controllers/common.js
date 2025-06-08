@@ -244,7 +244,8 @@ async function analyzeUserTags(user_id) {
                     ${userInfo.video_interests_transcript ? `Interest video Transcription: ${userInfo.video_interests_transcript}` : ''}
 
                     Based on the above information, list the most relevant tags from the Predefined Tags list.
-                    Format your output as a comma-separated list of tags, e.g., "tag1,tag2,tag3".
+                    Format your output as a comma-separated list of tags, e.g., "tag1,tag2,tag3". If not enough information is provided, return an empty list.
+                    Do not include any additional text or explanations, just the tags.
                     `;
         try {
             const response = await openai.chat.completions.create({

@@ -396,7 +396,7 @@ async function login({ username, password }) {
 	}
 }
 
-async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVideo, isModerator, platforms }) {
+async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVideo, isModerator, platforms, is_active }) {
 	try {
 		const offset = (page - 1) * limit;
 
@@ -464,6 +464,10 @@ async function getUsers({ page = 1, limit = 20, query = '', profileStatus, hasVi
 
 		if (isModerator && isModerator === '1') {
 			whereClause.is_moderators = { [Op.eq]: true };
+		}
+
+		if (is_active && is_active === '1') {
+			whereClause.is_active = { [Op.eq]: true };
 		}
 
 		const users = await Users.findAll({
