@@ -309,6 +309,10 @@ const Users = sequelize.define('users', {
 			key: 'id',
 		},
 		onDelete: 'CASCADE',
+	},
+	matching_tags: {
+		type: DataTypes.ARRAY(DataTypes.STRING),
+		defaultValue: []
 	}
 });
 
@@ -416,9 +420,9 @@ Users.addScope('blurVideo', {
 
 Users.addScope('simpleProfile', {
 	attributes: [
-		'id', 'full_name', 'avatar', 'location', 'birthday', 
-					'referral_id', 'last_active_time', 'online_status', 'profile_approved', 'summary',
-					'video_intro', 'video_purpose', 'video_interests'
+		'id', 'full_name', 'avatar', 'location', 'birthday',
+		'referral_id', 'last_active_time', 'online_status', 'profile_approved', 'summary',
+		'video_intro', 'video_purpose', 'video_interests'
 	]
 });
 

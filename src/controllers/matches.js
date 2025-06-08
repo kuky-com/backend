@@ -31,6 +31,7 @@ const Journeys = require('../models/journeys');
 const JourneyCategories = require('../models/journey_categories');
 const { getProfile, getSimpleProfile, getFriendProfile, firebaseAdmin } = require('./common');
 const Configs = require('../models/configs');
+const tagDefinitions = require('../utils/tags.json')
 
 const db = firebaseAdmin.firestore()
 
@@ -1036,7 +1037,7 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 
 				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
-					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators )) {
+					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)) {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
@@ -1048,7 +1049,7 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 
 				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
-					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators )) {
+					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)) {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
@@ -2098,10 +2099,394 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 	}
 }
 
+
+function calculateMatchScoreBaseOnTag(user1Tags, user2Tags) {
+	let score = 0;
+	let maxPossibleScore = 0;
+
+	const allTags = new Set([...user1Tags, ...user2Tags]);
+
+	for (const tag of allTags) {
+		maxPossibleScore += 1;
+	}
+
+	for (const tag1 of user1Tags) {
+		if (user2Tags.includes(tag1)) {
+			score += 1;
+		}
+	}
+
+	for (const tag1 of user1Tags) {
+		const tag1Relations = tagDefinitions[tag1]?.related_tags || [];
+		for (const tag2 of user2Tags) {
+			const relation1to2 = tag1Relations.find(rel => rel.tag === tag2);
+			if (relation1to2) {
+				score += relation1to2.score;
+			}
+			const tag2Relations = tagDefinitions[tag2]?.related_tags || [];
+			const relation2to1 = tag2Relations.find(rel => rel.tag === tag1);
+			if (relation2to1) {
+				score += relation2to1.score;
+			}
+		}
+	}
+
+	if (user1Tags.length === 0 && user2Tags.length === 0) {
+		return 0;
+	}
+
+	let theoreticalMaxScore = 0;
+	const allUniqueTags = new Set([...user1Tags, ...user2Tags]);
+	theoreticalMaxScore = allUniqueTags.size;
+
+	for (const tag of allUniqueTags) {
+		const relations = tagDefinitions[tag]?.related_tags || [];
+		if (relations.length > 0) {
+			theoreticalMaxScore += Math.max(...relations.map(r => r.score));
+		}
+	}
+
+	if (theoreticalMaxScore === 0) return 0;
+
+	return Math.min(1, score / theoreticalMaxScore);
+}
+
+async function getMatchesByTags({ user_id, keyword, limit = 20, offset = 0 }) {
+	try {
+		const suggestions = [];
+
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+		}
+
+		if (keyword) {
+			whereFilter.full_name = {
+				[Op.iLike]: `%${keyword}%`
+			}
+		}
+
+		if (user_id) {
+			const currentUser = await Users.findOne({
+				where: { id: user_id },
+				raw: true
+			});
+			if (currentUser?.is_moderators) {
+				whereFilter.profile_approved = {
+					[Op.in]: ['approved', 'partially_approved']
+				}
+			} else {
+				whereFilter.profile_approved = 'approved'
+			}
+
+			const blockedUsers = await BlockedUsers.findAll({
+				where: {
+					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+				},
+				raw: true,
+			});
+
+			const matchedUsers = await Matches.findAll({
+				where: {
+					[Op.or]: [
+						{
+							[Op.or]: [
+								{ sender_id: user_id, status: 'rejected' },
+								{ sender_id: user_id, status: 'accepted' },
+								{ sender_id: user_id, status: 'deleted' },
+								{ receiver_id: user_id, status: 'rejected' },
+								{ receiver_id: user_id, status: 'accepted' },
+								{ receiver_id: user_id, status: 'deleted' },
+							],
+						},
+						{ receiver_id: user_id, status: 'sent' },
+					],
+				},
+				raw: true,
+			});
+
+			const blockedUserIds = blockedUsers.map((item) =>
+				item.user_id === user_id ? item.blocked_id : item.user_id
+			);
+			const matchedUserIds = matchedUsers.map((item) =>
+				item.sender_id === user_id ? item.receiver_id : item.sender_id
+			);
+
+			const moderatorConfig = await Configs.findOne({
+				where: { key: 'moderators_see_others' },
+				raw: true
+			});
+
+			if (moderatorConfig?.value === "0" && !currentUser?.is_moderators) {
+				whereFilter.is_moderator = false;
+			}
+
+			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+			whereFilter.id = {
+				[Op.notIn]: [user_id, ...avoidUserIds]
+			}
+
+			if (currentUser?.matching_tags && currentUser?.matching_tags.length > 0) {
+				const filterUsers = await Users.findAll({
+					where: whereFilter,
+					attributes: ['id', 'journey_id', 'matching_tags'],
+					raw: true,
+				})
+
+				const suggestionIds = [];
+
+				for (const filterUser of filterUsers) {
+					const score = (!filterUser.matching_tags || filterUser.matching_tags.length === 0) ? 0 :
+						calculateMatchScoreBaseOnTag(currentUser?.matching_tags, filterUser.matching_tags);
+					suggestionIds.push({ id: filterUser.id, score: score });
+				}
+
+				suggestionIds.sort((a, b) => b.score - a.score);
+				const finalSuggestionIds = suggestionIds.slice(offset, limit + offset);
+
+				for (const rawuser of finalSuggestionIds) {
+					const userInfo = await getProfile({ user_id: rawuser.id });
+					suggestions.push({ ...userInfo.data, score: rawuser.score });
+				}
+
+				return Promise.resolve({
+					message: 'Get matches by journey',
+					data: suggestions,
+				});
+			}
+		} else {
+			whereFilter.profile_approved = 'approved'
+		}
+
+		const filterUsers = await Users.findAll({
+			where: whereFilter,
+			attributes: ['id', 'journey_id'],
+			limit: parseInt(limit.toString()),
+			offset: parseInt(offset.toString()),
+			// order: Sequelize.literal('RANDOM()'),
+			order: [
+				['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC']
+			],
+			raw: true,
+		})
+
+		for (const rawuser of filterUsers) {
+			if (user_id) {
+				const userInfo = await getProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			} else {
+				const userInfo = await getSimpleProfile({ user_id: rawuser.id });
+				suggestions.push(userInfo.data);
+			}
+		}
+
+		return Promise.resolve({
+			message: 'Get matches by journey',
+			data: suggestions,
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+function calculateDetailedMatchScore(user1Tags, user2Tags) {
+	let totalScore = 0;
+	let matchDetails = [];
+
+	// Direct matches
+	for (const tag1 of user1Tags) {
+		if (user2Tags.includes(tag1)) {
+			totalScore += 1;
+			matchDetails.push({
+				tag: tag1,
+				type: 'direct_match',
+				score: 1,
+				description: `Both have ${tag1}`
+			});
+		}
+	}
+
+	// Related tag matches
+	for (const tag1 of user1Tags) {
+		const tag1Relations = tagDefinitions[tag1]?.related_tags || [];
+		for (const tag2 of user2Tags) {
+			const relation1to2 = tag1Relations.find(rel => rel.tag === tag2);
+			if (relation1to2) {
+				totalScore += relation1to2.score;
+				matchDetails.push({
+					tag: `${tag1} → ${tag2}`,
+					type: 'related_match',
+					score: relation1to2.score,
+					description: `${tag1} relates to ${tag2}`
+				});
+			}
+		}
+	}
+
+	// Reverse related tag matches
+	for (const tag2 of user2Tags) {
+		const tag2Relations = tagDefinitions[tag2]?.related_tags || [];
+		for (const tag1 of user1Tags) {
+			const relation2to1 = tag2Relations.find(rel => rel.tag === tag1);
+			if (relation2to1) {
+				// Check if we already counted this relationship
+				const alreadyCounted = matchDetails.some(detail => 
+					detail.tag === `${tag1} → ${tag2}` && detail.type === 'related_match'
+				);
+				if (!alreadyCounted) {
+					totalScore += relation2to1.score;
+					matchDetails.push({
+						tag: `${tag2} → ${tag1}`,
+						type: 'related_match',
+						score: relation2to1.score,
+						description: `${tag2} relates to ${tag1}`
+					});
+				}
+			}
+		}
+	}
+
+	return {
+		totalScore,
+		matchDetails
+	};
+}
+
+async function getTagMatchedUsers({ user_id, limit = 20, offset = 0 }) {
+	try {
+		if (!user_id) {
+			return Promise.reject('User ID is required');
+		}
+
+		const currentUser = await Users.findOne({
+			where: { id: user_id },
+			raw: true
+		});
+
+		if (!currentUser) {
+			return Promise.reject('User not found');
+		}
+
+		if (!currentUser.matching_tags || currentUser.matching_tags.length === 0) {
+			return Promise.resolve({
+				message: 'No matching tags found for user',
+				data: []
+			});
+		}
+
+		// Get blocked users and existing matches to avoid them
+		const blockedUsers = await BlockedUsers.findAll({
+			where: {
+				[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+			},
+			raw: true,
+		});
+
+		// const matchedUsers = await Matches.findAll({
+		// 	where: {
+		// 		[Op.or]: [
+		// 			{
+		// 				[Op.or]: [
+		// 					{ sender_id: user_id, status: 'rejected' },
+		// 					{ sender_id: user_id, status: 'accepted' },
+		// 					{ sender_id: user_id, status: 'deleted' },
+		// 					{ receiver_id: user_id, status: 'rejected' },
+		// 					{ receiver_id: user_id, status: 'accepted' },
+		// 					{ receiver_id: user_id, status: 'deleted' },
+		// 				],
+		// 			},
+		// 			{ receiver_id: user_id, status: 'sent' },
+		// 		],
+		// 	},
+		// 	raw: true,
+		// });
+
+		const blockedUserIds = blockedUsers.map((item) =>
+			item.user_id === user_id ? item.blocked_id : item.user_id
+		);
+		// const matchedUserIds = matchedUsers.map((item) =>
+		// 	item.sender_id === user_id ? item.receiver_id : item.sender_id
+		// );
+
+		// const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
+
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+			id: {
+				[Op.notIn]: [user_id, ...blockedUserIds]
+			}
+		};
+
+		if (currentUser.is_moderators) {
+			whereFilter.profile_approved = {
+				[Op.in]: ['approved', 'partially_approved']
+			};
+		} else {
+			whereFilter.profile_approved = 'approved';
+		}
+
+		const moderatorConfig = await Configs.findOne({
+			where: { key: 'moderators_see_others' },
+			raw: true
+		});
+
+		if (moderatorConfig?.value === "0" && !currentUser.is_moderators) {
+			whereFilter.is_moderator = false;
+		}
+
+		// Get all potential matches
+		const allUsers = await Users.findAll({
+			where: whereFilter,
+			attributes: ['id', 'matching_tags'],
+			raw: true,
+		});
+		const finalList = allUsers.splice(offset, limit + offset);
+
+		const matchedUsersWithDetails = [];
+
+		for (const user of finalList) {
+			if (!user.matching_tags || user.matching_tags.length === 0) {
+				continue;
+			}
+
+			const matchResult = calculateDetailedMatchScore(currentUser.matching_tags, user.matching_tags);
+			
+			if (matchResult.totalScore > 0) {
+				const userInfo = await getProfile({ user_id: user.id });
+				
+				matchedUsersWithDetails.push({
+					...userInfo.data,
+					match_score: Math.round(matchResult.totalScore * 100) / 100, // Round to 2 decimal places
+					match_details: matchResult.matchDetails,
+					user_tags: currentUser.matching_tags,
+					matched_user_tags: user.matching_tags
+				});
+			}
+		}
+
+		// Sort by score (highest first)
+		matchedUsersWithDetails.sort((a, b) => b.match_score - a.match_score);
+
+		return Promise.resolve({
+			message: 'Tag-matched users found',
+			data: matchedUsersWithDetails,
+			user_tags: currentUser.matching_tags
+		});
+
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
 async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0, user_id }) {
 	try {
-
-
 		const suggestions = [];
 
 		let whereFilter = {
@@ -2503,5 +2888,6 @@ module.exports = {
 	getRandomUserByJourneys,
 	getAllUsersForSupport,
 	supportSendRequest,
-	startChatWithSupport
+	startChatWithSupport,
+	getTagMatchedUsers
 };
