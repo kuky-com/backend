@@ -309,6 +309,12 @@ async function analyzeUser(user_id) {
                 { where: { id: user_id } }
             );
 
+            try {
+                await analyzeUserTags(user_id);
+            } catch (error) {
+                
+            }
+
             userInfo = await getUser(user_id);
 
             return Promise.resolve({
