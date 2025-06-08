@@ -1,0 +1,532 @@
+{
+  "outdoor_sport": {
+    "name": "Outdoor Sport",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.9 },
+      { "tag": "individual_sports", "score": 0.8 },
+      { "tag": "team_sports", "score": 0.7 },
+      { "tag": "fitness", "score": 0.75 },
+      { "tag": "adventure", "score": 0.6 }
+    ]
+  },
+  "indoor_sport": {
+    "name": "Indoor Sport",
+    "related_tags": [
+      { "tag": "individual_sports", "score": 0.8 },
+      { "tag": "team_sports", "score": 0.7 },
+      { "tag": "fitness", "score": 0.75 },
+      { "tag": "gaming", "score": 0.5 },
+      { "tag": "board_games", "score": 0.4 }
+    ]
+  },
+  "outdoor_activities": {
+    "name": "Outdoor Activities",
+    "related_tags": [
+      { "tag": "travel", "score": 0.8 },
+      { "tag": "hiking", "score": 0.9 },
+      { "tag": "camping", "score": 0.85 },
+      { "tag": "adventure", "score": 0.7 },
+      { "tag": "photography", "score": 0.6 }
+    ]
+  },
+  "indoor_activities": {
+    "name": "Indoor Activities",
+    "related_tags": [
+      { "tag": "reading", "score": 0.8 },
+      { "tag": "gaming", "score": 0.75 },
+      { "tag": "cooking", "score": 0.7 },
+      { "tag": "art", "score": 0.65 },
+      { "tag": "movies", "score": 0.6 }
+    ]
+  },
+  "adventure": {
+    "name": "Adventure",
+    "related_tags": [
+      { "tag": "travel", "score": 0.9 },
+      { "tag": "outdoor_activities", "score": 0.8 },
+      { "tag": "outdoor_sport", "score": 0.7 },
+      { "tag": "hiking", "score": 0.6 },
+      { "tag": "photography", "score": 0.5 }
+    ]
+  },
+  "travel": {
+    "name": "Travel",
+    "related_tags": [
+      { "tag": "adventure", "score": 0.9 },
+      { "tag": "photography", "score": 0.7 },
+      { "tag": "culture", "score": 0.8 },
+      { "tag": "food_and_drink", "score": 0.6 },
+      { "tag": "history", "score": 0.5 }
+    ]
+  },
+  "food_and_drink": {
+    "name": "Food & Drink",
+    "related_tags": [
+      { "tag": "cooking", "score": 0.85 },
+      { "tag": "travel", "score": 0.6 },
+      { "tag": "socializing", "score": 0.7 },
+      { "tag": "wellness", "score": 0.5 },
+      { "tag": "gardening", "score": 0.4 }
+    ]
+  },
+  "cooking": {
+    "name": "Cooking",
+    "related_tags": [
+      { "tag": "food_and_drink", "score": 0.85 },
+      { "tag": "indoor_activities", "score": 0.7 },
+      { "tag": "gardening", "score": 0.5 },
+      { "tag": "wellness", "score": 0.4 },
+      { "tag": "DIY", "score": 0.3 }
+    ]
+  },
+  "gaming": {
+    "name": "Gaming",
+    "related_tags": [
+      { "tag": "video_games", "score": 0.9 },
+      { "tag": "board_games", "score": 0.7 },
+      { "tag": "technology", "score": 0.6 },
+      { "tag": "socializing", "score": 0.5 },
+      { "tag": "indoor_activities", "score": 0.75 }
+    ]
+  },
+  "movies": {
+    "name": "Movies",
+    "related_tags": [
+      { "tag": "reading", "score": 0.6 },
+      { "tag": "music", "score": 0.5 },
+      { "tag": "art", "score": 0.4 },
+      { "tag": "storytelling", "score": 0.7 },
+      { "tag": "indoor_activities", "score": 0.6 }
+    ]
+  },
+  "music": {
+    "name": "Music",
+    "related_tags": [
+      { "tag": "art", "score": 0.7 },
+      { "tag": "movies", "score": 0.5 },
+      { "tag": "socializing", "score": 0.6 },
+      { "tag": "dancing", "score": 0.8 },
+      { "tag": "performance", "score": 0.7 }
+    ]
+  },
+  "reading": {
+    "name": "Reading",
+    "related_tags": [
+      { "tag": "literature", "score": 0.9 },
+      { "tag": "writing", "score": 0.8 },
+      { "tag": "education", "score": 0.7 },
+      { "tag": "history", "score": 0.6 },
+      { "tag": "indoor_activities", "score": 0.8 }
+    ]
+  },
+  "technology": {
+    "name": "Technology",
+    "related_tags": [
+      { "tag": "programming", "score": 0.9 },
+      { "tag": "science", "score": 0.7 },
+      { "tag": "gaming", "score": 0.6 },
+      { "tag": "personal_development", "score": 0.5 },
+      { "tag": "finance", "score": 0.4 }
+    ]
+  },
+  "programming": {
+    "name": "Programming",
+    "related_tags": [
+      { "tag": "technology", "score": 0.9 },
+      { "tag": "science", "score": 0.7 },
+      { "tag": "gaming", "score": 0.5 },
+      { "tag": "education", "score": 0.6 },
+      { "tag": "logic", "score": 0.8 }
+    ]
+  },
+  "art": {
+    "name": "Art",
+    "related_tags": [
+      { "tag": "photography", "score": 0.7 },
+      { "tag": "design", "score": 0.8 },
+      { "tag": "music", "score": 0.6 },
+      { "tag": "creativity", "score": 0.9 },
+      { "tag": "history", "score": 0.5 }
+    ]
+  },
+  "photography": {
+    "name": "Photography",
+    "related_tags": [
+      { "tag": "art", "score": 0.7 },
+      { "tag": "travel", "score": 0.75 },
+      { "tag": "outdoor_activities", "score": 0.6 },
+      { "tag": "nature", "score": 0.8 },
+      { "tag": "design", "score": 0.5 }
+    ]
+  },
+  "fashion": {
+    "name": "Fashion",
+    "related_tags": [
+      { "tag": "design", "score": 0.7 },
+      { "tag": "art", "score": 0.6 },
+      { "tag": "personal_development", "score": 0.5 },
+      { "tag": "socializing", "score": 0.4 },
+      { "tag": "shopping", "score": 0.8 }
+    ]
+  },
+  "fitness": {
+    "name": "Fitness",
+    "related_tags": [
+      { "tag": "wellness", "score": 0.9 },
+      { "tag": "outdoor_sport", "score": 0.75 },
+      { "tag": "indoor_sport", "score": 0.75 },
+      { "tag": "health", "score": 0.8 },
+      { "tag": "personal_development", "score": 0.6 }
+    ]
+  },
+  "wellness": {
+    "name": "Wellness",
+    "related_tags": [
+      { "tag": "fitness", "score": 0.9 },
+      { "tag": "health", "score": 0.85 },
+      { "tag": "mindfulness", "score": 0.7 },
+      { "tag": "personal_development", "score": 0.75 },
+      { "tag": "food_and_drink", "score": 0.5 }
+    ]
+  },
+  "personal_development": {
+    "name": "Personal Development",
+    "related_tags": [
+      { "tag": "education", "score": 0.8 },
+      { "tag": "wellness", "score": 0.7 },
+      { "tag": "business", "score": 0.6 },
+      { "tag": "psychology", "score": 0.75 },
+      { "tag": "reading", "score": 0.6 }
+    ]
+  },
+  "business": {
+    "name": "Business",
+    "related_tags": [
+      { "tag": "finance", "score": 0.8 },
+      { "tag": "personal_development", "score": 0.6 },
+      { "tag": "technology", "score": 0.5 },
+      { "tag": "leadership", "score": 0.75 },
+      { "tag": "entrepreneurship", "score": 0.9 }
+    ]
+  },
+  "finance": {
+    "name": "Finance",
+    "related_tags": [
+      { "tag": "business", "score": 0.8 },
+      { "tag": "economics", "score": 0.7 },
+      { "tag": "investing", "score": 0.9 },
+      { "tag": "personal_development", "score": 0.5 },
+      { "tag": "technology", "score": 0.4 }
+    ]
+  },
+  "education": {
+    "name": "Education",
+    "related_tags": [
+      { "tag": "reading", "score": 0.7 },
+      { "tag": "science", "score": 0.6 },
+      { "tag": "history", "score": 0.6 },
+      { "tag": "personal_development", "score": 0.8 },
+      { "tag": "learning", "score": 0.9 }
+    ]
+  },
+  "science": {
+    "name": "Science",
+    "related_tags": [
+      { "tag": "technology", "score": 0.7 },
+      { "tag": "education", "score": 0.6 },
+      { "tag": "research", "score": 0.8 },
+      { "tag": "environment", "score": 0.5 },
+      { "tag": "history", "score": 0.4 }
+    ]
+  },
+  "history": {
+    "name": "History",
+    "related_tags": [
+      { "tag": "education", "score": 0.6 },
+      { "tag": "reading", "score": 0.6 },
+      { "tag": "travel", "score": 0.5 },
+      { "tag": "politics", "score": 0.7 },
+      { "tag": "culture", "score": 0.8 }
+    ]
+  },
+  "politics": {
+    "name": "Politics",
+    "related_tags": [
+      { "tag": "current_events", "score": 0.8 },
+      { "tag": "history", "score": 0.7 },
+      { "tag": "economics", "score": 0.6 },
+      { "tag": "social_justice", "score": 0.75 },
+      { "tag": "activism", "score": 0.6 }
+    ]
+  },
+  "environment": {
+    "name": "Environment",
+    "related_tags": [
+      { "tag": "nature", "score": 0.9 },
+      { "tag": "science", "score": 0.7 },
+      { "tag": "sustainability", "score": 0.85 },
+      { "tag": "outdoor_activities", "score": 0.6 },
+      { "tag": "animals", "score": 0.7 }
+    ]
+  },
+  "animals": {
+    "name": "Animals",
+    "related_tags": [
+      { "tag": "pets", "score": 0.9 },
+      { "tag": "nature", "score": 0.8 },
+      { "tag": "environment", "score": 0.7 },
+      { "tag": "wildlife", "score": 0.85 },
+      { "tag": "photography", "score": 0.6 }
+    ]
+  },
+  "pets": {
+    "name": "Pets",
+    "related_tags": [
+      { "tag": "animals", "score": 0.9 },
+      { "tag": "wellness", "score": 0.6 },
+      { "tag": "home", "score": 0.5 },
+      { "tag": "training", "score": 0.7 },
+      { "tag": "companionship", "score": 0.8 }
+    ]
+  },
+  "gardening": {
+    "name": "Gardening",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.7 },
+      { "tag": "home", "score": 0.6 },
+      { "tag": "nature", "score": 0.8 },
+      { "tag": "DIY", "score": 0.5 },
+      { "tag": "environment", "score": 0.6 }
+    ]
+  },
+  "DIY": {
+    "name": "DIY",
+    "related_tags": [
+      { "tag": "home", "score": 0.7 },
+      { "tag": "crafts", "score": 0.8 },
+      { "tag": "gardening", "score": 0.5 },
+      { "tag": "design", "score": 0.6 },
+      { "tag": "personal_development", "score": 0.4 }
+    ]
+  },
+  "fishing": {
+    "name": "Fishing",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.8 },
+      { "tag": "nature", "score": 0.7 },
+      { "tag": "hunting", "score": 0.6 },
+      { "tag": "water_sports", "score": 0.5 },
+      { "tag": "relaxation", "score": 0.7 }
+    ]
+  },
+  "hunting": {
+    "name": "Hunting",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.8 },
+      { "tag": "nature", "score": 0.7 },
+      { "tag": "fishing", "score": 0.6 },
+      { "tag": "survival", "score": 0.75 },
+      { "tag": "animals", "score": 0.5 }
+    ]
+  },
+  "cars": {
+    "name": "Cars",
+    "related_tags": [
+      { "tag": "motorcycles", "score": 0.7 },
+      { "tag": "travel", "score": 0.5 },
+      { "tag": "technology", "score": 0.6 },
+      { "tag": "mechanics", "score": 0.8 },
+      { "tag": "racing", "score": 0.7 }
+    ]
+  },
+  "motorcycles": {
+    "name": "Motorcycles",
+    "related_tags": [
+      { "tag": "cars", "score": 0.7 },
+      { "tag": "travel", "score": 0.6 },
+      { "tag": "adventure", "score": 0.5 },
+      { "tag": "racing", "score": 0.7 },
+      { "tag": "mechanics", "score": 0.6 }
+    ]
+  },
+  "cycling": {
+    "name": "Cycling",
+    "related_tags": [
+      { "tag": "outdoor_sport", "score": 0.8 },
+      { "tag": "fitness", "score": 0.7 },
+      { "tag": "outdoor_activities", "score": 0.6 },
+      { "tag": "travel", "score": 0.5 },
+      { "tag": "environment", "score": 0.4 }
+    ]
+  },
+  "hiking": {
+    "name": "Hiking",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.9 },
+      { "tag": "outdoor_sport", "score": 0.8 },
+      { "tag": "camping", "score": 0.7 },
+      { "tag": "nature", "score": 0.85 },
+      { "tag": "photography", "score": 0.6 }
+    ]
+  },
+  "camping": {
+    "name": "Camping",
+    "related_tags": [
+      { "tag": "outdoor_activities", "score": 0.9 },
+      { "tag": "hiking", "score": 0.7 },
+      { "tag": "nature", "score": 0.8 },
+      { "tag": "adventure", "score": 0.6 },
+      { "tag": "travel", "score": 0.5 }
+    ]
+  },
+  "water_sports": {
+    "name": "Water Sports",
+    "related_tags": [
+      { "tag": "outdoor_sport", "score": 0.85 },
+      { "tag": "outdoor_activities", "score": 0.75 },
+      { "tag": "adventure", "score": 0.6 },
+      { "tag": "fitness", "score": 0.7 },
+      { "tag": "travel", "score": 0.5 }
+    ]
+  },
+  "snow_sports": {
+    "name": "Snow Sports",
+    "related_tags": [
+      { "tag": "outdoor_sport", "score": 0.85 },
+      { "tag": "outdoor_activities", "score": 0.75 },
+      { "tag": "adventure", "score": 0.6 },
+      { "tag": "fitness", "score": 0.7 },
+      { "tag": "travel", "score": 0.5 }
+    ]
+  },
+  "team_sports": {
+    "name": "Team Sports",
+    "related_tags": [
+      { "tag": "outdoor_sport", "score": 0.7 },
+      { "tag": "indoor_sport", "score": 0.7 },
+      { "tag": "fitness", "score": 0.8 },
+      { "tag": "socializing", "score": 0.75 },
+      { "tag": "competition", "score": 0.8 }
+    ]
+  },
+  "individual_sports": {
+    "name": "Individual Sports",
+    "related_tags": [
+      { "tag": "outdoor_sport", "score": 0.8 },
+      { "tag": "indoor_sport", "score": 0.8 },
+      { "tag": "fitness", "score": 0.9 },
+      { "tag": "personal_development", "score": 0.7 },
+      { "tag": "competition", "score": 0.7 }
+    ]
+  },
+  "board_games": {
+    "name": "Board Games",
+    "related_tags": [
+      { "tag": "gaming", "score": 0.7 },
+      { "tag": "indoor_activities", "score": 0.8 },
+      { "tag": "socializing", "score": 0.6 },
+      { "tag": "strategy", "score": 0.85 },
+      { "tag": "critical_thinking", "score": 0.75 }
+    ]
+  },
+  "video_games": {
+    "name": "Video Games",
+    "related_tags": [
+      { "tag": "gaming", "score": 0.9 },
+      { "tag": "technology", "score": 0.7 },
+      { "tag": "indoor_activities", "score": 0.7 },
+      { "tag": "socializing", "score": 0.6 },
+      { "tag": "storytelling", "score": 0.5 }
+    ]
+  },
+  "literature": {
+    "name": "Literature",
+    "related_tags": [
+      { "tag": "reading", "score": 0.9 },
+      { "tag": "writing", "score": 0.8 },
+      { "tag": "history", "score": 0.6 },
+      { "tag": "poetry", "score": 0.7 },
+      { "tag": "education", "score": 0.75 }
+    ]
+  },
+  "poetry": {
+    "name": "Poetry",
+    "related_tags": [
+      { "tag": "literature", "score": 0.8 },
+      { "tag": "writing", "score": 0.7 },
+      { "tag": "art", "score": 0.6 },
+      { "tag": "music", "score": 0.5 },
+      { "tag": "expression", "score": 0.9 }
+    ]
+  },
+  "writing": {
+    "name": "Writing",
+    "related_tags": [
+      { "tag": "reading", "score": 0.8 },
+      { "tag": "literature", "score": 0.7 },
+      { "tag": "personal_development", "score": 0.6 },
+      { "tag": "communication", "score": 0.75 },
+      { "tag": "storytelling", "score": 0.8 }
+    ]
+  },
+  "design": {
+    "name": "Design",
+    "related_tags": [
+      { "tag": "art", "score": 0.8 },
+      { "tag": "photography", "score": 0.7 },
+      { "tag": "architecture", "score": 0.75 },
+      { "tag": "fashion", "score": 0.6 },
+      { "tag": "DIY", "score": 0.5 }
+    ]
+  },
+  "architecture": {
+    "name": "Architecture",
+    "related_tags": [
+      { "tag": "design", "score": 0.8 },
+      { "tag": "art", "score": 0.7 },
+      { "tag": "history", "score": 0.6 },
+      { "tag": "engineering", "score": 0.75 },
+      { "tag": "city_planning", "score": 0.8 }
+    ]
+  },
+  "socializing": {
+    "name": "Socializing",
+    "related_tags": [
+      { "tag": "food_and_drink", "score": 0.7 },
+      { "tag": "music", "score": 0.6 },
+      { "tag": "travel", "score": 0.5 },
+      { "tag": "networking", "score": 0.8 },
+      { "tag": "community", "score": 0.7 }
+    ]
+  },
+  "volunteering": {
+    "name": "Volunteering",
+    "related_tags": [
+      { "tag": "community", "score": 0.9 },
+      { "tag": "social_justice", "score": 0.8 },
+      { "tag": "environment", "score": 0.7 },
+      { "tag": "personal_development", "score": 0.6 },
+      { "tag": "helping_others", "score": 0.9 }
+    ]
+  },
+  "nature": {
+    "name": "Nature",
+    "related_tags": [
+      { "tag": "environment", "score": 0.9 },
+      { "tag": "outdoor_activities", "score": 0.85 },
+      { "tag": "animals", "score": 0.8 },
+      { "tag": "hiking", "score": 0.7 },
+      { "tag": "photography", "score": 0.6 }
+    ]
+  },
+  "health": {
+    "name": "Health",
+    "related_tags": [
+      { "tag": "wellness", "score": 0.9 },
+      { "tag": "fitness", "score": 0.85 },
+      { "tag": "food_and_drink", "score": 0.7 },
+      { "tag": "personal_development", "score": 0.6 },
+      { "tag": "medicine", "score": 0.7 }
+    ]
+  }
+}

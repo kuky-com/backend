@@ -355,10 +355,18 @@ async function getProfileApprovalStats() {
 		const result = []
 		let total = 0
 
+		const names = {
+			approved: 'Approved',
+			rejected: 'Rejected',
+			pending: 'Pending',
+			resubmitted: 'Resubmitted',
+			partially_approved: 'Partially Approved'
+		};
+
 		// Update counts from database results
 		stats.forEach(stat => {
 			result.push({
-				name: stat.profile_approved,
+				name: names[stat.profile_approved],
 				count: parseInt(stat.count),
 				id: stat.profile_approved
 			})

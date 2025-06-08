@@ -213,6 +213,32 @@ router.get('/users-list', authAdminMiddleware, (request, response, next) => {
 		});
 });
 
+router.get('/matched-list', authAdminMiddleware, (request, response, next) => {
+	const { user_id } = request.query;
+
+	if (!user_id) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id',
+		});
+	}
+
+	return matches.getTagMatchedUsers({ ...request.query })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.get('/all-journeys', authAdminMiddleware, (request, response, next) => {
 	return getAllJourneys()
 		.then(({ data, message }) => {
