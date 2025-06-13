@@ -75,7 +75,20 @@ const autoRejectProfile = async (req, res) => {
                 }
             }
 
-            if (reasons.length === 0) {
+            let invalidOrMissingVideo = [];
+            if (!user.video_intro) {
+                invalidOrMissingVideo.push('Missing video intro')
+            } else {
+                const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
+                    audio_uri: user.video_intro,
+                })
+
+                if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 50) {
+                    invalidOrMissingVideo.push('Your video is invalid, please reupload better video')
+                }
+            }
+            // If user has profile / journey / likes / dislikes => User profile to be 'partially approved'
+            if (reasons.length === 0 && invalidOrMissingVideo.length > 0) {
                 try {
                     await Users.update({
                     profile_approved: 'partially_approved',
@@ -89,19 +102,8 @@ const autoRejectProfile = async (req, res) => {
                 }
 
             } else {
-                if (!user.video_intro) {
-                    reasons.push('Missing video intro')
-                } else {
-                    const response = await axios.post('https://6sx3m5nsmex2xyify3lb3x7s440xkxud.lambda-url.ap-southeast-1.on.aws', {
-                        audio_uri: user.video_intro,
-                    })
-
-                    if (response && response.data && response.data.transcript_text && response.data.transcript_text.length < 50) {
-                        reasons.push('Your video is invalid, please reupload better video')
-                    }
-                }
-
                 if (reasons.length > 0) {
+                    // If user has missed any one of these data : profile / journey / likes/ dislikes => user profile to be 'rejected'
                     // console.log({status: 'rejected', reasons: reasons.join('\n'), user_id: user.id})
                     try {
                         await profileAction({ status: 'rejected', reason: reasons.join('\n'), user_id: user.id })
@@ -109,6 +111,7 @@ const autoRejectProfile = async (req, res) => {
                         console.log({ error })
                     }
                 } else {
+                    // If user has profile / journey /likes / dislikes & video => do nothing, (admin will manually approve)
                     // console.log({status: 'approved', user_id: user.id})
                     // try {
                     //     await profileAction({ status: 'approved', user_id: user.id })
