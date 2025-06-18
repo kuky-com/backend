@@ -2652,6 +2652,7 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 								{ sender_id: user_id, status: 'rejected' },
 								{ sender_id: user_id, status: 'accepted' },
 								{ sender_id: user_id, status: 'deleted' },
+								{ sender_id: user_id, status: 'sent' },
 								{ receiver_id: user_id, status: 'rejected' },
 								{ receiver_id: user_id, status: 'accepted' },
 								{ receiver_id: user_id, status: 'deleted' },
