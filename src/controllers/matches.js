@@ -2532,6 +2532,7 @@ async function getMatchesByJourney({ journey_id, keyword, limit = 20, offset = 0
 								{ sender_id: user_id, status: 'rejected' },
 								{ sender_id: user_id, status: 'accepted' },
 								{ sender_id: user_id, status: 'deleted' },
+								{ sender_id: user_id, status: 'sent' },
 								{ receiver_id: user_id, status: 'rejected' },
 								{ receiver_id: user_id, status: 'accepted' },
 								{ receiver_id: user_id, status: 'deleted' },

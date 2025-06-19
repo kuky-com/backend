@@ -311,7 +311,13 @@ async function analyzeUser(user_id) {
             );
 
             try {
-                await analyzeUserTags(user_id);
+                const tags = await analyzeUserTags(user_id);
+                if (tags.data.length > 0){
+                    await Users.update(
+                        { tags: tags.data },
+                        { where: { id: user_id } }
+                    );
+                }
             } catch (error) {
                 
             }
@@ -465,5 +471,6 @@ module.exports = {
     db,
     firebaseAdmin,
     analyzeUserTags,
-    analyzeAllUserTags
+    analyzeAllUserTags,
+    predefinedTags,
 };

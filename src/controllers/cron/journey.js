@@ -4,6 +4,7 @@ const { getUser } = require("../users");
 const Journeys = require("../../models/journeys")
 const { default: axios } = require("axios");
 const { default: OpenAI } = require('openai');
+const { predefinedTags } = require('../common');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -127,7 +128,13 @@ const autoAnalyzeUser = async (req, res) => {
                 );
 
                 try {
-                    await analyzeUserTags(userInfo);
+                    const tags = await analyzeUserTags(userInfo);
+                    if (tags.data.length > 0) {
+                        await Users.update(
+                            { tags: tags.data },
+                            { where: { id: user_id } }
+                        );
+                    }
                 } catch (error) {
                     
                 }
