@@ -2243,7 +2243,7 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 
 				for (const filterUser of filterUsers) {
 					const score = (!filterUser.matching_tags || filterUser.matching_tags.length === 0) ? 0 :
-						calculateMatchScoreBaseOnTag(currentUser?.matching_tags, filterUser.matching_tags);
+						calculateDetailedMatchScore(currentUser?.matching_tags, filterUser.matching_tags).totalScore;
 					suggestionIds.push({ id: filterUser.id, score: score });
 				}
 
