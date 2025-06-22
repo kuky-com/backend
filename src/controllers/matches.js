@@ -2151,13 +2151,17 @@ function calculateMatchScoreBaseOnTag(user1Tags, user2Tags) {
 	return Math.min(1, score / theoreticalMaxScore);
 }
 
-async function getMatchesByTags({ user_id, keyword, limit = 20, offset = 0 }) {
+async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0 }) {
 	try {
 		const suggestions = [];
 
 		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
+		}
+
+		if (journey_id) {
+			whereFilter.journey_id = journey_id;
 		}
 
 		if (keyword) {
@@ -2194,6 +2198,7 @@ async function getMatchesByTags({ user_id, keyword, limit = 20, offset = 0 }) {
 								{ sender_id: user_id, status: 'rejected' },
 								{ sender_id: user_id, status: 'accepted' },
 								{ sender_id: user_id, status: 'deleted' },
+								{ sender_id: user_id, status: 'sent' },
 								{ receiver_id: user_id, status: 'rejected' },
 								{ receiver_id: user_id, status: 'accepted' },
 								{ receiver_id: user_id, status: 'deleted' },
@@ -2891,5 +2896,6 @@ module.exports = {
 	getAllUsersForSupport,
 	supportSendRequest,
 	startChatWithSupport,
-	getTagMatchedUsers
+	getTagMatchedUsers,
+	getMatchesByTags
 };

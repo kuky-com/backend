@@ -515,7 +515,7 @@ router.get('/match-by-journey', optionAuthMiddleware, async (request, response, 
     const { user_id } = request
 
 	return matches
-		.getMatchesByJourney({ ...request.query, user_id })
+		.getMatchesByTags({ ...request.query, user_id })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
