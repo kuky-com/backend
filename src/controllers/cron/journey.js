@@ -131,7 +131,7 @@ const autoAnalyzeUser = async (req, res) => {
                     const tags = await analyzeUserTags(userInfo);
                     if (tags.data.length > 0) {
                         await Users.update(
-                            { tags: tags.data },
+                            { matching_tags: tags.data },
                             { where: { id: user_id } }
                         );
                     }

@@ -169,15 +169,16 @@ async function getUserAvatar(user_id) {
 }
 
 const predefinedTags = [
-    "outdoor_sport", "indoor_sport", "outdoor_activities", "indoor_activities",
+    "outdoor sport", "indoor sport", "outdoor activities", "indoor activities",
     "adventure", "travel", "food_and_drink", "cooking", "gaming", "movies",
     "music", "reading", "technology", "programming", "art", "photography",
-    "fashion", "fitness", "wellness", "personal_development", "business",
+    "fashion", "fitness", "wellness", "personal development", "business",
     "finance", "education", "science", "history", "politics", "environment",
     "animals", "pets", "gardening", "DIY", "fishing", "hunting", "cars",
-    "motorcycles", "cycling", "hiking", "camping", "water_sports", "snow_sports",
-    "team_sports", "individual_sports", "board_games", "video_games", "literature",
-    "poetry", "writing", "design", "architecture", "socializing", "volunteering"
+    "motorcycles", "cycling", "hiking", "camping", "water sports", "snow sports",
+    "team sports", "individual sports", "board games", "video games", "literature",
+    "poetry", "writing", "design", "architecture", "socializing", "volunteering",
+    "entrepreneurship"
 ];
 
 async function analyzeAllUserTags() {
@@ -314,7 +315,7 @@ async function analyzeUser(user_id) {
                 const tags = await analyzeUserTags(user_id);
                 if (tags.data.length > 0){
                     await Users.update(
-                        { tags: tags.data },
+                        { matching_tags: tags.data },
                         { where: { id: user_id } }
                     );
                 }
