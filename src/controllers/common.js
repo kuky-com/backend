@@ -280,7 +280,17 @@ async function analyzeUser(user_id) {
 
         const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
         const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
-
+        // check if user has interests or video transcripts
+        if(interests.length === 0 && 
+            dislikes.length === 0 &&
+            !userInfo.video_intro_transcript && 
+            !userInfo.video_purpose_transcript && 
+            !userInfo.video_interests_transcript) {
+            return Promise.resolve({
+                data: userInfo,
+                message: 'No interests or video transcripts available for analysis',
+            });
+        }
         const prompt = `We have following information and list of journeys, please analyze the user and give us best matching journey for the user.
                         Full name: ${userInfo.full_name}
                         Interested journey: ${userInfo.journey?.name ?? ''}
