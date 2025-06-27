@@ -39,6 +39,8 @@ const { updateLikes, updateDislikes } = require('./interests');
 const { getReviewStats, createSummary, getUser, firebaseAdmin } = require('./common');
 const { sendUserInvitationEmail } = require('./email');
 const ModeratorFaqs = require('../models/moderator_faqs');
+const { analyzeUserTags } = require('../controllers/common');
+
 
 const db = firebaseAdmin.firestore();
 
@@ -221,6 +223,11 @@ async function updateSubtitle(user_id, media_url, type) {
 				returning: true,
 				plain: true,
 			});
+
+			// Analyze transcription and create tags
+			if (response.data.transcript_text) {
+				await analyzeTranscriptionAndCreateTags(user_id, response.data.transcript_text, type);
+			}
 		}
 
 		createSummary(user_id);
@@ -1488,6 +1495,61 @@ async function getModeratorFAQs () {
 	}
 }
 
+async function analyzeTranscriptionAndCreateTags(user_id, transcript_text, video_type) {
+	try {
+		const result = await analyzeUserTags(user_id);
+		
+		await Users.update(
+			{ matching_tags: result.data },
+			{ where: { id: user_id } }
+		);
+
+	} catch (error) {
+		console.log('Error analyzing transcription:', error);
+		return Promise.reject(error);
+	}
+}
+
+async function createUserTags(user_id, tagNames) {
+	try {
+		for (const tagName of tagNames) {
+			// Find or create tag
+			const [tag] = await Tags.findOrCreate({
+				where: { name: tagName.toLowerCase() },
+				defaults: { name: tagName.toLowerCase() }
+			});
+
+			// You may need to create a UserTags model/table for many-to-many relationship
+			// For now, we'll use the existing Tags model
+			console.log(`Created/found tag: ${tag.name} for user ${user_id}`);
+		}
+	} catch (error) {
+		console.log('Error creating user tags:', error);
+	}
+}
+
+async function createUserPurposes(user_id, purposeNames) {
+	try {
+		for (const purposeName of purposeNames) {
+			// Find or create purpose
+			const [purpose] = await Purposes.findOrCreate({
+				where: { name: purposeName.toLowerCase() },
+				defaults: { name: purposeName.toLowerCase() }
+			});
+
+			// Create user-purpose association
+			await UserPurpose.findOrCreate({
+				where: {
+					user_id: user_id,
+					purpose_id: purpose.id
+				}
+			});
+		}
+	} catch (error) {
+		console.log('Error creating user purposes:', error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -1517,5 +1579,6 @@ module.exports = {
 	updateAvatar,
 	sendUserInvitation,
 	getAllModeratorsPayments,
-	getModeratorFAQs
+	getModeratorFAQs,
+	analyzeTranscriptionAndCreateTags
 };

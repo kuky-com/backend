@@ -1015,5 +1015,32 @@ router.get('/test-tagging', (request, response, next) => {
 //         })
 // })
 
+router.post('/analyze-transcription', authMiddleware, (request, response, next) => {
+	const { user_id } = request;
+	const { transcript_text, video_type } = request.body;
+
+	if (!user_id || !transcript_text || !video_type) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: transcript_text, video_type',
+		});
+	}
+
+	return users
+		.analyzeTranscriptionAndCreateTags(user_id, transcript_text, video_type)
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
 
 module.exports = router;
