@@ -101,4 +101,21 @@ router.get('/profile-approval-stats', async (request, response) => {
 	}
 });
 
+router.get('/email-verification', async (req, res) => {
+	try {
+		const admin = require('@controllers/admin');
+		const result = await admin.getEmailVerificationStats();
+
+		res.status(200).json({ 
+			...result, 
+			success: true 
+		});
+	} catch (err) {
+		res.status(500).json({ 
+			message: err.message, 
+			success: false 
+		});
+	}
+});
+
 module.exports = router;

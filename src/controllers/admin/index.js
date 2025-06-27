@@ -1300,6 +1300,48 @@ async function sendSupportMessage({ conversation_id, last_message }) {
 	}
 }
 
+async function getEmailVerificationStats() {
+	try {
+		const emailStats = await Users.findAll({
+			attributes: [
+				'email_verified',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['email_verified'],
+			raw: true
+		});
+		
+		// Transform the data for pie chart
+		const chartData = emailStats.map(stat => ({
+			label: stat.email_verified ? 'Email Verified' : 'Email Not Verified',
+			value: parseInt(stat.count),
+			color: stat.email_verified ? '#10B981' : '#EF4444',
+			name: stat.email_verified ? 'Email Verified' : 'Email Not Verified'
+		}));
+
+		// Calculate totals and percentages
+		const totalUsers = chartData.reduce((sum, item) => sum + item.value, 0);
+		const verifiedCount = chartData.find(item => item.verified)?.value || 0;
+		const unverifiedCount = chartData.find(item => !item.verified)?.value || 0;
+
+		return Promise.resolve({
+			data: {
+				chartData,
+				summary: {
+					total: totalUsers,
+					verified: verifiedCount,
+					unverified: unverifiedCount,
+					verifiedPercentage: totalUsers > 0 ? ((verifiedCount / totalUsers) * 100).toFixed(1) : 0,
+					unverifiedPercentage: totalUsers > 0 ? ((unverifiedCount / totalUsers) * 100).toFixed(1) : 0
+				}
+			},
+			message: 'Email verification stats retrieved successfully'
+		});
+	} catch (error) {
+		console.log('Error retrieving email verification stats:', error);
+		return Promise.reject('Error retrieving email verification stats');
+	}
+}
 
 module.exports = {
 	createLeadUsers,
@@ -1322,5 +1364,6 @@ module.exports = {
 	setSupport,
 	requestCompleteProfileActionPush,
 	sendCompleteProfile,
-	sendSupportMessage
+	sendSupportMessage,
+	getEmailVerificationStats
 };
