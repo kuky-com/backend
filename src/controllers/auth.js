@@ -62,7 +62,7 @@ async function updateUserFromLead(email) {
 	}
 }
 
-async function signUp({ full_name, email, password, platform, referral_code }) {
+async function signUp({ full_name, email, password, platform, referral_code, lead, campaign }) {
 	try {
 		const existingUser = await Users.findOne({
 			where: { email, email_verified: true },
@@ -84,6 +84,8 @@ async function signUp({ full_name, email, password, platform, referral_code }) {
 					email_verified: false,
 					login_type: 'email',
 					register_platform: platform || 'web',
+					lead: lead || null,
+					campaign: campaign || null,
 				},
 				{
 					where: {
@@ -101,7 +103,9 @@ async function signUp({ full_name, email, password, platform, referral_code }) {
 				email_verified: false,
 				login_type: 'email',
 				referral_id: referral_id,
-				register_platform: platform || 'web'
+				register_platform: platform || 'web',
+				lead: lead || null,
+				campaign: campaign || null,
 			});
 
 			if (referral_code && referral_code.length > 0) {
@@ -330,7 +334,7 @@ async function login({ email, password, session_token, device_id, platform }) {
 	}
 }
 
-async function googleLogin({ token, session_token, device_id, platform, referral_code }) {
+async function googleLogin({ token, session_token, device_id, platform, referral_code, lead, campaign }) {
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: token,
@@ -352,6 +356,8 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 				full_name,
 				referral_id: referral_id,
 				register_platform: platform || 'web',
+				lead: lead || null,
+				campaign: campaign || null,
 			});
 
 			if (referral_code && referral_code.length > 0) {

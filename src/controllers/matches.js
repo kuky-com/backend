@@ -1695,7 +1695,8 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 
 		try {
 			if (existMatch.sender_id === user_id) {
-				if ((existMatch.sender?.profile_approved === 'approved') || (existMatch.sender?.profile_approved == 'partially_approved' && existMatch.receiver?.is_moderators)) {
+				if ((existMatch.sender?.profile_approved === 'approved') 
+						|| (existMatch.receiver?.is_moderators)) {
 					addNewPushNotification(
 						existMatch.receiver_id,
 						existMatch.toJSON(),
@@ -1706,7 +1707,9 @@ async function updateLastMessage({ user_id, conversation_id, last_message }) {
 					);
 				}
 			} else {
-				if ((existMatch.receiver?.profile_approved === 'approved') || (existMatch.receiver?.profile_approved == 'partially_approved' && existMatch.sender?.is_moderators)) {
+				if ((existMatch.receiver?.profile_approved === 'approved') 
+					|| (existMatch.receiver?.profile_approved == 'partially_approved') 
+					||  (existMatch.sender?.is_moderators)) {
 					addNewPushNotification(
 						existMatch.sender_id,
 						existMatch.toJSON(),

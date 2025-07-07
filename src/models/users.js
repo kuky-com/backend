@@ -292,6 +292,14 @@ const Users = sequelize.define('users', {
 		allowNull: true,
 		defaultValue: 'web'
 	},
+	lead: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	campaign: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
 	journey_id: {
 		type: DataTypes.INTEGER,
 		allowNull: true,
