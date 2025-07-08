@@ -386,6 +386,117 @@ async function getProfileApprovalStats() {
 	}
 }
 
+async function getUsersByPlatformStats() {
+	try {
+		const stats = await Users.findAll({
+			where: {
+				is_active: true,
+				register_platform: {
+					[Op.ne]: null
+				}
+			},
+			attributes: [
+				'register_platform',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['register_platform'],
+			raw: true
+		});
+
+		const result = [];
+		let total = 0;
+
+		// Process the stats
+		stats.forEach(stat => {
+			result.push({
+				name: stat.register_platform,
+				count: parseInt(stat.count),
+				id: stat.register_platform
+			});
+			total += parseInt(stat.count);
+		});
+
+		return { stats: result, total };
+	} catch (error) {
+		console.error('Error fetching users by platform stats:', error);
+		return { stats: [], total: 0 };
+	}
+}
+
+async function getUsersByLeadStats() {
+	try {
+		const stats = await Users.findAll({
+			where: {
+				is_active: true,
+				lead: {
+					[Op.ne]: null
+				}
+			},
+			attributes: [
+				'lead',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['lead'],
+			raw: true
+		});
+
+		const result = [];
+		let total = 0;
+
+		// Process the stats
+		stats.forEach(stat => {
+			result.push({
+				name: stat.lead,
+				count: parseInt(stat.count),
+				id: stat.lead
+			});
+			total += parseInt(stat.count);
+		});
+
+		return { stats: result, total };
+	} catch (error) {
+		console.error('Error fetching users by lead stats:', error);
+		return { stats: [], total: 0 };
+	}
+}
+
+async function getUsersByCampaignStats() {
+	try {
+		const stats = await Users.findAll({
+			where: {
+				is_active: true,
+				campaign: {
+					[Op.ne]: null
+				}
+			},
+			attributes: [
+				'campaign',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['campaign'],
+			raw: true
+		});
+
+		const result = [];
+		let total = 0;
+
+		// Process the stats
+		stats.forEach(stat => {
+			result.push({
+				name: stat.campaign,
+				count: parseInt(stat.count),
+				id: stat.campaign
+			});
+			total += parseInt(stat.count);
+		});
+
+		return { stats: result, total };
+	} catch (error) {
+		console.error('Error fetching users by campaign stats:', error);
+		return { stats: [], total: 0 };
+	}
+}
+
 module.exports = {
 	getUserGrowth,
 	getMatches,
@@ -394,5 +505,8 @@ module.exports = {
 	getProfileViewsCount,
 	getCountJourneys,
 	getCountJourneyCategories,
-	getProfileApprovalStats
+	getProfileApprovalStats,
+	getUsersByPlatformStats,
+	getUsersByLeadStats,
+	getUsersByCampaignStats
 };
