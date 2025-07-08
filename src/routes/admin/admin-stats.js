@@ -118,4 +118,49 @@ router.get('/email-verification', async (req, res) => {
 	}
 });
 
+router.get('/users-by-platform', async (req, res) => {
+	try {
+		const result = await stats.getUsersByPlatformStats();
+		res.status(200).json({ 
+			data: result, 
+			success: true 
+		});
+	} catch (err) {
+		res.status(500).json({ 
+			message: err.message, 
+			success: false 
+		});
+	}
+});
+
+router.get('/users-by-lead', async (req, res) => {
+	try {
+		const result = await stats.getUsersByLeadStats();
+		res.status(200).json({ 
+			data: result, 
+			success: true 
+		});
+	} catch (err) {
+		res.status(500).json({ 
+			message: err.message, 
+			success: false 
+		});
+	}
+});
+
+router.get('/users-by-campaign', async (req, res) => {
+	try {
+		const result = await stats.getUsersByCampaignStats();
+		res.status(200).json({ 
+			data: result, 
+			success: true 
+		});
+	} catch (err) {
+		res.status(500).json({ 
+			message: err.message, 
+			success: false 
+		});
+	}
+});
+
 module.exports = router;
