@@ -589,64 +589,93 @@ async function profileAction({ status, reason, user_id }) {
 			console.log({ error })
 		}
 
-		if (status === 'approved') {
-			addNewNotification(
-				user.id,
-				null,
-				null,
-				null,
-				'profile_approved',
-				'Your profile has been approved',
-				'Your account has been approved, and you’re all set to start connecting on Kuky.'
-			);
-			addNewPushNotification(
-				user.id,
-				null,
-				null,
-				'profile_approved',
-				'Your profile has been approved',
-				`Your account has been approved, and you’re all set to start connecting on Kuky.`
-			);
-			emailService.sendApproveProfileEmail({ to_email: user.email, to_name: user?.full_name });
+		switch (status) {
+			case 'approved':
+				addNewNotification(
+					user.id,
+					null,
+					null,
+					null,
+					'profile_approved',
+					'Your profile has been approved',
+					'Your account has been approved, and you\'re all set to start connecting on Kuky.'
+				);
+				addNewPushNotification(
+					user.id,
+					null,
+					null,
+					'profile_approved',
+					'Your profile has been approved',
+					'Your account has been approved, and you\'re all set to start connecting on Kuky.'
+				);
+				emailService.sendApproveProfileEmail({ to_email: user.email, to_name: user?.full_name });
 
-			try {
-				const matchedUsers = await Users.findAll({
-					where: {
-						journey_id: user.journey_id
+				try {
+					const matchedUsers = await Users.findAll({
+						where: {
+							journey_id: user.journey_id,
+							is_moderators: true
+						}
+					})
+
+					const journey = await Journeys.findOne({
+						where: {
+							id: user.journey_id
+						}
+					})
+
+					for (const matchedUser of matchedUsers) {
+						await addNewPushNotification(matchedUser.id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${journey?.name}. Tap to view their request and support each other!`);
 					}
-				})
-
-				const journey = await Journeys.findOne({
-					where: {
-						id: user.journey_id
-					}
-				})
-
-				for (const matchedUser of matchedUsers) {
-					await addNewPushNotification(matchedUser.user_id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${journey?.name}. Tap to view their request and support each other!`);
+				} catch (error) {
+					console.log({ error })
 				}
-			} catch (error) {
-				console.log({ error })
-			}
-		} else {
-			addNewNotification(
-				user.id,
-				null,
-				null,
-				null,
-				'profile_rejected',
-				'Your profile has been rejected',
-				`Unfortunately, your account couldn’t be approved at this time due to the following reason: ${reason}.`
-			);
-			addNewPushNotification(
-				user.id,
-				null,
-				null,
-				'profile_rejected',
-				'Your profile has been rejected',
-				`Unfortunately, your account couldn’t be approved at this time due to the following reason: ${reason}.`
-			);
-			emailService.sendRejectProfileEmail({ to_email: user.email, to_name: user?.full_name, reasons: reason.split('\n') });
+				break;
+			case 'partial_approved':
+				try {
+					const matchedUsers = await Users.findAll({
+						where: {
+							journey_id: user.journey_id,
+							is_moderators: true
+						}
+					})
+
+					const journey = await Journeys.findOne({
+						where: {
+							id: user.journey_id
+						}
+					})
+
+					for (const matchedUser of matchedUsers) {
+						await addNewPushNotification(matchedUser.id, null, user, 'new_suggestion', `New suggestion 🤝`, `${user.full_name} is on the same journey as you: ${journey?.name}. Tap to view their request and support each other!`);
+					}
+				} catch (error) {
+					console.log({ error })
+				}
+				break
+			case 'rejected':
+				addNewNotification(
+					user.id,
+					null,
+					null,
+					null,
+					'profile_rejected',
+					'Your profile has been rejected',
+					`Unfortunately, your account couldn't be approved at this time due to the following reason: ${reason}.`
+				);
+				addNewPushNotification(
+					user.id,
+					null,
+					null,
+					'profile_rejected',
+					'Your profile has been rejected',
+					`Unfortunately, your account couldn't be approved at this time due to the following reason: ${reason}.`
+				);
+				emailService.sendRejectProfileEmail({ to_email: user.email, to_name: user?.full_name, reasons: reason.split('\n') });
+				break;
+			default:
+				// No action needed for other statuses
+				break;
 		}
 
 		return Promise.resolve({
