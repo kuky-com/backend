@@ -91,6 +91,8 @@ async function updateProfile({
 	location,
 	pronouns,
 	birthday,
+	last_latitude,
+	last_longitude,
 	...restParams
 }) {
 	try {
@@ -101,6 +103,11 @@ async function updateProfile({
 		if (pronouns) updates.pronouns = pronouns;
 		if (birthday) updates.birthday = birthday;
 		if (restParams.user_note) updates.user_note = restParams.user_note.trim();
+		
+		// Handle location coordinates
+		if (last_latitude !== undefined) updates.last_latitude = last_latitude;
+		if (last_longitude !== undefined) updates.last_longitude = last_longitude;
+
 		// if (publicGender) updates.publicGender = publicGender;
 		// if (publicPronouns) updates.publicPronouns = publicPronouns;
 		// if (notificationEnable) updates.notificationEnable = notificationEnable;
