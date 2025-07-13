@@ -2154,7 +2154,7 @@ function calculateMatchScoreBaseOnTag(user1Tags, user2Tags) {
 	return Math.min(1, score / theoreticalMaxScore);
 }
 
-async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0 }) {
+async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0, sort_by, sort_direction = 'DESC' }) {
 	try {
 		const suggestions = [];
 
@@ -2235,7 +2235,7 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 				[Op.notIn]: [user_id, ...avoidUserIds]
 			}
 
-			if (currentUser?.matching_tags && currentUser?.matching_tags.length > 0) {
+			if (currentUser?.matching_tags && currentUser?.matching_tags.length > 0 && sort_by === 'relevance') {
 				const filterUsers = await Users.findAll({
 					where: whereFilter,
 					attributes: ['id', 'journey_id', 'matching_tags'],
@@ -2263,22 +2263,67 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 					data: suggestions,
 				});
 			}
+			else if (sort_by === 'distance') {
+				const filterUsers = await Users.findAll({
+					where: whereFilter,
+					attributes: ['id', 'last_latitude', 'last_longitude'],
+					raw: true,
+				})
+
+				const suggestionIds = [];
+
+				for (const filterUser of filterUsers) {
+					const distance = (!filterUser.last_latitude || !filterUser.last_longitude) ? 999999 :
+						calculateDistance(
+							currentUser.last_latitude,
+							currentUser.last_longitude,
+							filterUser.last_latitude,
+							filterUser.last_longitude
+						);
+					suggestionIds.push({ id: filterUser.id, distance: distance });
+				}
+				if ( sort_direction === 'ASC') {
+					suggestionIds.sort((a, b) => a.distance - b.distance);
+				} else {
+					suggestionIds.sort((a, b) => b.distance - a.distance);
+				}
+
+				const finalSuggestionIds = suggestionIds.slice(offset, limit + offset);
+
+				for (const rawuser of finalSuggestionIds) {
+					const userInfo = await getProfile({ user_id: rawuser.id });
+					suggestions.push({ ...userInfo.data, score: rawuser.score });
+				}
+
+				return Promise.resolve({
+					message: 'Get matches by journey ordered by distance',
+					data: suggestions,
+				});
+
+			}
 		} else {
 			whereFilter.profile_approved = 'approved'
 		}
 
+		let orderDefault = [['score_ranking', 'DESC'],
+				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+				['last_active_time', 'DESC'], // Most recent last_active_time first
+				['id', 'DESC'],
+			]
+		if (sort_by && sort_direction) {
+			if (sort_by === 'relevance') {
+				// use the default order
+			} else if (sort_by === 'latest_registration') {
+				orderDefault = [['createdAt', sort_direction.toUpperCase()]];
+			}	
+		}	
 		const filterUsers = await Users.findAll({
 			where: whereFilter,
 			attributes: ['id', 'journey_id'],
 			limit: parseInt(limit.toString()),
 			offset: parseInt(offset.toString()),
 			// order: Sequelize.literal('RANDOM()'),
-			order: [
-				['score_ranking', 'DESC'],
-				[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
-				['last_active_time', 'DESC'], // Most recent last_active_time first
-				['id', 'DESC']
-			],
+			order: orderDefault,
 			raw: true,
 		})
 
@@ -2300,6 +2345,22 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 		console.log({ error });
 		return Promise.reject(error);
 	}
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+	const R = 6371; // Radius of the Earth in kilometers
+	const dLat = (lat2 - lat1) * (Math.PI / 180);
+	const dLon = (lon2 - lon1) * (Math.PI / 180);
+	
+	const a = 
+		Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+		Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+		Math.sin(dLon / 2) * Math.sin(dLon / 2);
+	
+	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	const distance = R * c; // Distance in kilometers
+	
+	return distance;
 }
 
 function calculateDetailedMatchScore(user1Tags, user2Tags) {
