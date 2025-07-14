@@ -963,7 +963,25 @@ router.get('/moderator-faqs', authMiddleware, (request, response, next) => {
 		});
 });
 
-router.get('/test-tagging', (request, response, next) => {
+router.get('/re-tagging', (request, response, next) => {
+	const { user_id } = request.query;
+	if (user_id) {
+		return users
+		.analyzeTranscriptionAndCreateTags(user_id, '', '')
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+	}
 
     return analyzeAllUserTags().then(({ data, message }) => {
         return response.json({
