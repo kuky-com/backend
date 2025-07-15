@@ -30,6 +30,9 @@ dayjs.extend(utcTime)
 dayjs.extend(isBetween)
 const app = express();
 
+// Trust proxy to get real IP addresses behind reverse proxies
+app.set('trust proxy', true);
+
 app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(express.json());
@@ -56,7 +59,7 @@ app.use((req, res, next) => {
 	res.header('Access-Control-Allow-Origin', '*');
 	res.header(
 		'Access-Control-Allow-Headers',
-		'Origin, X-Requested-With, Content-Type, Accept, Authorization, Device-Id'
+		'Origin, X-Requested-With, Content-Type, Accept, Authorization, Device-Id, X-Client-IP, X-Client-Platform, X-Client-User-Agent, X-Client-Language, X-Client-Timezone, X-Client-Timestamp'
 	);
 	res.header('Access-Control-Expose-Headers', 'Authorization, Device-Id');
 	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');

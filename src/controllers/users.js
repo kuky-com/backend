@@ -40,6 +40,7 @@ const { getReviewStats, createSummary, getUser, firebaseAdmin } = require('./com
 const { sendUserInvitationEmail } = require('./email');
 const ModeratorFaqs = require('../models/moderator_faqs');
 const { analyzeUserTags } = require('../controllers/common');
+const { getClientIP, updateUserLocationFromIP } = require('../utils/geolocation');
 
 
 const db = firebaseAdmin.firestore();
@@ -638,7 +639,7 @@ async function getIapProducts({ user_id, platform }) {
 	}
 }
 
-async function updateLastActive({ user_id }) {
+async function updateLastActive({ user_id, req }) {
 	try {
 		const user = await Users.findOne({
 			where: { id: user_id }
@@ -649,7 +650,18 @@ async function updateLastActive({ user_id }) {
 		}
 
 		user.last_active_time = new Date();
-		user.save()
+		await user.save();
+
+		// If request object is provided, update location from IP
+		if (req) {
+			const ipAddress = getClientIP(req);
+			if (ipAddress) {
+				// Update location asynchronously without blocking the response
+				updateUserLocationFromIP(user_id, ipAddress).catch(error => {
+					console.error('Failed to update user location on last active:', error);
+				});
+			}
+		}
 
 		return Promise.resolve({
 			message: 'Last active time updated',

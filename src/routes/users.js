@@ -634,7 +634,7 @@ router.get('/update-last-active', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
 
 	return users
-		.updateLastActive({ user_id })
+		.updateLastActive({ user_id, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,

@@ -18,6 +18,7 @@ const sendbird = require('./sendbird');
 const { Op } = require('sequelize');
 const { generateReferralCode } = require('../utils/utils');
 const OnetimeAuth = require('../models/onetime_auths');
+const { getClientIP, updateUserLocationFromIP } = require('../utils/geolocation');
 
 const sesClient = new SESClient({ region: process.env.AWS_REGION });
 function generateToken(session_id, user_id) {
@@ -209,7 +210,7 @@ async function resendVerification({ email }) {
 	}
 }
 
-async function verifyEmail({ email, code, session_token, device_id, platform }) {
+async function verifyEmail({ email, code, session_token, device_id, platform, req }) {
 	try {
 		const record = await VerificationCode.findOne({
 			where: { email, code },
@@ -243,13 +244,24 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 			);
 		}
 
+		// Extract IP address and get geolocation
+		const ipAddress = req ? getClientIP(req) : null;
+		
 		const newSession = await Sessions.create({
 			user_id: user.id,
 			platform: platform || 'web',
 			device_id: device_id || null,
 			login_date: new Date(),
 			session_token,
+			ip_address: ipAddress,
 		});
+
+		// Update user location from IP address
+		if (ipAddress && user.id) {
+			updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+				console.error('Failed to update user location:', error);
+			});
+		}
 
 		const token = generateToken(newSession.id, user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
@@ -269,7 +281,7 @@ async function verifyEmail({ email, code, session_token, device_id, platform }) 
 	}
 }
 
-async function login({ email, password, session_token, device_id, platform }) {
+async function login({ email, password, session_token, device_id, platform, req }) {
 	try {
 		const user = await Users.scope('withPassword').findOne({
 			where: { email },
@@ -303,13 +315,24 @@ async function login({ email, password, session_token, device_id, platform }) {
 			);
 		}
 
+		// Extract IP address and get geolocation
+		const ipAddress = req ? getClientIP(req) : null;
+
 		const newSession = await Sessions.create({
 			user_id: user.id,
 			platform: platform || 'web',
 			device_id: device_id || null,
 			login_date: new Date(),
 			session_token,
+			ip_address: ipAddress,
 		});
+
+		// Update user location from IP address
+		if (ipAddress && user.id) {
+			updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+				console.error('Failed to update user location:', error);
+			});
+		}
 
 		const token = generateToken(newSession.id, user.id);
 
@@ -334,7 +357,7 @@ async function login({ email, password, session_token, device_id, platform }) {
 	}
 }
 
-async function googleLogin({ token, session_token, device_id, platform, referral_code, lead, campaign }) {
+async function googleLogin({ token, session_token, device_id, platform, referral_code, lead, campaign, req }) {
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: token,
@@ -386,13 +409,24 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 			);
 		}
 
+		// Extract IP address and get geolocation
+		const ipAddress = req ? getClientIP(req) : null;
+
 		const newSession = await Sessions.create({
 			user_id: user.id,
 			platform: platform || 'web',
 			device_id: device_id || null,
 			login_date: new Date(),
 			session_token,
+			ip_address: ipAddress,
 		});
+
+		// Update user location from IP address
+		if (ipAddress && user.id) {
+			updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+				console.error('Failed to update user location:', error);
+			});
+		}
 
 		const access_token = generateToken(newSession.id, user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
@@ -417,7 +451,7 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 	}
 }
 
-async function appleLogin({ full_name, token, session_token, device_id, platform, referral_code }) {
+async function appleLogin({ full_name, token, session_token, device_id, platform, referral_code, req }) {
 	try {
 		const appleIdInfo = await appleSigninAuth.verifyIdToken(token);
 
@@ -469,13 +503,24 @@ async function appleLogin({ full_name, token, session_token, device_id, platform
 				);
 			}
 
+			// Extract IP address and get geolocation
+			const ipAddress = req ? getClientIP(req) : null;
+
 			const newSession = await Sessions.create({
 				user_id: user.id,
 				platform: platform || 'web',
 				device_id: device_id || null,
 				login_date: new Date(),
 				session_token,
+				ip_address: ipAddress,
 			});
+
+			// Update user location from IP address
+			if (ipAddress && user.id) {
+				updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+					console.error('Failed to update user location:', error);
+				});
+			}
 
 			const access_token = generateToken(newSession.id, user.id);
 			const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
@@ -549,7 +594,7 @@ async function updatePassword({ user_id, current_password, new_password }) {
 	}
 }
 
-async function useOnetimeAuth({ session_code, session_token, device_id, platform }) {
+async function useOnetimeAuth({ session_code, session_token, device_id, platform, req }) {
 	try {
 		const record = await OnetimeAuth.findOne({
 			where: { 
@@ -590,13 +635,24 @@ async function useOnetimeAuth({ session_code, session_token, device_id, platform
 			);
 		}
 
+		// Extract IP address and get geolocation
+		const ipAddress = req ? getClientIP(req) : null;
+
 		const newSession = await Sessions.create({
 			user_id: user.id,
 			platform: platform || 'web',
 			device_id: device_id || null,
 			login_date: new Date(),
 			session_token,
+			ip_address: ipAddress,
 		});
+
+		// Update user location from IP address
+		if (ipAddress && user.id) {
+			updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+				console.error('Failed to update user location:', error);
+			});
+		}
 
 		const token = generateToken(newSession.id, user.id);
 		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
