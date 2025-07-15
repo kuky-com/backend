@@ -11,26 +11,60 @@ function getClientIP(req) {
     const forwarded = req.headers['x-forwarded-for'];
     const realIP = req.headers['x-real-ip'];
     const cfConnectingIP = req.headers['cf-connecting-ip']; // Cloudflare
+    const clientIP = req.headers['x-client-ip']; // From client-side detection
+    
+    // First check client-provided IP (from mobile/web app)
+    if (clientIP && isValidIP(clientIP)) {
+        return clientIP;
+    }
     
     if (forwarded) {
         // x-forwarded-for can contain multiple IPs, get the first one
-        return forwarded.split(',')[0].trim();
+        const firstIP = forwarded.split(',')[0].trim();
+        if (isValidIP(firstIP)) {
+            return firstIP;
+        }
     }
     
-    if (realIP) {
+    if (realIP && isValidIP(realIP)) {
         return realIP;
     }
     
-    if (cfConnectingIP) {
+    if (cfConnectingIP && isValidIP(cfConnectingIP)) {
         return cfConnectingIP;
     }
     
     // Fallback to connection remote address
-    return req.connection?.remoteAddress || 
-           req.socket?.remoteAddress || 
-           (req.connection?.socket ? req.connection.socket.remoteAddress : null) ||
-           req.ip ||
-           '127.0.0.1';
+    const connectionIP = req.connection?.remoteAddress || 
+                        req.socket?.remoteAddress || 
+                        (req.connection?.socket ? req.connection.socket.remoteAddress : null) ||
+                        req.ip;
+    
+    if (connectionIP && isValidIP(connectionIP)) {
+        return connectionIP;
+    }
+    
+    return '127.0.0.1';
+}
+
+/**
+ * Validate if a string is a valid IP address
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if valid IP address
+ */
+function isValidIP(ip) {
+    if (!ip || typeof ip !== 'string') return false;
+    
+    // Remove any surrounding whitespace
+    ip = ip.trim();
+    
+    // Basic IPv4 validation
+    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    
+    // Basic IPv6 validation (simplified)
+    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+    
+    return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ip === '::1';
 }
 
 /**
@@ -182,5 +216,6 @@ async function updateUserLocationFromIP(userId, ipAddress) {
 module.exports = {
     getClientIP,
     getLocationFromIP,
-    updateUserLocationFromIP
+    updateUserLocationFromIP,
+    isValidIP
 };

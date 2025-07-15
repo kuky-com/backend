@@ -14,8 +14,17 @@ function ipMiddleware(req, res, next) {
         // Add IP to request object for easy access
         req.clientIP = clientIP;
         
-        // Log IP for debugging (can be removed in production)
-        console.log(`Request from IP: ${clientIP} - ${req.method} ${req.originalUrl}`);
+        // Log IP and client information for debugging
+        const clientInfo = {
+            ip: clientIP,
+            platform: req.headers['x-client-platform'],
+            userAgent: req.headers['x-client-user-agent'] || req.headers['user-agent'],
+            language: req.headers['x-client-language'],
+            timezone: req.headers['x-client-timezone'],
+            timestamp: req.headers['x-client-timestamp'],
+        };
+        
+        console.log(`Request from ${clientInfo.platform || 'unknown'} - IP: ${clientIP} - ${req.method} ${req.originalUrl}`, clientInfo);
         
         next();
     } catch (error) {
