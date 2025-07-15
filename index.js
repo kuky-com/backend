@@ -30,6 +30,9 @@ dayjs.extend(utcTime)
 dayjs.extend(isBetween)
 const app = express();
 
+// Trust proxy to get real IP addresses behind reverse proxies
+app.set('trust proxy', true);
+
 app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(express.json());

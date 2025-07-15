@@ -66,7 +66,7 @@ router.post('/verify', (request, response, next) => {
 	}
 
 	return auth
-		.verifyEmail({ ...request.body })
+		.verifyEmail({ ...request.body, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
@@ -120,7 +120,7 @@ router.post('/login', (request, response, next) => {
 	}
 
 	return auth
-		.login({ ...request.body })
+		.login({ ...request.body, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
@@ -147,7 +147,7 @@ router.post('/google', (request, response, next) => {
 	}
 
 	return auth
-		.googleLogin({ ...request.body })
+		.googleLogin({ ...request.body, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
@@ -174,7 +174,7 @@ router.post('/apple', (request, response, next) => {
 	}
 
 	return auth
-		.appleLogin({ ...request.body })
+		.appleLogin({ ...request.body, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
@@ -249,7 +249,7 @@ router.post('/use-onetime-auth', (request, response, next) => {
 
 
 	return auth
-		.useOnetimeAuth({...request.body})
+		.useOnetimeAuth({...request.body, req: request})
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
