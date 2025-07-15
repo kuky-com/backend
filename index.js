@@ -59,7 +59,7 @@ app.use((req, res, next) => {
 	res.header('Access-Control-Allow-Origin', '*');
 	res.header(
 		'Access-Control-Allow-Headers',
-		'Origin, X-Requested-With, Content-Type, Accept, Authorization, Device-Id'
+		'Origin, X-Requested-With, Content-Type, Accept, Authorization, Device-Id, X-Client-IP, X-Client-Platform, X-Client-User-Agent, X-Client-Language, X-Client-Timezone, X-Client-Timestamp'
 	);
 	res.header('Access-Control-Expose-Headers', 'Authorization, Device-Id');
 	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
