@@ -2259,7 +2259,7 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 				}
 
 				return Promise.resolve({
-					message: 'Get matches by journey',
+					message: 'Get matches by journey ordered by relevance',
 					data: suggestions,
 				});
 			}
@@ -2296,7 +2296,7 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 				}
 
 				return Promise.resolve({
-					message: 'Get matches by journey ordered by distance',
+					message: 'Get matches by journey ordered by distance ' + sort_direction,
 					data: suggestions,
 				});
 
@@ -2315,7 +2315,21 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 				// use the default order
 			} else if (sort_by === 'latest_registration') {
 				orderDefault = [['createdAt', sort_direction.toUpperCase()]];
-			}	
+			} else if (sort_by === 'last_active_time') {
+				if (sort_direction === 'ASC') {
+					orderDefault = [
+						[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+						['last_active_time', 'ASC'], // Oldest last_active_time first
+						['id', 'DESC'],
+					];
+				} else {
+					orderDefault = [
+						[Sequelize.literal('last_active_time IS NULL'), 'ASC'], // Ensure null values are last
+						['last_active_time', 'DESC'], // Most recent last_active_time first
+						['id', 'DESC'],
+					];
+				}
+			}
 		}	
 		const filterUsers = await Users.findAll({
 			where: whereFilter,
@@ -2338,7 +2352,7 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 		}
 
 		return Promise.resolve({
-			message: 'Get matches by journey',
+			message: `Get matches by journey ordered by ${sort_by} ${sort_direction}`,
 			data: suggestions,
 		});
 	} catch (error) {
