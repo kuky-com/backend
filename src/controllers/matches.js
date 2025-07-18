@@ -2156,6 +2156,9 @@ function calculateMatchScoreBaseOnTag(user1Tags, user2Tags) {
 
 async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0, sort_by, sort_direction = 'DESC' }) {
 	try {
+		// ensure limit and offset are integers
+		limit = parseInt(limit, 10);
+		offset = parseInt(offset, 0);
 		const suggestions = [];
 
 		let whereFilter = {
@@ -2249,10 +2252,8 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 						calculateDetailedMatchScore(currentUser?.matching_tags, filterUser.matching_tags).totalScore;
 					suggestionIds.push({ id: filterUser.id, score: score });
 				}
-
 				suggestionIds.sort((a, b) => b.score - a.score);
 				const finalSuggestionIds = suggestionIds.slice(offset, limit + offset);
-
 				for (const rawuser of finalSuggestionIds) {
 					const userInfo = await getProfile({ user_id: rawuser.id });
 					suggestions.push({ ...userInfo.data, score: rawuser.score });
