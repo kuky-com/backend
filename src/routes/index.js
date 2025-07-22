@@ -9,6 +9,7 @@ const journeysRoutes = require('./journeys');
 const notificationsRoutes = require('./notifications');
 const adminRoutes = require('./admin');
 const geolocationRoutes = require('./geolocation');
+const revenuecatRoutes = require('./revenuecat');
 
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
@@ -18,5 +19,6 @@ router.use('/journeys', journeysRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/geolocation', geolocationRoutes);
+router.use('/revenuecat', revenuecatRoutes);
 
 module.exports = router;
