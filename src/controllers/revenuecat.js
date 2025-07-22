@@ -38,23 +38,25 @@ function verifyWebhookSignature(payload, signature) {
 /**
  * Map RevenueCat event type to subscription status
  */
-function mapEventTypeToStatus(eventType) {
+function mapEventTypeToStatus(event) {
 	const eventStatusMap = {
-		'INITIAL_PURCHASE': 'active',
 		'RENEWAL': 'active',
 		'NON_RENEWING_PURCHASE': 'active',
 		'CANCELLATION': 'canceled',
 		'UNCANCELLATION': 'active',
 		'EXPIRATION': 'expired',
-		'BILLING_ISSUE': 'active', // Keep as active, but could be 'billing_issue' if you add that status
+		'BILLING_ISSUE': 'active',
 		'PRODUCT_CHANGE': 'active',
 		'TRANSFER': 'active',
 		'SUBSCRIBER_ALIAS': 'active',
-		'SUBSCRIPTION_PAUSED': 'active', // RevenueCat doesn't pause subscriptions, keeps as active
+		'SUBSCRIPTION_PAUSED': 'active',
 		'SUBSCRIPTION_RESUMED': 'active'
 	};
+    if (event.period_type === 'TRIAL' && event.type === 'INITIAL_PURCHASE') {
+        return 'trial';
+    }
 
-	return eventStatusMap[eventType] || 'none';
+	return eventStatusMap[event.type] || 'none';
 }
 
 /**
@@ -94,7 +96,7 @@ async function updateUserSubscriptionStatus(webhookData) {
 			return { success: false, message: 'User not found' };
 		}
 
-		const subscriptionStatus = mapEventTypeToStatus(event.type);
+		const subscriptionStatus = mapEventTypeToStatus(event);
 		const expirationDate = expiration_time_ms ? new Date(expiration_time_ms) : null;
 		const eventDate = new Date(event_timestamp_ms);
 
