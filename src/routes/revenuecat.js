@@ -18,6 +18,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 		const signature = req.headers['x-revenuecat-signature'];
 		const payload = req.body;
 
+		// Convert Buffer to string for JSON parsing
+		const payloadString = payload.toString('utf8');
+
 		// Verify webhook signature if secret is configured
 		if (process.env.REVENUECAT_WEBHOOK_SECRET) {
 			if (!signature) {
@@ -25,7 +28,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 				return res.status(400).json({ error: 'Missing signature' });
 			}
 
-			const isValid = verifyWebhookSignature(payload, signature);
+			const isValid = verifyWebhookSignature(payloadString, signature);
 			if (!isValid) {
 				console.error('Invalid RevenueCat webhook signature');
 				return res.status(401).json({ error: 'Invalid signature' });
@@ -33,7 +36,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 		}
 
 		// Parse webhook data
-		const webhookData = JSON.parse(payload);
+		let webhookData;
+		try {
+			webhookData = JSON.parse(payloadString);
+		} catch (parseError) {
+			console.error('Failed to parse webhook payload as JSON:', parseError);
+			console.error('Payload string:', payloadString.substring(0, 500)); // Log first 500 chars
+			return res.status(400).json({ 
+				error: 'Invalid JSON payload',
+				message: 'Could not parse webhook payload as JSON'
+			});
+		}
+
 		console.log('RevenueCat webhook received:', {
 			event_type: webhookData.event?.type,
 			app_user_id: webhookData.event?.app_user_id,
@@ -57,7 +71,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 		}
 
 	} catch (error) {
-		console.error('Error processing RevenueCat webhook:', error);
+		console.error('Error processing RevenueCat webhook:', {
+			error: error.message,
+			stack: error.stack,
+			headers: req.headers,
+			bodyType: typeof req.body,
+			bodyLength: req.body?.length
+		});
 		res.status(500).json({ 
 			error: 'Internal server error',
 			message: error.message
@@ -130,6 +150,36 @@ router.post('/update-app-user-id', authMiddleware, (req, res) => {
  * This endpoint can be used to test webhook processing with sample data
  */
 if (process.env.NODE_ENV === 'development') {
+	// Debug webhook endpoint without signature verification
+	router.post('/webhook-debug', express.raw({ type: 'application/json' }), async (req, res) => {
+		try {
+			const payload = req.body;
+			const payloadString = payload.toString('utf8');
+			
+			console.log('Debug webhook - Raw payload:', payloadString.substring(0, 500));
+			console.log('Debug webhook - Headers:', req.headers);
+			
+			const webhookData = JSON.parse(payloadString);
+			console.log('Debug webhook - Parsed data:', JSON.stringify(webhookData, null, 2));
+
+			const result = await updateUserSubscriptionStatus(webhookData);
+
+			res.json({
+				message: 'Debug webhook processed',
+				data: result,
+				rawPayload: payloadString.substring(0, 200) + '...'
+			});
+
+		} catch (error) {
+			console.error('Error in debug webhook:', error);
+			res.status(500).json({ 
+				error: 'Internal server error',
+				message: error.message,
+				rawPayload: req.body?.toString('utf8').substring(0, 200) + '...'
+			});
+		}
+	});
+
 	router.post('/webhook-test', async (req, res) => {
 		try {
 			const sampleWebhookData = {

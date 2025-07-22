@@ -10,15 +10,29 @@ function verifyWebhookSignature(payload, signature) {
 		return false;
 	}
 
-	const expectedSignature = crypto
-		.createHmac('sha256', process.env.REVENUECAT_WEBHOOK_SECRET)
-		.update(payload)
-		.digest('hex');
+	try {
+		const expectedSignature = crypto
+			.createHmac('sha256', process.env.REVENUECAT_WEBHOOK_SECRET)
+			.update(payload, 'utf8')
+			.digest('hex');
 
-	return crypto.timingSafeEqual(
-		Buffer.from(signature, 'hex'),
-		Buffer.from(expectedSignature, 'hex')
-	);
+		// RevenueCat might send signature with or without 'sha256=' prefix
+		const cleanSignature = signature.replace(/^sha256=/, '');
+		
+		console.log('Signature verification:', {
+			received: cleanSignature,
+			expected: expectedSignature,
+			payloadLength: payload.length
+		});
+
+		return crypto.timingSafeEqual(
+			Buffer.from(cleanSignature, 'hex'),
+			Buffer.from(expectedSignature, 'hex')
+		);
+	} catch (error) {
+		console.error('Error verifying webhook signature:', error);
+		return false;
+	}
 }
 
 /**
