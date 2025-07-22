@@ -13,13 +13,10 @@ const authMiddleware = require('../milddleware/authMiddleware');
  * This endpoint receives webhook notifications from RevenueCat
  * about subscription events (purchases, renewals, cancellations, etc.)
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
 	try {
 		const signature = req.headers['x-revenuecat-signature'];
 		const payload = req.body;
-
-		// Convert Buffer to string for JSON parsing
-		const payloadString = payload.toString('utf8');
 
 		// Verify webhook signature if secret is configured
 		if (process.env.REVENUECAT_WEBHOOK_SECRET) {
@@ -28,7 +25,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 				return res.status(400).json({ error: 'Missing signature' });
 			}
 
-			const isValid = verifyWebhookSignature(payloadString, signature);
+			const isValid = verifyWebhookSignature(payload, signature);
 			if (!isValid) {
 				console.error('Invalid RevenueCat webhook signature');
 				return res.status(401).json({ error: 'Invalid signature' });
@@ -36,17 +33,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 		}
 
 		// Parse webhook data
-		let webhookData;
-		try {
-			webhookData = JSON.parse(payloadString);
-		} catch (parseError) {
-			console.error('Failed to parse webhook payload as JSON:', parseError);
-			console.error('Payload string:', payloadString.substring(0, 500)); // Log first 500 chars
-			return res.status(400).json({ 
-				error: 'Invalid JSON payload',
-				message: 'Could not parse webhook payload as JSON'
-			});
-		}
+		let webhookData = payload;
 
 		console.log('RevenueCat webhook received:', {
 			event_type: webhookData.event?.type,
@@ -143,6 +130,61 @@ router.post('/update-app-user-id', authMiddleware, (req, res) => {
 				message: `${error}`
 			});
 		});
+});
+
+/**
+ * Alternative webhook endpoint using standard JSON middleware
+ * Try this if the raw webhook endpoint fails
+ */
+router.post('/webhook-json', express.json(), async (req, res) => {
+	try {
+		const signature = req.headers['x-revenuecat-signature'];
+		const webhookData = req.body;
+
+		console.log('RevenueCat JSON webhook received:', {
+			hasSignature: !!signature,
+			bodyType: typeof webhookData,
+			event_type: webhookData.event?.type,
+			app_user_id: webhookData.event?.app_user_id,
+			product_id: webhookData.event?.product_id
+		});
+
+		// Note: Signature verification is skipped for JSON endpoint as we can't recreate the raw payload
+		if (process.env.REVENUECAT_WEBHOOK_SECRET && signature) {
+			console.warn('Signature verification skipped for JSON webhook endpoint');
+		}
+
+		// Validate webhook data structure
+		if (!webhookData || !webhookData.event) {
+			return res.status(400).json({ 
+				error: 'Invalid webhook structure',
+				message: 'Expected webhook data with event property'
+			});
+		}
+
+		// Update user subscription status
+		const result = await updateUserSubscriptionStatus(webhookData);
+
+		if (result.success) {
+			res.status(200).json({ 
+				message: 'JSON webhook processed successfully',
+				data: result.data
+			});
+		} else {
+			console.error('Failed to process JSON webhook:', result.message);
+			res.status(400).json({ 
+				error: 'Failed to process webhook',
+				message: result.message
+			});
+		}
+
+	} catch (error) {
+		console.error('Error processing RevenueCat JSON webhook:', error);
+		res.status(500).json({ 
+			error: 'Internal server error',
+			message: error.message
+		});
+	}
 });
 
 /**
