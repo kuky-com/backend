@@ -12,7 +12,7 @@ const {
 const { updateUserNote, updateProfile, getStats } = require('@controllers/users');
 const router = express.Router();
 const { Sequelize } = require('sequelize');
-const { getStatsByMonth, updateAvatar } = require('../../controllers/users');
+const { getStatsByMonth, updateAvatar, getDistinctPlatforms } = require('../../controllers/users');
 const multer = require('multer');
 
 router.get('/', (request, response) => {
@@ -194,6 +194,24 @@ router.post('/:userId/update-avatar', uploadAvatar.single('file'), (request, res
 		})
 		.catch((error) => {
 			return response.status(500).json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+
+router.get('/platforms', (request, response) => {
+	return getDistinctPlatforms()
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
 				success: false,
 				message: `${error}`,
 			});

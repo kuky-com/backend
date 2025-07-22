@@ -1569,6 +1569,32 @@ async function createUserPurposes(user_id, purposeNames) {
 	}
 }
 
+async function getDistinctPlatforms() {
+	try {
+		const platforms = await Users.findAll({
+			attributes: [
+				[Sequelize.fn('DISTINCT', Sequelize.col('register_platform')), 'platform']
+			],
+			where: {
+				register_platform: {
+					[Op.ne]: null
+				}
+			},
+			raw: true
+		});
+
+		const platformList = platforms.map(item => item.platform).filter(Boolean);
+		console.log('Distinct platforms:', platformList);
+		return Promise.resolve({
+			message: 'Distinct platforms retrieved successfully',
+			data: platformList,
+		});
+	} catch (error) {
+		console.log('Error getting distinct platforms:', error);
+		return Promise.reject(error);
+	}
+}
+
 module.exports = {
 	updateProfile,
 	getUser,
@@ -1599,5 +1625,6 @@ module.exports = {
 	sendUserInvitation,
 	getAllModeratorsPayments,
 	getModeratorFAQs,
-	analyzeTranscriptionAndCreateTags
+	analyzeTranscriptionAndCreateTags,
+	getDistinctPlatforms
 };
