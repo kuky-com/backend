@@ -321,6 +321,31 @@ const Users = sequelize.define('users', {
 	matching_tags: {
 		type: DataTypes.ARRAY(DataTypes.STRING),
 		defaultValue: []
+	},
+	subscription_status: {
+		type: DataTypes.ENUM('active', 'expired', 'canceled', 'trial', 'none'),
+		allowNull: false,
+		defaultValue: 'none'
+	},
+	subscription_expires_at: {
+		type: DataTypes.DATE,
+		allowNull: true,
+	},
+	subscription_product_id: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subscription_original_transaction_id: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	revenuecat_app_user_id: {
+		type: DataTypes.STRING,
+		allowNull: true,
+	},
+	subscription_updated_at: {
+		type: DataTypes.DATE,
+		allowNull: true,
 	}
 });
 
@@ -558,6 +583,21 @@ Users.addScope('askJPFSpecific', {
 // 		]
 // 	}
 // });
+
+Users.addScope('withSubscription', {
+	attributes: [
+		'id',
+		'full_name', 
+		'email',
+		'is_premium_user',
+		'subscription_status',
+		'subscription_expires_at',
+		'subscription_product_id',
+		'subscription_original_transaction_id',
+		'revenuecat_app_user_id',
+		'subscription_updated_at'
+	]
+});
 
 const ReviewUsers = require('./review_users');
 const UserPurposes = require('./user_purposes');

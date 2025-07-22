@@ -1061,4 +1061,61 @@ router.post('/analyze-transcription', authMiddleware, (request, response, next) 
 		});
 });
 
+router.get('/subscription-status', authMiddleware, async (request, response, next) => {
+	const { user_id } = request;
+
+	if (!user_id) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id',
+		});
+	}
+
+	try {
+		const Users = require('../models/users');
+		const user = await Users.findByPk(user_id, {
+			attributes: [
+				'id',
+				'is_premium_user',
+				'subscription_status',
+				'subscription_expires_at',
+				'subscription_product_id',
+				'subscription_updated_at'
+			]
+		});
+
+		if (!user) {
+			return response.json({
+				success: false,
+				message: 'User not found',
+			});
+		}
+
+		const subscriptionData = user.toJSON();
+		
+		// Add computed fields
+		subscriptionData.is_active = ['active', 'trial'].includes(subscriptionData.subscription_status);
+		subscriptionData.expires_soon = false;
+		
+		if (subscriptionData.subscription_expires_at) {
+			const expirationDate = new Date(subscriptionData.subscription_expires_at);
+			const now = new Date();
+			const daysUntilExpiration = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+			subscriptionData.days_until_expiration = daysUntilExpiration;
+			subscriptionData.expires_soon = daysUntilExpiration <= 7 && daysUntilExpiration > 0;
+		}
+
+		return response.json({
+			success: true,
+			data: subscriptionData,
+			message: 'Subscription status retrieved successfully',
+		});
+	} catch (error) {
+		return response.json({
+			success: false,
+			message: `${error}`,
+		});
+	}
+});
+
 module.exports = router;
