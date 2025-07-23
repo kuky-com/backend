@@ -1332,6 +1332,9 @@ async function sendSupportMessage({ conversation_id, last_message }) {
 async function getEmailVerificationStats() {
 	try {
 		const emailStats = await Users.findAll({
+			where: {
+				is_active: true
+			},
 			attributes: [
 				'email_verified',
 				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']

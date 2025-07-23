@@ -497,6 +497,58 @@ async function getUsersByCampaignStats() {
 	}
 }
 
+async function getSubscriptionStats() {
+	try {
+		const stats = await Users.findAll({
+			where: {
+				is_active: true
+			},
+			attributes: [
+				'subscription_status',
+				[Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+			],
+			group: ['subscription_status'],
+			raw: true
+		});
+
+		const result = [];
+		let total = 0;
+
+		// Define subscription status mappings and colors
+		const statusMappings = {
+			'active': { label: 'Paying Customer', color: '#4CAF50' },
+			'trial': { label: 'Trial User', color: '#FF9800' },
+			'expired': { label: 'Expired', color: '#F44336' },
+			'canceled': { label: 'Canceled', color: '#9E9E9E' },
+			'none': { label: 'Non-Paying Customer', color: '#2196F3' }
+		};
+
+		// Process the stats
+		stats.forEach(stat => {
+			const mapping = statusMappings[stat.subscription_status] || { 
+				label: stat.subscription_status, 
+				color: '#9E9E9E' 
+			};
+			
+			result.push({
+				status: stat.subscription_status,
+				label: mapping.label,
+				count: parseInt(stat.count),
+				color: mapping.color
+			});
+			total += parseInt(stat.count);
+		});
+
+		// Sort by count descending
+		result.sort((a, b) => b.count - a.count);
+
+		return { stats: result, total };
+	} catch (error) {
+		console.error('Error fetching subscription stats:', error);
+		return { stats: [], total: 0 };
+	}
+}
+
 module.exports = {
 	getUserGrowth,
 	getMatches,
@@ -508,5 +560,6 @@ module.exports = {
 	getProfileApprovalStats,
 	getUsersByPlatformStats,
 	getUsersByLeadStats,
-	getUsersByCampaignStats
+	getUsersByCampaignStats,
+	getSubscriptionStats
 };
