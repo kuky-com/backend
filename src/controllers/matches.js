@@ -1037,7 +1037,8 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 
 				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
-					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)) {
+					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)
+						|| (userInfo.data.profile_approved === 'partially_approved' && userInfo.data.is_moderators)) {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
@@ -1049,7 +1050,8 @@ async function getMatchesWithPreminum({ user_id }) {
 				});
 
 				if (userInfo.data && userInfo.data.is_active && (moderatorConfig?.value !== "0" || !currentUser?.is_moderators || !userInfo.data.is_moderators)) {
-					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)) {
+					if ((userInfo.data.profile_approved === 'approved') || (userInfo.data.profile_approved === 'partially_approved' && currentUser?.is_moderators)
+					 	|| (userInfo.data.profile_approved === 'partially_approved' && userInfo.data.is_moderators)) {
 						finalMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
 					} else {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: isModerator || freeMatchesIds.includes(match.id) });
@@ -1258,7 +1260,8 @@ async function getUnverifiedMatches({ user_id }) {
 					user_id: match.get('receiver_id'),
 				});
 				if (userInfo.data && userInfo.data.is_active) {
-					if (userInfo.data.profile_approved !== 'approved') {
+					if (userInfo.data.profile_approved !== 'approved' 
+						&& !(userInfo.data.profile_approved == 'partially_approved' && userInfo.data.is_moderators)) {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 					}
 				}
@@ -1267,7 +1270,9 @@ async function getUnverifiedMatches({ user_id }) {
 					user_id: match.get('sender_id'),
 				});
 				if (userInfo.data && userInfo.data.is_active) {
-					if (userInfo.data.profile_approved !== 'approved') {
+					if (userInfo.data.profile_approved !== 'approved'
+						&& !(userInfo.data.profile_approved == 'partially_approved' && userInfo.data.is_moderators)
+					) {
 						unverifyMatches.push({ ...match.toJSON(), profile: userInfo.data, is_free: freeMatchesIds.includes(match.id) });
 					}
 				}
