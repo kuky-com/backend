@@ -12,7 +12,7 @@ const usersController = require('./users');
 const commonController = require('./common')
 const appleSigninAuth = require('apple-signin-auth');
 const LeadUsers = require('../models/lead_users');
-const { updatePurposes } = require('./interests');
+const { updatePurposes, updateLikes, updateDislikes, updateProfileTag } = require('./interests');
 const { sendWelcomeEmail, sendVerificationEmail } = require('./email');
 const sendbird = require('./sendbird');
 const { Op } = require('sequelize');
@@ -145,6 +145,90 @@ async function signUp({ full_name, email, password, platform, referral_code, lea
 			full_name,
 			code,
 		});
+
+		return Promise.resolve({
+			message: 'Verification code sent to your email',
+		});
+	} catch (error) {
+		console.log({ error });
+		return Promise.reject(error);
+	}
+}
+
+
+async function signUpLite({ full_name, email, password, platform, referral_code, avatar, likes, dislikes, lead, campaign  }) {
+	try {
+		const existingUser = await Users.findOne({
+			where: { email, email_verified: true },
+		});
+		if (existingUser) {
+			return Promise.reject('Email already registered');
+		}
+
+		const hashedPassword = await bcrypt.hash(password, 10);
+
+		const existingUnverifyUser = await Users.findOne({
+			where: { email },
+		});
+		let user = null;
+		if (existingUnverifyUser) {
+			await Users.update(
+				{
+					full_name,
+					password: hashedPassword,
+					email_verified: false,
+					login_type: 'email',
+					register_platform: platform || 'web',
+					lead: lead || null,
+					campaign: campaign || null,
+					avatar: avatar || null,
+				},
+				{
+					where: {
+						email: email,
+					},
+				}
+			);
+			user = existingUnverifyUser;
+		} else {
+			const referral_id = await generateReferralCode(full_name);
+
+			user = await Users.create({
+				full_name,
+				email,
+				password: hashedPassword,
+				email_verified: false,
+				avatar: avatar || null,
+				login_type: 'email',
+				referral_id: referral_id,
+				register_platform: platform || 'web',
+				lead: lead || null,
+				campaign: campaign || null,
+			});
+
+			if (referral_code && referral_code.length > 0) {
+				usersController.useReferral({ user_id: user.id, referral_code })
+					.then(() => { })
+					.catch(() => { });
+			}
+
+			await updateUserFromLead(email);
+		}
+
+		const code = crypto.randomInt(1000, 9999).toString();
+		const expires_at = new Date(Date.now() + 15 * 60 * 1000);
+
+		await VerificationCode.create({ code, email, expires_at });
+
+		await sendVerificationEmail({
+			to_email: email,
+			full_name,
+			code,
+		});
+		await updateLikes({user_id: user.id, likes, reset: true});
+		await updateDislikes({user_id: user.id, dislikes, reset: true});
+		await updateProfileTag({user_id: user.id});
+		await commonController.analyzeUser(user.id);
 
 		return Promise.resolve({
 			message: 'Verification code sent to your email',
@@ -451,6 +535,107 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 	}
 }
 
+
+async function googleLoginLite({ token, session_token, device_id, platform, referral_code, lead, campaign, req, likes, dislikes }) {
+	try {
+		const ticket = await client.verifyIdToken({
+			idToken: token,
+			audience: process.env.GOOGLE_CLIENT_ID,
+		});
+		const payload = ticket.getPayload();
+		const email = payload.email;
+		const full_name = payload.name;
+
+		let user = await Users.findOne({ where: { email } });
+
+		if (!user) {
+			const referral_id = await generateReferralCode(full_name);
+
+			user = await Users.create({
+				email,
+				login_type: 'google',
+				email_verified: true,
+				full_name,
+				referral_id: referral_id,
+				register_platform: platform || 'web',
+				lead: lead || null,
+				campaign: campaign || null,
+			});
+
+			if (referral_code && referral_code.length > 0) {
+				usersController.useReferral({ user_id: user.id, referral_code })
+					.then(() => { })
+					.catch(() => { });
+			}
+
+			await updateUserFromLead(email);
+
+			await sendWelcomeEmail({ to_email: email });
+		}
+
+		if (platform && device_id) {
+			await Sessions.update(
+				{
+					logout_date: new Date(),
+					session_token: null,
+				},
+				{
+					where: {
+						platform: platform,
+						device_id: device_id,
+					},
+				}
+			);
+		}
+
+		// Extract IP address and get geolocation
+		const ipAddress = req ? getClientIP(req) : null;
+
+		const newSession = await Sessions.create({
+			user_id: user.id,
+			platform: platform || 'web',
+			device_id: device_id || null,
+			login_date: new Date(),
+			session_token,
+			ip_address: ipAddress,
+		});
+
+		// Update user location from IP address
+		if (ipAddress && user.id) {
+			updateUserLocationFromIP(user.id, ipAddress).catch(error => {
+				console.error('Failed to update user location:', error);
+			});
+		}
+
+		const access_token = generateToken(newSession.id, user.id);
+		const sendbirdToken = await sendbird.generateSendbirdToken(user.id);
+
+		if (!user.is_active) {
+			await Users.update({ is_active: true }, { where: { email } });
+		}
+
+		const userInfo = await commonController.getUser(user.id);
+
+		await updateLikes({user_id: userInfo.id, likes, reset: true});
+		await updateDislikes({user_id: userInfo.id, dislikes, reset: true});
+		await updateProfileTag({user_id: userInfo.id});
+		await commonController.analyzeUser(userInfo.id);
+
+
+		return Promise.resolve({
+			data: {
+				user: userInfo,
+				token: access_token,
+				sendbirdToken,
+			},
+			message: 'Login successful',
+		});
+	} catch (error) {
+		console.log(error);
+		return Promise.reject(error);
+	}
+}
+
 async function appleLogin({ full_name, token, session_token, device_id, platform, referral_code, req }) {
 	try {
 		const appleIdInfo = await appleSigninAuth.verifyIdToken(token);
@@ -716,8 +901,10 @@ async function getOnetimeAuth({ user_id }) {
 module.exports = {
 	appleLogin,
 	googleLogin,
+	googleLoginLite,
 	login,
 	signUp,
+	signUpLite,
 	verifyEmail,
 	logout,
 	updatePassword,
