@@ -34,6 +34,34 @@ router.post('/register', (request, response, next) => {
 		});
 });
 
+
+router.post('/register-lite', (request, response, next) => {
+	const { full_name, email, password, likes, dislikes } = request.body;
+
+	if (!email || !password || !full_name || likes === undefined || dislikes === undefined) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: email, password, full_name, likes, dislikes',
+		});
+	}
+
+	return auth
+		.signUpLite({ ...request.body })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.get('/sendbird-token', authMiddleware, async (req, response, next) => {
 	const { user_id } = req;
 
@@ -148,6 +176,34 @@ router.post('/google', (request, response, next) => {
 
 	return auth
 		.googleLogin({ ...request.body, req: request })
+		.then(({ data, message }) => {
+			return response.json({
+				success: true,
+				data: data,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
+
+router.post('/google-lite', (request, response, next) => {
+	const { token } = request.body;
+
+	if (!token) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: token',
+		});
+	}
+
+	return auth
+		.googleLoginLite({ ...request.body, req: request })
 		.then(({ data, message }) => {
 			return response.json({
 				success: true,
