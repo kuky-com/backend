@@ -614,12 +614,13 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 			await Users.update({ is_active: true }, { where: { email } });
 		}
 
-		const userInfo = await commonController.getUser(user.id);
 
-		await updateLikes({user_id: userInfo.id, likes, reset: true});
-		await updateDislikes({user_id: userInfo.id, dislikes, reset: true});
-		await updateProfileTag({user_id: userInfo.id});
-		await commonController.analyzeUser(userInfo.id);
+		await updateLikes({user_id: user.id, likes, reset: true});
+		await updateDislikes({user_id: user.id, dislikes, reset: true});
+		await updateProfileTag({user_id: user.id});
+		await commonController.analyzeUser(user.id);
+
+		const userInfo = await commonController.getUser(user.id);
 
 
 		return Promise.resolve({
