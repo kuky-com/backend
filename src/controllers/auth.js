@@ -156,7 +156,7 @@ async function signUp({ full_name, email, password, platform, referral_code, lea
 }
 
 
-async function signUpLite({ full_name, email, password, platform, referral_code, avatar, likes, dislikes, lead, campaign  }) {
+async function signUpLite({ full_name, email, password, platform, referral_code, avatar, journeys, likes, dislikes, lead, campaign  }) {
 	try {
 		const existingUser = await Users.findOne({
 			where: { email, email_verified: true },
@@ -228,7 +228,11 @@ async function signUpLite({ full_name, email, password, platform, referral_code,
 		await updateLikes({user_id: user.id, likes, reset: true});
 		await updateDislikes({user_id: user.id, dislikes, reset: true});
 		await updateProfileTag({user_id: user.id});
-		await commonController.analyzeUser(user.id);
+		await commonController.analyzeUser(user.id, {
+			likes: likes,
+			dislikes: dislikes,
+			journeys: journeys,
+		});
 
 		return Promise.resolve({
 			message: 'Verification code sent to your email',
@@ -536,7 +540,7 @@ async function googleLogin({ token, session_token, device_id, platform, referral
 }
 
 
-async function googleLoginLite({ token, session_token, device_id, platform, referral_code, lead, campaign, req, likes, dislikes }) {
+async function googleLoginLite({ token, session_token, device_id, platform, referral_code, lead, campaign, req, journeys, likes, dislikes, avatar }) {
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: token,
@@ -560,6 +564,7 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 				register_platform: platform || 'web',
 				lead: lead || null,
 				campaign: campaign || null,
+				avatar: avatar || null,
 			});
 
 			if (referral_code && referral_code.length > 0) {
@@ -571,6 +576,10 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 			await updateUserFromLead(email);
 
 			await sendWelcomeEmail({ to_email: email });
+		}else {
+			if (avatar && user.avatar !== avatar) {
+				await Users.update({ avatar }, { where: { email } });
+			}
 		}
 
 		if (platform && device_id) {
@@ -581,7 +590,7 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 				},
 				{
 					where: {
-						platform: platform,
+						platform: platform === 'ios' || platform === 'android' || platform === 'app' ? 'app' : 'web',
 						device_id: device_id,
 					},
 				}
@@ -593,7 +602,7 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 
 		const newSession = await Sessions.create({
 			user_id: user.id,
-			platform: platform || 'web',
+			platform: platform === 'ios' || platform === 'android' || platform === 'app' ? 'app' : 'web',
 			device_id: device_id || null,
 			login_date: new Date(),
 			session_token,
@@ -615,13 +624,17 @@ async function googleLoginLite({ token, session_token, device_id, platform, refe
 		}
 
 
+
 		await updateLikes({user_id: user.id, likes, reset: true});
 		await updateDislikes({user_id: user.id, dislikes, reset: true});
 		await updateProfileTag({user_id: user.id});
-		await commonController.analyzeUser(user.id);
+		await commonController.analyzeUser(user.id, {
+			likes: likes,
+			dislikes: dislikes,
+			journeys: journeys,
+		});
 
 		const userInfo = await commonController.getUser(user.id);
-
 
 		return Promise.resolve({
 			data: {

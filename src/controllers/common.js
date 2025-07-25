@@ -268,18 +268,32 @@ async function analyzeUserTags(user_id) {
     }
 }
 
-async function analyzeUser(user_id) {
+async function analyzeUser(user_id, { likes, dislikes, journeys } = {}) {
     try {
         let userInfo = await getUser(user_id);
         const journeys = await Journeys.findAll({
             attributes: ['id', 'name'],
             raw: true
         })
-
+        let interests = '';
+        let dislikes = '';
+        let selectedJourneys = '';
+        if (likes){
+            interests = likes.join(', ');
+        } else {
+            interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
+        }
+        if (dislikes) {
+            dislikes = dislikes.join(', ');
+        } else {
+            dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
+        }
         const journeyList = journeys.map((journey) => `${journey.name} - ${journey.id}`).join('\n')
-
-        const interests = userInfo.interests.filter(item => item.user_interests.interest_type === 'like').map((interest) => interest.name).join(', ') + '';
-        const dislikes = userInfo.interests.filter(item => item.user_interests.interest_type === 'dislike').map((dislike) => dislike.name).join(', ') + '';
+        if (journeys) {
+            selectedJourneys = journeys.map(journey => journey.name).join(', ');
+        } else {
+            selectedJourneys = userInfo.journey?.name || '';
+        }
         // check if user has interests or video transcripts
         if(interests.length === 0 && 
             dislikes.length === 0 &&
@@ -293,7 +307,7 @@ async function analyzeUser(user_id) {
         }
         const prompt = `We have following information and list of journeys, please analyze the user and give us best matching journey for the user.
                         Full name: ${userInfo.full_name}
-                        Interested journey: ${userInfo.journey?.name ?? ''}
+                        Interested journey: ${selectedJourneys}
                         Interesting: ${interests}
                         Dislikes: ${dislikes}
                         What he/she said in the video intro: ${userInfo.video_intro_transcript ?? ''}
@@ -330,7 +344,7 @@ async function analyzeUser(user_id) {
                     );
                 }
             } catch (error) {
-                
+                console.log('Error analyzing user tags:', error);
             }
 
             userInfo = await getUser(user_id);
