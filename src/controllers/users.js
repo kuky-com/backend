@@ -1146,7 +1146,11 @@ async function getAllModeratorsPayments({ start_date, end_date }) {
 		// Get all moderators
 		const moderators = await Users.findAll({
 			where: {
-				is_moderators: true
+				is_moderators: true,
+				is_active: true,
+				profile_approved: {
+					[Op.or]: ['approved', 'partially_approved']
+				}
 			},
 			attributes: ['id', 'full_name', 'email', 'is_active', 'payment_type', 'payment_id'],
 			raw: true
