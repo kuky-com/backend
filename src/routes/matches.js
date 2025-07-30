@@ -648,4 +648,22 @@ router.get('/url-preview', async (req, res) => {
     }
   });
 
+router.get('/note-recent-update', authMiddleware, (request, response, next) => {
+    const { user_id } = request
+
+    return matches.getRecentUserNoteUpdates({ user_id }).then(({ data, message }) => {
+        return response.json({
+            success: true,
+            data: data,
+            message: message
+        })
+    })
+        .catch((error) => {
+            return response.json({
+                success: false,
+                message: `${error}`
+            })
+        })
+})
+
 module.exports = router;
