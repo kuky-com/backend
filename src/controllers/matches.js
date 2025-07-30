@@ -2062,7 +2062,7 @@ async function getLastestUnanswerMatch(userId) {
 	return result[0].sent_date;
 }
 
-async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
+async function searchByJourney({ journey_id, limit = 20, offset = 0, hide_moderators = false }) {
 	try {
 		if (!journey_id) {
 			return Promise.reject('Journey id is required');
@@ -2070,15 +2070,21 @@ async function searchByJourney({ journey_id, limit = 20, offset = 0 }) {
 
 		const suggestions = [];
 
-		const filterUsers = await Users.findAll({
-			where: {
-				is_active: true,
-				is_hidden_users: false,
-				profile_approved: 'approved',
-				profile_tag: {
-					[Op.ne]: null,
-				},
+		let whereFilter = {
+			is_active: true,
+			is_hidden_users: false,
+			profile_approved: 'approved',
+			profile_tag: {
+				[Op.ne]: null,
 			},
+		};
+
+		if (hide_moderators) {
+			whereFilter.is_moderators = false;
+		}
+
+		const filterUsers = await Users.findAll({
+			where: whereFilter,
 			include: [
 				{
 					model: UserPurposes,
@@ -2161,7 +2167,7 @@ function calculateMatchScoreBaseOnTag(user1Tags, user2Tags) {
 	return Math.min(1, score / theoreticalMaxScore);
 }
 
-async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0, sort_by, sort_direction = 'DESC' }) {
+async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offset = 0, sort_by, sort_direction = 'DESC', hide_moderators = false }) {
 	try {
 		// ensure limit and offset are integers
 		limit = parseInt(limit, 10);
@@ -2171,6 +2177,10 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 		let whereFilter = {
 			is_active: true,
 			is_hidden_users: false,
+		}
+
+		if (hide_moderators) {
+			whereFilter.is_moderators = false;
 		}
 
 		if (journey_id) {
