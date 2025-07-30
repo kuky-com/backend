@@ -2962,6 +2962,57 @@ async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 	}
 }
 
+async function getRecentUserNoteUpdates({ user_id }) {
+	try {
+		let whereFilter = {
+			is_active: true,
+			profile_approved: 'approved',
+			user_note: {
+				[Op.ne]: null
+			},
+			is_hidden_users: false,
+		};
+		if (user_id) {
+			const currentUser = await Users.findOne({
+				where: { id: user_id },
+				raw: true
+			});
+			if (currentUser?.is_moderators) {
+				whereFilter.profile_approved = {
+					[Op.in]: ['approved', 'partially_approved']
+				}
+			} else {
+				whereFilter.profile_approved = 'approved'
+			}
+			whereFilter.id = {
+				[Op.notIn]: [user_id]
+			}
+		}
+		const recentUpdates = await Users.findAll({
+			where: whereFilter,
+			attributes: [
+				'id'
+			],
+			order: [['updatedAt', 'DESC']],
+			limit: 10,
+		});
+		let data = [];
+
+		for (const user of recentUpdates) {
+			const userInfo = await getProfile({ user_id: user.id });
+			data.push(userInfo.data);
+		}
+
+		return Promise.resolve({
+			message: 'Recent user note updates',
+			data,
+		});
+	} catch (error) {
+		console.log('Error getting recent user note updates:', error);
+		return Promise.reject(error);
+	}
+}
+
 module.exports = findBestMatches;
 
 module.exports = {
@@ -2993,5 +3044,6 @@ module.exports = {
 	supportSendRequest,
 	startChatWithSupport,
 	getTagMatchedUsers,
-	getMatchesByTags
+	getMatchesByTags,
+	getRecentUserNoteUpdates
 };
