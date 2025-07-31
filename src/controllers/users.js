@@ -1630,5 +1630,7 @@ module.exports = {
 	getAllModeratorsPayments,
 	getModeratorFAQs,
 	analyzeTranscriptionAndCreateTags,
-	getDistinctPlatforms
+	getDistinctPlatforms,
+	db,
+	
 };
