@@ -100,6 +100,8 @@ async function updateUserSubscriptionStatus(webhookData) {
 		const expirationDate = expiration_time_ms ? new Date(expiration_time_ms) : null;
 		const eventDate = new Date(event_timestamp_ms);
 
+		const isPremiumUser = ['active', 'trial'].includes(subscriptionStatus);
+
 		// Update user subscription information
 		await user.update({
 			subscription_status: subscriptionStatus,
@@ -107,6 +109,7 @@ async function updateUserSubscriptionStatus(webhookData) {
 			subscription_product_id: product_id,
 			subscription_original_transaction_id: original_transaction_id,
 			subscription_updated_at: eventDate,
+			is_premium_user: isPremiumUser,
 		});
 
 		console.log(`Updated subscription for user ${user.id}:`, {
