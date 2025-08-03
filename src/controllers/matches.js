@@ -1428,6 +1428,24 @@ async function acceptSuggestion({ user_id, friend_id }) {
 				});
 				const m = await existMatch.toJSON();
 
+				const freeMatches = await freeMatchesList({ user_id });
+				const freeMatchesIds = freeMatches.map((item) => item.id);
+				const isModerator = await Users.count({
+					where: {
+						id: user_id,
+						is_moderators: true,
+					}
+				}) > 0;
+
+				const userInfo = await getProfile({
+					user_id: receiveUser.id,
+				});
+				existMatch = {
+					...existMatch.toJSON(),
+					profile: userInfo.data,
+					is_free: isModerator || freeMatchesIds.includes(existMatch.id)
+				};
+
 				addMatchTagOnesignal(receiveUser.id, m);
 
 				const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
@@ -1508,6 +1526,15 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					],
 				});
 
+				const freeMatches = await freeMatchesList({ user_id });
+				const freeMatchesIds = freeMatches.map((item) => item.id);
+				const isModerator = await Users.count({
+					where: {
+						id: user_id,
+						is_moderators: true,
+					}
+				}) > 0;
+
 				if (existMatch.get('sender_id') === user_id) {
 					const userInfo = await getProfile({
 						user_id: existMatch.get('receiver_id'),
@@ -1515,6 +1542,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					existMatch = {
 						...existMatch.toJSON(),
 						profile: userInfo.data,
+						is_free: isModerator || freeMatchesIds.includes(existMatch.id)
 					};
 				} else {
 					const userInfo = await getProfile({
@@ -1523,6 +1551,7 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					existMatch = {
 						...existMatch.toJSON(),
 						profile: userInfo.data,
+						is_free: isModerator || freeMatchesIds.includes(existMatch.id)
 					};
 				}
 
