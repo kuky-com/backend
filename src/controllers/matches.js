@@ -1591,6 +1591,92 @@ async function acceptSuggestion({ user_id, friend_id }) {
 					'Congratulation! You get new match!'
 				);
 				// }
+			} else if (existMatch.status === 'deleted') {
+				// Handle deleted match - recreate as sent status (same as creating new match)
+				const conversation_id = await createConversation(user_id, receiveUser.id);
+				try {
+					addMessageToConversation(conversation_id, requestUser, receiveUser);
+				} catch (error) { }
+
+				if (conversation_id) {
+					// Update the existing match with new status and conversation
+					await Matches.update({
+						status: 'sent',
+						conversation_id,
+						last_message_date: new Date(),
+						sender_id: user_id,
+						receiver_id: receiveUser.id,
+						response_date: null
+					}, {
+						where: {
+							id: existMatch.id
+						}
+					});
+
+					// Reload the match with updated data
+					existMatch = await Matches.findOne({
+						where: {
+							id: existMatch.id
+						}
+					});
+
+					const m = await existMatch.toJSON();
+
+					const freeMatches = await freeMatchesList({ user_id });
+					const freeMatchesIds = freeMatches.map((item) => item.id);
+					const isModerator = await Users.count({
+						where: {
+							id: user_id,
+							is_moderators: true,
+						}
+					}) > 0;
+
+					const userInfo = await getProfile({
+						user_id: receiveUser.id,
+					});
+					existMatch = {
+						...existMatch.toJSON(),
+						profile: userInfo.data,
+						is_free: isModerator || freeMatchesIds.includes(existMatch.id)
+					};
+
+					addMatchTagOnesignal(receiveUser.id, m);
+
+					const lastestUnanswerDate = await getLastestUnanswerMatch(existMatch.receiver_id)
+					updateMatchDateTag(existMatch.receiver_id, lastestUnanswerDate)
+
+					if (requestUser) {
+						if ((requestUser.profile_approved === 'approved') || (requestUser.profile_approved === 'partially_approved' && receiveUser.is_moderators === true)) {
+							addNewNotification(
+								receiveUser.id,
+								user_id,
+								existMatch.id,
+								null,
+								'new_request',
+								'You get new connect request.',
+								`${requestUser.full_name} wants to connect with you!`
+							);
+							addNewPushNotification(
+								receiveUser.id,
+								existMatch,
+								null,
+								'notification',
+								'New connect request!',
+								`${requestUser.full_name} wants to connect with you!`
+							);
+						}
+
+						try {
+							sendRequestEmail({
+								to_email: receiveUser.email,
+								to_name: receiveUser.full_name,
+								sender_name: requestUser.full_name,
+								sender_journey: requestUser?.journey?.name ?? '',
+								conversation_id,
+							});
+						} catch (error) { }
+					}
+				}
 			}
 		}
 
