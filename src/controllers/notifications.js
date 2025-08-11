@@ -143,6 +143,18 @@ async function addNewPushNotification(user_id, match = null, suggest = null, typ
 
 async function sendSinglePush(user_id, match = null, suggest = null, type, title, content, is_support = false) {
 	try {
+		const user = await Users.findOne({
+			where: { id: user_id },
+			attributes: ['notificationEnable']
+		});
+
+		if (!user || !user.notificationEnable) {
+			console.log(`Skipping push notification for user ${user_id} - notifications disabled`);
+			return Promise.resolve({
+				message: 'Push notification skipped - user has notifications disabled',
+			});
+		}
+
 		const sessions = await Sessions.findAll({
 			where: {
 				user_id: user_id,
@@ -169,7 +181,7 @@ async function sendSinglePush(user_id, match = null, suggest = null, type, title
 				suggest,
 			});
 
-			const res = await admin.messaging().sendEachForMulticast({
+			await admin.messaging().sendEachForMulticast({
 				notification: {
 					title: title,
 					body: content,
