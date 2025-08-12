@@ -13,6 +13,7 @@ const path = require('path');
 const fs = require('fs')
 const handlebars = require('handlebars')
 const { sendOnesignalEmail } = require('./onesignal');
+const { shouldSendEmail, generateUnsubscribeUrl, addUnsubscribeFooter } = require('../utils/emailUtils');
 
 function loadTemplate(templateName, data) {
     const templatePath = path.join(__dirname, '..', 'templates', `${templateName}.hbs`);
@@ -23,7 +24,23 @@ function loadTemplate(templateName, data) {
 
 async function sendEmail(toAddress, subject, templateName, templateData, fromName = 'Kuky', fromAddress = 'noreply@kuky.com') {
     console.log({toAddress, subject, templateName, templateData, fromName, fromAddress})
+    
+    if (templateName !== 'verification_email' && templateName !== 'welcome_email') {
+        try {
+            const user = await Users.findOne({ where: { email: toAddress } });
+            if (user && !shouldSendEmail(user)) {
+                console.log(`Skipping email to ${toAddress} - user has unsubscribed or disabled email notifications`);
+                return Promise.resolve({ message: 'Skipped sending email - user has unsubscribed or disabled email notifications' });
+            }
+        } catch (error) {
+            console.log('Error checking user email preferences:', error);
+        }
+    }
+    
     const htmlContent = loadTemplate(templateName, templateData);
+    
+    const unsubscribeUrl = generateUnsubscribeUrl(toAddress);
+    const htmlContentWithUnsubscribe = addUnsubscribeFooter(htmlContent, unsubscribeUrl);
 
     if (/@privaterelay\.appleid\.com$/i.test(toAddress) || /@kuky\.com$/i.test(toAddress)) {
         console.log('Not sending email to restricted address:', toAddress);
@@ -31,7 +48,7 @@ async function sendEmail(toAddress, subject, templateName, templateData, fromNam
     }
 
     try {
-        const result = await sendOnesignalEmail(toAddress, subject, htmlContent, fromAddress, fromName);
+        const result = await sendOnesignalEmail(toAddress, subject, htmlContentWithUnsubscribe, fromAddress, fromName);
         console.log(`Email sent! Message ID: ${result}`);
         return Promise.resolve(result);
     } catch (error) {
@@ -155,7 +172,7 @@ async function sendUserInvitationEmail({ sender_full_name, sender_referral_id, s
         for (let i = 0; i < recipients.length; i++) {
             try {
                 const recipient = recipients[i];
-                const result = await sendEmail(
+                await sendEmail(
                     recipient.email,
                     `${sender_full_name} has invited you to join them on Kuky`,
                     'user_invitation',
@@ -166,8 +183,8 @@ async function sendUserInvitationEmail({ sender_full_name, sender_referral_id, s
                         recipient_email: encodeURIComponent(recipient.email),
                         sender_referral_id: encodeURIComponent(sender_referral_id)
                      })
-            } catch (error) {
-
+            } catch {
+                // Continue with next recipient if one fails
             }
         }
     } catch (error) {

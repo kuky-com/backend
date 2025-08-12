@@ -11,6 +11,8 @@ const SessionLog = require('../models/session_logs');
 const { v4: uuidv4 } = require('uuid');
 const { checkUnreadMessages, checkUnreadMessagesForUser } = require('../controllers/cron/unreadMessage');
 const { analyzeUserTags, analyzeAllUserTags } = require('../controllers/common');
+const { validateUnsubscribeToken } = require('../utils/emailUtils');
+const Users = require('../models/users');
 
 router.post('/update', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
@@ -1115,6 +1117,135 @@ router.get('/subscription-status', authMiddleware, async (request, response, nex
 			success: false,
 			message: `${error}`,
 		});
+	}
+});
+
+// Unsubscribe from email route
+router.get('/unsubscribe/:token', async (req, res) => {
+	try {
+		const { token } = req.params;
+		
+		// Validate and decode the token
+		const tokenData = validateUnsubscribeToken(token);
+		
+		if (!tokenData) {
+			return res.status(400).send(`
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<title>Invalid Unsubscribe Link - Kuky</title>
+					<style>
+						body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 40px; }
+						.container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; text-align: center; }
+						.error { color: #e74c3c; }
+					</style>
+				</head>
+				<body>
+					<div class="container">
+						<h1 class="error">Invalid Unsubscribe Link</h1>
+						<p>This unsubscribe link is invalid or has expired. Please contact support if you continue to receive unwanted emails.</p>
+					</div>
+				</body>
+				</html>
+			`);
+		}
+
+		// Find user by email
+		const user = await Users.findOne({
+			where: { email: tokenData.email }
+		});
+
+		if (!user) {
+			return res.status(404).send(`
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<title>User Not Found - Kuky</title>
+					<style>
+						body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 40px; }
+						.container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; text-align: center; }
+						.error { color: #e74c3c; }
+					</style>
+				</head>
+				<body>
+					<div class="container">
+						<h1 class="error">User Not Found</h1>
+						<p>We couldn't find an account associated with this unsubscribe link.</p>
+					</div>
+				</body>
+				</html>
+			`);
+		}
+
+		// Update user's email subscription preferences
+		await Users.update(
+			{ 
+				subscribeEmail: false,
+				emailNotificationEnable: false 
+			},
+			{ 
+				where: { id: user.id } 
+			}
+		);
+
+		// Return success page
+		return res.send(`
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title>Successfully Unsubscribed - Kuky</title>
+				<style>
+					body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 40px; }
+					.container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+					.success { color: #27ae60; }
+					.logo { margin-bottom: 30px; }
+					h1 { margin-bottom: 20px; }
+					p { line-height: 1.6; color: #555; margin-bottom: 15px; }
+					.highlight { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+					.footer { margin-top: 30px; font-size: 12px; color: #888; }
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<div class="logo">
+						<h2 style="color: #3498db; margin: 0;">Kuky</h2>
+					</div>
+					<h1 class="success">✓ Successfully Unsubscribed</h1>
+					<p>You have been successfully unsubscribed from all email notifications from Kuky.</p>
+					<div class="highlight">
+						<p><strong>Email:</strong> ${user.email}</p>
+						<p>You will no longer receive promotional emails or email notifications from our platform.</p>
+					</div>
+					<p>If you change your mind, you can always re-enable email notifications from your account settings in the Kuky app.</p>
+					<div class="footer">
+						<p>If you believe this was done in error, please contact our support team.</p>
+					</div>
+				</div>
+			</body>
+			</html>
+		`);
+
+	} catch (error) {
+		console.error('Unsubscribe error:', error);
+		return res.status(500).send(`
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title>Error - Kuky</title>
+				<style>
+					body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 40px; }
+					.container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; text-align: center; }
+					.error { color: #e74c3c; }
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<h1 class="error">Something went wrong</h1>
+					<p>We encountered an error while processing your unsubscribe request. Please try again later or contact support.</p>
+				</div>
+			</body>
+			</html>
+		`);
 	}
 });
 
