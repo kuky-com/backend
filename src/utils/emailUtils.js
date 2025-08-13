@@ -51,6 +51,10 @@ function shouldSendEmail(user) {
  * @returns {string} - HTML content with unsubscribe footer
  */
 function addUnsubscribeFooter(htmlContent, unsubscribeUrl) {
+	if (htmlContent.includes('<a href="#">Unsubscribe</a>')) {
+		return htmlContent.replace(/<a href="#">Unsubscribe<\/a>/gi, `<a href="${unsubscribeUrl}">Unsubscribe</a>`);
+	}
+	
 	const unsubscribeFooter = `
 		<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 12px; color: #888;">
 			<p>You're receiving this email because you have an account with Kuky.</p>
