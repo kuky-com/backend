@@ -39,8 +39,13 @@ async function sendEmail(toAddress, subject, templateName, templateData, fromNam
     
     const htmlContent = loadTemplate(templateName, templateData);
     
-    const unsubscribeUrl = generateUnsubscribeUrl(toAddress);
-    const htmlContentWithUnsubscribe = addUnsubscribeFooter(htmlContent, unsubscribeUrl);
+    let htmlContentWithUnsubscribe;
+    if (templateName === 'verification_email' || templateName === 'welcome_email') {
+        htmlContentWithUnsubscribe = htmlContent;
+    } else {
+        const unsubscribeUrl = generateUnsubscribeUrl(toAddress);
+        htmlContentWithUnsubscribe = addUnsubscribeFooter(htmlContent, unsubscribeUrl);
+    }
 
     if (/@privaterelay\.appleid\.com$/i.test(toAddress) || /@kuky\.com$/i.test(toAddress)) {
         console.log('Not sending email to restricted address:', toAddress);
