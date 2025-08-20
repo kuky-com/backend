@@ -176,11 +176,16 @@ async function updateUserLocationFromIP(userId, ipAddress) {
         const locationData = await getLocationFromIP(ipAddress);
         
         if (locationData.success && locationData.latitude && locationData.longitude) {
-            
+            let location = `${locationData.city}, ${locationData.country}`;
+            if (!locationData.city) {
+                location = locationData.country;
+            }
+
             await Users.update(
                 {
                     last_latitude: locationData.latitude,
                     last_longitude: locationData.longitude,
+                    location: location,
                 },
                 {
                     where: { id: userId }
