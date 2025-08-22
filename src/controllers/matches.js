@@ -128,7 +128,7 @@ function generateMatchingPrompt(targetUser, compareUsers) {
 
 	prompt += `
                 Return the list of sorted people ID separate by "," only, no other words`;
-	console.log(prompt);
+	// console.log(prompt);
 
 	return prompt;
 }
@@ -161,7 +161,7 @@ async function matchUsers(targetId, compareIds) {
 
 async function findMatchesByPurpose({ user_id, purpose_id }) {
 
-	console.log({ user_id, purpose_id })
+	// console.log({ user_id, purpose_id })
 	try {
 		const blockedUsers = await BlockedUsers.findAll({
 			where: {
@@ -815,7 +815,7 @@ async function getExploreList({ user_id }) {
 		);
 
 		for (const rawuser of users) {
-			console.log(rawuser);
+			// console.log(rawuser);
 			if (suggestions.length > 20) {
 				break;
 			}
@@ -949,7 +949,7 @@ async function getAllUsersForSupport() {
 					(match.sender_id === 1 && match.receiver_id === user.id) ||
 					(match.receiver_id === 1 && match.sender_id === user.id)
 			);
-			console.log({ match })
+			// console.log({ match })
 			return {
 				...user,
 				match_info: match || null,
@@ -1941,7 +1941,7 @@ async function getSampleExplore({ limit = 20, offset = 0 }) {
 			raw: true
 		});
 
-		console.log({ randomSampleUsers })
+		// console.log({ randomSampleUsers })
 
 		for (const rawuser of randomSampleUsers) {
 			try {
@@ -1991,7 +1991,7 @@ async function getMessages(conversationId, pageSize = 10, nextPageToken) {
 
 	if (nextPageToken && nextPageToken !== '') {
 		const snapshot = await messagesRef.doc(nextPageToken).get();
-		console.log('snapshot', snapshot);
+		// console.log('snapshot', snapshot);
 		if (!snapshot.exists) {
 			throw Error('Invalid nextPageToken');
 		}
@@ -2895,9 +2895,9 @@ async function getOtherSimilarPath({ profile_id, limit = 6, user_id }) {
 			}
 		} else {
 			whereFilter.id = {
-				[Op.notIn]: [profile_id],
-				profile_approved: 'approved'
+				[Op.notIn]: [profile_id]
 			}
+			whereFilter.profile_approved = 'approved'
 		}
 
 		const filterUsers = await Users.findAll({
@@ -3068,7 +3068,7 @@ async function getNextMatch({ journey_id, current_profile_id, user_id }) {
 			raw: true,
 		})
 
-		console.log({ journey_id, current_profile_id, user_id, next: nextUser.id })
+		// console.log({ journey_id, current_profile_id, user_id, next: nextUser.id })
 
 		return getFriendProfile({ user_id, friend_id: nextUser.id })
 	} catch (error) {
