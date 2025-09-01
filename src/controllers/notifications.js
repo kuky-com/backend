@@ -116,7 +116,7 @@ async function addNewPushNotification(user_id, match = null, suggest = null, typ
 				attributes: ['id'],
 				raw: true,
 			});
-			console.log({ supportUsers })
+			// console.log({ supportUsers })
 			for (const supportUser of supportUsers) {
 				await sendSinglePush(
 					supportUser.id,

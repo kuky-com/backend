@@ -248,6 +248,25 @@ async function updateSubtitle(user_id, media_url, type) {
 	}
 }
 
+async function deleteVideo(user_id, type){
+	try {
+		await Users.update({
+				[`subtitle_${type}`]: null,
+				[`video_${type}_transcript`]: null,
+				[`video_${type}`]: null,
+				[`video_${type}_blur`]: null,
+				[`audio_${type}`]: null
+			}, {
+				where: { id: user_id },
+			});
+		return Promise.resolve({
+			message: 'Delete successfully',
+		});
+	} catch (error) {
+		console.error('Error deleting video:', error);
+	}
+}
+
 async function updateLikeDislike(user_id, media_url) {
 	try {
 		const response = await axios.post('https://ugfgxk4hudtff26aeled4u3h3u0buuhr.lambda-url.ap-southeast-1.on.aws', {
@@ -985,8 +1004,11 @@ async function getStats({ user_id, start_date, end_date }) {
 						Sequelize.literal(`(
 							SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 							FROM session_logs AS sl
+							LEFT JOIN users AS receiver_user ON sl.receiver_id = receiver_user.id
 							WHERE sl.user_id = users.id 
 							AND sl.user_id IS NOT NULL
+							AND sl.receiver_id IS NOT NULL
+							AND (receiver_user.is_moderators = FALSE OR receiver_user.is_moderators IS NULL)
 							AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 							AND (
 								(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
@@ -1023,7 +1045,10 @@ async function getStats({ user_id, start_date, end_date }) {
 			const totalSessionTime = await Sequelize.query(
 				`SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0) AS total_time
 				 FROM session_logs AS sl
+				 LEFT JOIN users AS receiver_user ON sl.receiver_id = receiver_user.id
 				 WHERE sl.user_id = :user_id
+				 AND sl.receiver_id IS NOT NULL
+				 AND (receiver_user.is_moderators = FALSE OR receiver_user.is_moderators IS NULL)
 				 AND sl.start_time BETWEEN :start_date AND :end_date`,
 				{
 					replacements: {
@@ -1207,8 +1232,11 @@ async function getAllModeratorsPayments({ start_date, end_date }) {
 							Sequelize.literal(`(
 								SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 								FROM session_logs AS sl
+								LEFT JOIN users AS receiver_user ON sl.receiver_id = receiver_user.id
 								WHERE sl.user_id = users.id 
 								AND sl.user_id IS NOT NULL
+								AND sl.receiver_id IS NOT NULL
+								AND (receiver_user.is_moderators = FALSE OR receiver_user.is_moderators IS NULL)
 								AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 								AND (
 									(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
@@ -1376,8 +1404,11 @@ async function getStatsByMonth({ user_id }) {
 								Sequelize.literal(`(
 									SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sl.end_time - sl.start_time))), 0)
 									FROM session_logs AS sl
+									LEFT JOIN users AS receiver_user ON sl.receiver_id = receiver_user.id
 									WHERE sl.user_id = users.id 
 									AND sl.user_id IS NOT NULL
+									AND sl.receiver_id IS NOT NULL
+									AND (receiver_user.is_moderators = FALSE OR receiver_user.is_moderators IS NULL)
 									AND sl.start_time BETWEEN '${startOfDay}' AND '${endOfDay}'
 									AND (
 										(sl.screen_name = 'index' AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) > 120 AND EXTRACT(EPOCH FROM (sl.end_time - sl.start_time)) < 900)
@@ -1482,7 +1513,7 @@ async function sendUserInvitation({ user_id, recipients }) {
 			include: [{ model: Journeys }],
 		});
 
-		console.log({ user: user.toJSON() })
+		// console.log({ user: user.toJSON() })
 		if (!user || !user.toJSON().journey) {
 			return Promise.reject('User not found');
 		}
@@ -1632,5 +1663,5 @@ module.exports = {
 	analyzeTranscriptionAndCreateTags,
 	getDistinctPlatforms,
 	db,
-	
+	deleteVideo
 };

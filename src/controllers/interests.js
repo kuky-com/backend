@@ -1086,7 +1086,7 @@ async function checkPurposeMatch(user1, user2) {
 
 		for (let purpose of user1.purposes) {
 			for (let purpose2 of user2.purposes) {
-				console.log(purpose, purpose2);
+				// console.log(purpose, purpose2);
 				messages.push(`
 				 Item1 : ${purpose.name}
 				 Item2: ${purpose2.name}
@@ -1271,7 +1271,7 @@ async function getValidJourneys() {
 			type: Sequelize.QueryTypes.SELECT,
 		});
 
-		console.log({ results });
+		// console.log({ results });
 
 		return Promise.resolve({
 			message: 'Purposes retrieved successfully!',

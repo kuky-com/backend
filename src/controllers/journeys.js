@@ -103,7 +103,7 @@ async function getActiveJourneys({ user_id }) {
             extraQuery = `and u.id not in (${avoidUserIds.join(', ')})`
         }
 
-        console.log({extraQuery})
+        // console.log({extraQuery})
         
         const query = `
             SELECT 
