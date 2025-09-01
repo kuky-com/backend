@@ -192,8 +192,8 @@ async function updateUserLocationFromIP(userId, ipAddress) {
                 }
             );
 
-            console.log(`Updated user ${userId} location: ${locationData.latitude}, ${locationData.longitude} (${locationData.city}, ${locationData.country})`);
-            
+            // console.log(`Updated user ${userId} location: ${locationData.latitude}, ${locationData.longitude} (${locationData.city}, ${locationData.country})`);
+
             return {
                 success: true,
                 updated: true,

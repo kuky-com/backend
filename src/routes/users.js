@@ -232,6 +232,33 @@ router.get('/:userId/profile', authMiddleware, (request, response, next) => {
 		});
 });
 
+router.post('/delete-video', authMiddleware, (request, response, next) => {
+	const { user_id } = request;
+	const { type } = request.body;
+
+	if (!user_id || !type) {
+		return response.json({
+			success: false,
+			message: 'Missing required params: user_id, type',
+		});
+	}
+
+	return users
+		.deleteVideo(user_id, type)
+		.then(({ message }) => {
+			return response.json({
+				success: true,
+				message: message,
+			});
+		})
+		.catch((error) => {
+			return response.json({
+				success: false,
+				message: `${error}`,
+			});
+		});
+});
+
 router.post('/delete-account', authMiddleware, (request, response, next) => {
 	const { user_id } = request;
 	const { reason } = request.body;
@@ -758,7 +785,7 @@ router.post(
 router.post('/sessions', authMiddleware, async (req, res) => {
 	const { user_id } = req;
 	const session_id = uuidv4()
-	const { device_id, platform, start_time, screen_name } = req.body;
+	const { device_id, platform, start_time, screen_name, receiver_id } = req.body;
 
 	try {
 		const latestSession = await SessionLog.findOne({
@@ -799,7 +826,8 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 			device_id,
 			platform,
 			start_time,
-			screen_name: screen_name || 'index'
+			screen_name: screen_name || 'index',
+			receiver_id
 		});
 
 		res.status(200).json({

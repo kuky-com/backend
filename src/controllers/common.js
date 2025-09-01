@@ -373,7 +373,7 @@ async function getSimpleProfile({ user_id }) {
                 return Promise.reject('User not found');
             }
 
-            console.log({ user })
+            // console.log({ user })
 
             const reviewsData = await getReviewStats(user_id);
 

@@ -36,6 +36,15 @@ const SessionLog = sequelize.define('session_logs', {
         type: DataTypes.STRING,
         defaultValue: 'index'
     },
+    receiver_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id',
+        },
+        onDelete: 'SET NULL',
+    },
     createdAt: {
         allowNull: false,
         type: DataTypes.DATE,
