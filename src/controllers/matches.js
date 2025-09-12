@@ -2317,60 +2317,35 @@ async function getMatchesByTags({ user_id, keyword, journey_id, limit = 20, offs
 				whereFilter.profile_approved = {
 					[Op.in]: ['approved', 'partially_approved']
 				}
-			} else {
-				whereFilter.profile_approved = 'approved'
-			}
+		} else {
+			whereFilter.profile_approved = 'approved'
+		}
 
-			const blockedUsers = await BlockedUsers.findAll({
-				where: {
-					[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
-				},
-				raw: true,
-			});
+		const blockedUsers = await BlockedUsers.findAll({
+			where: {
+				[Op.or]: [{ user_id: user_id }, { blocked_id: user_id }],
+			},
+			raw: true,
+		});
 
-			const matchedUsers = await Matches.findAll({
-				where: {
-					[Op.or]: [
-						{
-							[Op.or]: [
-								{ sender_id: user_id, status: 'rejected' },
-								{ sender_id: user_id, status: 'accepted' },
-								{ sender_id: user_id, status: 'deleted' },
-								{ sender_id: user_id, status: 'sent' },
-								{ receiver_id: user_id, status: 'rejected' },
-								{ receiver_id: user_id, status: 'accepted' },
-								{ receiver_id: user_id, status: 'deleted' },
-							],
-						},
-						{ receiver_id: user_id, status: 'sent' },
-					],
-				},
-				raw: true,
-			});
+		const blockedUserIds = blockedUsers.map((item) =>
+			item.user_id === user_id ? item.blocked_id : item.user_id
+		);
 
-			const blockedUserIds = blockedUsers.map((item) =>
-				item.user_id === user_id ? item.blocked_id : item.user_id
-			);
-			const matchedUserIds = matchedUsers.map((item) =>
-				item.sender_id === user_id ? item.receiver_id : item.sender_id
-			);
+		const moderatorConfig = await Configs.findOne({
+			where: { key: 'moderators_see_others' },
+			raw: true
+		});
 
-			const moderatorConfig = await Configs.findOne({
-				where: { key: 'moderators_see_others' },
-				raw: true
-			});
+		if (moderatorConfig?.value === "0" && !currentUser?.is_moderators) {
+			whereFilter.is_moderator = false;
+		}
 
-			if (moderatorConfig?.value === "0" && !currentUser?.is_moderators) {
-				whereFilter.is_moderator = false;
-			}
+		whereFilter.id = {
+			[Op.notIn]: [user_id, ...blockedUserIds]
+		}
 
-			const avoidUserIds = findUnique(blockedUserIds, matchedUserIds);
-
-			whereFilter.id = {
-				[Op.notIn]: [user_id, ...avoidUserIds]
-			}
-
-			if (currentUser?.matching_tags && currentUser?.matching_tags.length > 0 && sort_by === 'relevance') {
+		if (currentUser?.matching_tags && currentUser?.matching_tags.length > 0 && sort_by === 'relevance') {
 				const filterUsers = await Users.findAll({
 					where: whereFilter,
 					attributes: ['id', 'journey_id', 'matching_tags'],
