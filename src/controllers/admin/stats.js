@@ -6,6 +6,7 @@ const sendbird = require('../sendbird');
 const Messages = require('../../models/messages');
 const ProfileViews = require('../../models/profile_views');
 const Journeys = require('../../models/journeys');
+const Sessions = require('../../models/sessions');
 const sequelize = require('../../config/database');
 const Users = require('../../models/users');
 const JourneyCategories = require('../../models/journey_categories');
@@ -549,6 +550,103 @@ async function getSubscriptionStats() {
 	}
 }
 
+async function getStickinessStats(granularity = 'month', timeline = 'year') {
+	try {
+		const startDate = parseTimeline(timeline);
+		const monthlyActiveUsers = await sequelize.query(`
+			SELECT 
+				to_char(date_trunc('month', COALESCE(last_active, login_date)), 'YYYY-MM') as month,
+				COUNT(DISTINCT user_id) as mau
+			FROM sessions
+			WHERE COALESCE(last_active, login_date) IS NOT NULL
+			${startDate ? `AND COALESCE(last_active, login_date) >= '${startDate.toISOString()}'` : ''}
+			GROUP BY date_trunc('month', COALESCE(last_active, login_date))
+			ORDER BY month
+		`, { type: Sequelize.QueryTypes.SELECT });
+
+		const dailyActiveUsers = await sequelize.query(`
+			SELECT 
+				to_char(daily_stats.month, 'YYYY-MM') as month,
+				AVG(daily_stats.daily_users) as avg_dau
+			FROM (
+				SELECT 
+					date_trunc('month', COALESCE(last_active, login_date)) as month,
+					date_trunc('day', COALESCE(last_active, login_date)) as day,
+					COUNT(DISTINCT user_id) as daily_users
+				FROM sessions
+				WHERE COALESCE(last_active, login_date) IS NOT NULL
+				${startDate ? `AND COALESCE(last_active, login_date) >= '${startDate.toISOString()}'` : ''}
+				GROUP BY date_trunc('month', COALESCE(last_active, login_date)), date_trunc('day', COALESCE(last_active, login_date))
+			) daily_stats
+			GROUP BY daily_stats.month
+			ORDER BY month
+		`, { type: Sequelize.QueryTypes.SELECT });
+
+		const stickinessData = monthlyActiveUsers.map(mauData => {
+			const dauData = dailyActiveUsers.find(d => d.month === mauData.month);
+			const mau = parseInt(mauData.mau);
+			const avgDau = dauData ? parseFloat(dauData.avg_dau) : 0;
+			const stickinessScore = mau > 0 ? (avgDau / mau) * 100 : 0;
+
+			return {
+				month: mauData.month,
+				mau,
+				avgDau: Math.round(avgDau),
+				stickinessScore: Math.round(stickinessScore * 10) / 10 // Round to 1 decimal place
+			};
+		});
+
+		const totalMAU = stickinessData.reduce((sum, data) => sum + data.mau, 0);
+		const totalAvgDAU = stickinessData.reduce((sum, data) => sum + data.avgDau, 0);
+		const avgStickinessScore = stickinessData.length > 0 
+			? stickinessData.reduce((sum, data) => sum + data.stickinessScore, 0) / stickinessData.length
+			: 0;
+
+		const sessionMetrics = await sequelize.query(`
+			SELECT 
+				COUNT(DISTINCT user_id) as total_active_users,
+				COUNT(*) as total_sessions,
+				AVG(EXTRACT(EPOCH FROM (logout_date - login_date))/60) as avg_session_duration_minutes,
+				COUNT(CASE WHEN logout_date IS NULL THEN 1 END) as active_sessions
+			FROM sessions
+			WHERE login_date IS NOT NULL
+			${startDate ? `AND login_date >= '${startDate.toISOString()}'` : ''}
+		`, { type: Sequelize.QueryTypes.SELECT });
+
+		const metrics = sessionMetrics[0];
+
+		return {
+			intervals: stickinessData,
+			summary: {
+				avgMAU: Math.round(totalMAU / (stickinessData.length || 1)),
+				avgDAU: Math.round(totalAvgDAU / (stickinessData.length || 1)),
+				avgStickinessScore: Math.round(avgStickinessScore * 10) / 10,
+				totalActiveUsers: parseInt(metrics.total_active_users || 0),
+				totalSessions: parseInt(metrics.total_sessions || 0),
+				avgSessionDuration: Math.round(parseFloat(metrics.avg_session_duration_minutes || 0) * 10) / 10,
+				activeSessions: parseInt(metrics.active_sessions || 0)
+			},
+		};
+	} catch (error) {
+		console.error('Error fetching stickiness stats:', error);
+		
+		return { 
+			intervals: [],
+			summary: { 
+				avgMAU: 0, 
+				avgDAU: 0, 
+				avgStickinessScore: 0,
+				totalActiveUsers: 0,
+				totalSessions: 0,
+				avgSessionDuration: 0,
+				activeSessions: 0
+			},
+			error: `Unable to calculate stickiness from sessions: ${error.message}. Showing empty data.`,
+			note: 'Stickiness calculation failed. Showing empty data.'
+		};
+	}
+}
+
 module.exports = {
 	getUserGrowth,
 	getMatches,
@@ -561,5 +659,6 @@ module.exports = {
 	getUsersByPlatformStats,
 	getUsersByLeadStats,
 	getUsersByCampaignStats,
-	getSubscriptionStats
+	getSubscriptionStats,
+	getStickinessStats
 };

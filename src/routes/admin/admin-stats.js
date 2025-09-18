@@ -178,4 +178,22 @@ router.get('/subscription-stats', async (req, res) => {
 	}
 });
 
+router.get('/stickiness', async (req, res) => {
+	try {
+		const result = await stats.getStickinessStats(
+			req.query.granularity || 'month', 
+			req.query.timeline || 'year'
+		);
+		res.status(200).json({ 
+			data: result, 
+			success: true 
+		});
+	} catch (err) {
+		res.status(500).json({ 
+			message: err.message, 
+			success: false 
+		});
+	}
+});
+
 module.exports = router;
