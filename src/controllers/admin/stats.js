@@ -308,33 +308,29 @@ async function getCountJourneys() {
 
 async function getCountJourneyCategories() {
 	try {
-		const results = []
-
-		const categories = await JourneyCategories.findAll({
-			raw: true
-		})
-
-		categories.forEach(async (category) => {
-			const count = await Users.count({
-				where: {
-					journey_category_id: category.id
-				}
-			})
-			results.push({ name: category.name, id: category.id, count: count })
+		const results = await sequelize.query(`
+			SELECT jc.id, jc.name, COUNT(u.id) as count
+			FROM journey_categories jc
+			INNER JOIN journeys j ON j.category = jc.id
+			INNER JOIN users u ON u.journey_id = j.id
+			GROUP BY jc.id, jc.name
+			ORDER BY jc.id
+		`, { 
+			type: Sequelize.QueryTypes.SELECT 
 		});
 
-		const totalUsers = await Users.count({
-			where: {
-				journey_category_id: {
-					[Op.ne]: null
-				}
-			}
-		})
+		const categories = results.map(row => ({
+			name: row.name,
+			id: row.id,
+			count: parseInt(row.count, 10)
+		}));
 
-		return { categories: results, total: totalUsers }
+		const totalUsers = categories.reduce((sum, cat) => sum + cat.count, 0);
+
+		return { categories, total: totalUsers };
 	} catch (error) {
-		console.error('Error fetching user counts by journey:', error);
-		return { categories: [], total: 0 }
+		console.error('Error fetching user counts by journey categories:', error);
+		return { categories: [], total: 0 };
 	}
 }
 
